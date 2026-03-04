@@ -3,4 +3,4 @@
 
 🇷🇺RU: Lunacy — Серверный софт, для Minecraft Bedrock Edition, создано на основе PocketMine-NetherGames.
 
-![Lunacy Logo](./images/840F8544-77BC-4741-9CDA-A619E61AA6EE.png)
+![Lunacy Logo](./assets/840F8544-77BC-4741-9CDA-A619E61AA6EE.png)
