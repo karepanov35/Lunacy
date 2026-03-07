@@ -1,5 +1,5 @@
 # Lunacy
-![Lunacy Logo](./assets/840F8544-77BC-4741-9CDA-A619E61AA6EE.png)
+![Lunacy Logo](./assets/446C9006-6976-4F8A-B47F-D2AFD72F3F61.png)
 
 
   ________________
