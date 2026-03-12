@@ -12,6 +12,9 @@ Our modification runs on PHP language, version 8.1+, and also supports all new v
 
 Наша модификация работает на PHP языке на версии от «8.1+», так же поддерживает все новые версии Minecraft Bedorck начиная с 1.20.0 до 1.26.
 
+❗️We didn't list all the changes; you can see them in the releases.
+
+
 ## 🇷🇺 Дополнительные сыллки / 🇺🇸 Additional links:
 [![VK](https://img.shields.io/badge/VK-4680C2?style=flat&logo=vk&logoColor=white)](https://vk.com/id)
 [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/username)
