@@ -13,6 +13,9 @@ Our modification runs on PHP language, version 8.1+, and also supports all new v
 Наша модификация работает на PHP языке на версии от «8.1+», так же поддерживает все новые версии Minecraft Bedorck начиная с 1.20.0 до 1.26.
 
 ## Соцсети
-[![VK](https://img.shields.io/badge/-VKontakte-4680C2?style=flat-square&logo=vk&logoColor=white)](https://vk.com/ваш_id) [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/ваш_username)
+## 📞 Контакты
+[![VK](https://img.shields.io/badge/VK-4680C2?style=flat&logo=vk&logoColor=white)](https://vk.com/id)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/username)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/username)
 
 
