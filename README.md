@@ -11,3 +11,7 @@ Our modification runs on PHP language, version 8.1+, and also supports all new v
 🇷🇺RU: Lunacy — Серверный софт, для Minecraft Bedrock Edition, создано на основе PocketMine-NetherGames.
 
 Наша модификация работает на PHP языке на версии от «8.1+», так же поддерживает все новые версии Minecraft Bedorck начиная с 1.20.0 до 1.26.
+
+## Соцсети
+[![VK](https://img.shields.io/badge/-VKontakte-4680C2?style=flat-square&logo=vk&logoColor=white)](https://vk.com/ваш_id)
+
