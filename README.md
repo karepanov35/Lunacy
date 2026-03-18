@@ -9,5 +9,43 @@ Our modification runs on PHP language, version 8.1+, and also supports all new v
 ❗️This project is licensed under LGPL-3.0. Please see the LICENSE file for details.
 Lunacy are not affiliated with Mojang. All brands and trademarks belong to their respective owners. Lunacy is not a Mojang-approved software, nor is it associated with Mojang.
 
+---
+
+## Installing our modification:
+
+### Windows (recommended)
+
+1) Install dependencies:
+
+```bash
+composer install
+```
+
+2) Start the server:
+- `start.bat` (regular start)
+- `start.ps1 -Loop` (restart loop after shutdown)
+
+### Linux / macOS
+
+1) Install dependencies:
+
+```bash
+composer install
+```
+
+2) Start (if you’re using the `phar` build):
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+> Note: in this repository, the Windows launcher runs from source (`src/PocketMine.php`). The Bash script expects `PocketMine-MP.phar` by default.
+
+---
+
 
 Additional links:
+
+[![VK](https://img.shields.io/badge/VK-4680C2?style=flat&logo=vk&logoColor=white)](https://vk.ru/lunacydev)
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://vk.ru/lunacydev)
