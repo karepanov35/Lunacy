@@ -1,0 +1,62 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\event\block;
+
+use pocketmine\block\Campfire;
+use pocketmine\event\Cancellable;
+use pocketmine\event\CancellableTrait;
+use pocketmine\item\Item;
+
+class CampfireCookEvent extends BlockEvent implements Cancellable{
+	use CancellableTrait;
+
+	public function __construct(
+		private Campfire $campfire,
+		private int $slot,
+		private Item $input,
+		private Item $result
+	){
+		parent::__construct($campfire);
+		$this->input = clone $input;
+	}
+
+	public function getCampfire() : Campfire{
+		return $this->campfire;
+	}
+
+	public function getSlot() : int{
+		return $this->slot;
+	}
+
+	public function getInput() : Item{
+		return $this->input;
+	}
+
+	public function getResult() : Item{
+		return $this->result;
+	}
+
+	public function setResult(Item $result) : void{
+		$this->result = $result;
+	}
+}

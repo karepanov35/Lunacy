@@ -1,0 +1,56 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\player;
+
+use pocketmine\entity\Skin;
+use Ramsey\Uuid\UuidInterface;
+
+/**
+ * Encapsulates player info specific to players who are authenticated with XBOX Live.
+ */
+final class XboxLivePlayerInfo extends PlayerInfo{
+	private string $xuid;
+
+	public function __construct(string $xuid, string $username, UuidInterface $uuid, Skin $skin, string $locale, array $extraData = []){
+		parent::__construct($username, $uuid, $skin, $locale, $extraData);
+		$this->xuid = $xuid;
+	}
+
+	public function getXuid() : string{
+		return $this->xuid;
+	}
+
+	/**
+	 * Returns a new PlayerInfo with XBL player info stripped. This is used to ensure that non-XBL players can't spoof
+	 * XBL data.
+	 */
+	public function withoutXboxData() : PlayerInfo{
+		return new PlayerInfo(
+			$this->getUsername(),
+			$this->getUuid(),
+			$this->getSkin(),
+			$this->getLocale(),
+			$this->getExtraData()
+		);
+	}
+}

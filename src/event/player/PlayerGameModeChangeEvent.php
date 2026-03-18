@@ -1,0 +1,46 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\event\player;
+
+use pocketmine\event\Cancellable;
+use pocketmine\event\CancellableTrait;
+use pocketmine\player\GameMode;
+use pocketmine\player\Player;
+
+/**
+ * Called when a player has its gamemode changed
+ */
+class PlayerGameModeChangeEvent extends PlayerEvent implements Cancellable{
+	use CancellableTrait;
+
+	public function __construct(
+		Player $player,
+		protected GameMode $newGamemode
+	){
+		$this->player = $player;
+	}
+
+	public function getNewGamemode() : GameMode{
+		return $this->newGamemode;
+	}
+}

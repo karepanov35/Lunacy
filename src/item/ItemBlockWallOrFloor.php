@@ -1,0 +1,54 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\item;
+
+use pocketmine\block\Block;
+use pocketmine\block\RuntimeBlockStateRegistry;
+use pocketmine\math\Axis;
+use pocketmine\math\Facing;
+
+class ItemBlockWallOrFloor extends Item{
+	private int $floorVariant;
+	private int $wallVariant;
+
+	public function __construct(ItemIdentifier $identifier, Block $floorVariant, Block $wallVariant){
+		parent::__construct($identifier, $floorVariant->getName());
+		$this->floorVariant = $floorVariant->getStateId();
+		$this->wallVariant = $wallVariant->getStateId();
+	}
+
+	public function getBlock(?int $clickedFace = null) : Block{
+		if($clickedFace !== null && Facing::axis($clickedFace) !== Axis::Y){
+			return RuntimeBlockStateRegistry::getInstance()->fromStateId($this->wallVariant);
+		}
+		return RuntimeBlockStateRegistry::getInstance()->fromStateId($this->floorVariant);
+	}
+
+	public function getFuelTime() : int{
+		return $this->getBlock()->getFuelTime();
+	}
+
+	public function getMaxStackSize() : int{
+		return $this->getBlock()->getMaxStackSize();
+	}
+}

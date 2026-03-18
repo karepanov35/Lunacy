@@ -1,0 +1,53 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\block\utils;
+
+use pocketmine\block\inventory\BrewingStandInventory;
+use pocketmine\utils\LegacyEnumShimTrait;
+
+/**
+ * TODO: These tags need to be removed once we get rid of LegacyEnumShimTrait (PM6)
+ *  These are retained for backwards compatibility only.
+ *
+ * @method static BrewingStandSlot EAST()
+ * @method static BrewingStandSlot NORTHWEST()
+ * @method static BrewingStandSlot SOUTHWEST()
+ */
+enum BrewingStandSlot{
+	use LegacyEnumShimTrait;
+
+	case EAST;
+	case NORTHWEST;
+	case SOUTHWEST;
+
+	/**
+	 * Returns the brewing stand inventory slot number associated with this visual slot.
+	 */
+	public function getSlotNumber() : int{
+		return match($this){
+			self::EAST => BrewingStandInventory::SLOT_BOTTLE_LEFT,
+			self::NORTHWEST => BrewingStandInventory::SLOT_BOTTLE_MIDDLE,
+			self::SOUTHWEST => BrewingStandInventory::SLOT_BOTTLE_RIGHT
+		};
+	}
+}

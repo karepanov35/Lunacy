@@ -1,0 +1,69 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\block;
+
+use pocketmine\block\utils\StaticSupportTrait;
+use pocketmine\item\Item;
+use pocketmine\item\VanillaItems;
+use pocketmine\math\Facing;
+use function mt_rand;
+
+class DeadBush extends Flowable{
+	use StaticSupportTrait;
+
+	public function getDropsForIncompatibleTool(Item $item) : array{
+		return [
+			VanillaItems::STICK()->setCount(mt_rand(0, 2))
+		];
+	}
+
+	public function isAffectedBySilkTouch() : bool{
+		return true;
+	}
+
+	public function getFlameEncouragement() : int{
+		return 60;
+	}
+
+	public function getFlammability() : int{
+		return 100;
+	}
+
+	private function canBeSupportedAt(Block $block) : bool{
+		$supportBlock = $block->getSide(Facing::DOWN);
+		return
+			$supportBlock->hasTypeTag(BlockTypeTags::SAND) ||
+			$supportBlock->hasTypeTag(BlockTypeTags::MUD) ||
+			match($supportBlock->getTypeId()){
+				//can't use DIRT tag here because it includes farmland
+				BlockTypeIds::PODZOL,
+				BlockTypeIds::MYCELIUM,
+				BlockTypeIds::DIRT,
+				BlockTypeIds::GRASS,
+				BlockTypeIds::HARDENED_CLAY,
+				BlockTypeIds::STAINED_CLAY => true,
+				//TODO: moss block
+				default => false,
+			};
+	}
+}

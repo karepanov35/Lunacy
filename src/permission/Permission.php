@@ -1,0 +1,98 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+/**
+ * Permission related classes
+ */
+
+namespace pocketmine\permission;
+
+use pocketmine\lang\Translatable;
+
+/**
+ * Represents a permission
+ */
+class Permission{
+	private Translatable|string $description;
+
+	/**
+	 * Creates a new Permission object to be attached to Permissible objects
+	 *
+	 * @param bool[] $children
+	 * @phpstan-param array<string, bool> $children
+	 */
+	public function __construct(
+		private string $name,
+		Translatable|string|null $description = null,
+		private array $children = []
+	){
+		$this->description = $description ?? ""; //TODO: wtf ????
+
+		$this->recalculatePermissibles();
+	}
+
+	public function getName() : string{
+		return $this->name;
+	}
+
+	/**
+	 * @return bool[]
+	 * @phpstan-return array<string, bool>
+	 */
+	public function getChildren() : array{
+		return $this->children;
+	}
+
+	public function getDescription() : Translatable|string{
+		return $this->description;
+	}
+
+	public function setDescription(Translatable|string $value) : void{
+		$this->description = $value;
+	}
+
+	/**
+	 * @return PermissibleInternal[]
+	 */
+	public function getPermissibles() : array{
+		return PermissionManager::getInstance()->getPermissionSubscriptions($this->name);
+	}
+
+	public function recalculatePermissibles() : void{
+		$perms = $this->getPermissibles();
+
+		foreach($perms as $p){
+			$p->recalculatePermissions();
+		}
+	}
+
+	public function addChild(string $name, bool $value) : void{
+		$this->children[$name] = $value;
+		$this->recalculatePermissibles();
+	}
+
+	public function removeChild(string $name) : void{
+		unset($this->children[$name]);
+		$this->recalculatePermissibles();
+
+	}
+}

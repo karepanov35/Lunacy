@@ -1,0 +1,66 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\block\inventory;
+
+use pocketmine\player\Player;
+use pocketmine\world\sound\Sound;
+use function count;
+
+trait AnimatedBlockInventoryTrait{
+	use BlockInventoryTrait;
+
+	public function getViewerCount() : int{
+		return count($this->getViewers());
+	}
+
+	/**
+	 * @return Player[]
+	 * @phpstan-return array<int, Player>
+	 */
+	abstract public function getViewers() : array;
+
+	abstract protected function getOpenSound() : Sound;
+
+	abstract protected function getCloseSound() : Sound;
+
+	public function onOpen(Player $who) : void{
+		parent::onOpen($who);
+
+		if($this->holder->isValid() && $this->getViewerCount() === 1){
+			//TODO: this crap really shouldn't be managed by the inventory
+			$this->animateBlock(true);
+			$this->holder->getWorld()->addSound($this->holder->add(0.5, 0.5, 0.5), $this->getOpenSound());
+		}
+	}
+
+	abstract protected function animateBlock(bool $isOpen) : void;
+
+	public function onClose(Player $who) : void{
+		if($this->holder->isValid() && $this->getViewerCount() === 1){
+			//TODO: this crap really shouldn't be managed by the inventory
+			$this->animateBlock(false);
+			$this->holder->getWorld()->addSound($this->holder->add(0.5, 0.5, 0.5), $this->getCloseSound());
+		}
+		parent::onClose($who);
+	}
+}

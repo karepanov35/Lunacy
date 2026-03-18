@@ -1,0 +1,60 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\command\defaults;
+
+use pocketmine\command\CommandSender;
+use pocketmine\command\utils\InvalidCommandSyntaxException;
+use pocketmine\lang\KnownTranslationFactory;
+use pocketmine\permission\DefaultPermissionNames;
+use pocketmine\player\GameMode;
+use pocketmine\ServerProperties;
+use function count;
+
+class DefaultGamemodeCommand extends VanillaCommand{
+
+	public function __construct(){
+		parent::__construct(
+			"defaultgamemode",
+			KnownTranslationFactory::pocketmine_command_defaultgamemode_description(),
+			KnownTranslationFactory::commands_defaultgamemode_usage()
+		);
+		$this->setPermission(DefaultPermissionNames::COMMAND_DEFAULTGAMEMODE);
+	}
+
+	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(count($args) === 0){
+			throw new InvalidCommandSyntaxException();
+		}
+
+		$gameMode = GameMode::fromString($args[0]);
+		if($gameMode === null){
+			$sender->sendMessage(KnownTranslationFactory::pocketmine_command_gamemode_unknown($args[0]));
+			return true;
+		}
+
+		//TODO: this probably shouldn't use the enum name directly
+		$sender->getServer()->getConfigGroup()->setConfigString(ServerProperties::GAME_MODE, $gameMode->name);
+		$sender->sendMessage(KnownTranslationFactory::commands_defaultgamemode_success($gameMode->getTranslatableName()));
+		return true;
+	}
+}

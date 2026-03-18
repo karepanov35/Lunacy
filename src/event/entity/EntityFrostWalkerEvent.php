@@ -1,0 +1,83 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\event\entity;
+
+use pocketmine\block\Block;
+use pocketmine\block\Liquid;
+use pocketmine\entity\Living;
+use pocketmine\event\Cancellable;
+use pocketmine\event\CancellableTrait;
+
+/**
+ * Called when an entity moves horizontally while wearing boots enchanted with Frost Walker.
+ *
+ * @phpstan-extends EntityEvent<Living>
+ */
+class EntityFrostWalkerEvent extends EntityEvent implements Cancellable{
+	use CancellableTrait;
+
+	public function __construct(
+		Living $entity,
+		private int $radius,
+		private Liquid $liquid,
+		private Block $targetBlock
+	){
+		$this->entity = $entity;
+	}
+
+	public function getRadius() : int{
+		return $this->radius;
+	}
+
+	public function setRadius(int $radius) : void{
+		$this->radius = $radius;
+	}
+
+	/**
+	 * Returns the liquid that gets frozen
+	 */
+	public function getLiquid() : Liquid{
+		return $this->liquid;
+	}
+
+	/**
+	 * Sets the liquid that gets frozen
+	 */
+	public function setLiquid(Liquid $liquid) : void{
+		$this->liquid = $liquid;
+	}
+
+	/**
+	 * Returns the block that replaces the liquid
+	 */
+	public function getTargetBlock() : Block{
+		return $this->targetBlock;
+	}
+
+	/**
+	 * Sets the block that replaces the liquid
+	 */
+	public function setTargetBlock(Block $targetBlock) : void{
+		$this->targetBlock = $targetBlock;
+	}
+}

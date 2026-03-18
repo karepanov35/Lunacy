@@ -1,0 +1,303 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine {
+
+	use Composer\InstalledVersions;
+	use pocketmine\errorhandler\ErrorToExceptionHandler;
+	use pocketmine\network\mcpe\protocol\ProtocolInfo;
+	use pocketmine\thread\ThreadManager;
+	use pocketmine\thread\ThreadSafeClassLoader;
+	use pocketmine\utils\Filesystem;
+	use pocketmine\utils\MainLogger;
+	use pocketmine\utils\Process;
+	use pocketmine\utils\ServerKiller;
+	use pocketmine\utils\Terminal;
+	use pocketmine\utils\Timezone;
+	use pocketmine\utils\Utils;
+	use pocketmine\wizard\SetupWizard;
+	use Symfony\Component\Filesystem\Path;
+	use function defined;
+	use function extension_loaded;
+	use function function_exists;
+	use function getcwd;
+	use function getopt;
+	use function is_dir;
+	use function mkdir;
+	use function phpversion;
+	use function preg_match;
+	use function preg_quote;
+	use function printf;
+	use function realpath;
+	use function version_compare;
+	use const DIRECTORY_SEPARATOR;
+	use const PHP_EOL;
+
+	require_once __DIR__ . '/VersionInfo.php';
+
+	const MIN_PHP_VERSION = "8.1.0";
+
+	function critical_error(string $message) : void{
+		echo "[ERROR] $message" . PHP_EOL;
+	}
+
+	function check_platform_dependencies() : array{
+		if(version_compare(MIN_PHP_VERSION, PHP_VERSION) > 0){
+			return ["PHP >= " . MIN_PHP_VERSION . " is required, but you have PHP " . PHP_VERSION . "."];
+		}
+
+		$messages = [];
+
+		if(PHP_INT_SIZE < 8){
+			$messages[] = "32-bit systems/PHP are no longer supported.";
+		}
+
+		if(php_sapi_name() !== "cli"){
+			$messages[] = "Only PHP CLI is supported.";
+		}
+
+		$extensions = [
+			"chunkutils2" => "PocketMine ChunkUtils v2",
+			"curl" => "cURL",
+			"crypto" => "php-crypto",
+			"ctype" => "ctype",
+			"date" => "Date",
+			"encoding" => "pmmp/ext-encoding",
+			"gmp" => "GMP",
+			"hash" => "Hash",
+			"igbinary" => "igbinary",
+			"json" => "JSON",
+			"leveldb" => "LevelDB",
+			"mbstring" => "Multibyte String",
+			"morton" => "morton",
+			"openssl" => "OpenSSL",
+			"pcre" => "PCRE",
+			"phar" => "Phar",
+			"pmmpthread" => "pmmpthread",
+			"reflection" => "Reflection",
+			"sockets" => "Sockets",
+			"spl" => "SPL",
+			"yaml" => "YAML",
+			"zip" => "Zip",
+			"zlib" => "Zlib"
+		];
+
+		foreach($extensions as $ext => $name){
+			if(!extension_loaded($ext)){
+				$messages[] = "Unable to find the $name ($ext) extension.";
+			}
+		}
+
+		if(($pmmpthread_version = phpversion("pmmpthread")) !== false){
+			if(version_compare($pmmpthread_version, "6.1.0") < 0 || version_compare($pmmpthread_version, "7.0.0") >= 0){
+				$messages[] = "pmmpthread ^6.1.0 is required, while you have $pmmpthread_version.";
+			}
+		}
+
+		if(($leveldb_version = phpversion("leveldb")) !== false){
+			if(version_compare($leveldb_version, "0.2.1") < 0){
+				$messages[] = "php-leveldb >= 0.2.1 is required, while you have $leveldb_version.";
+			}
+			if(!defined('LEVELDB_ZLIB_RAW_COMPRESSION')){
+				$messages[] = "php-leveldb doesn't support ZLIB_RAW compression.";
+			}
+		}
+
+		$chunkutils2_version = phpversion("chunkutils2");
+		if($chunkutils2_version !== false && (version_compare($chunkutils2_version, "0.3.0") < 0 || preg_match("/^0\.3\.\d+(?:-dev)?$/", $chunkutils2_version) === 0)){
+			$messages[] = "chunkutils2 ^0.3.0 is required, while you have $chunkutils2_version.";
+		}
+
+		if(($libdeflate_version = phpversion("libdeflate")) !== false){
+			if(version_compare($libdeflate_version, "0.2.0") < 0 || version_compare($libdeflate_version, "0.3.0") >= 0){
+				$messages[] = "php-libdeflate ^0.2.0 is required, while you have $libdeflate_version.";
+			}
+		}
+
+		if(($encoding_version = phpversion("encoding")) !== false){
+			if(version_compare($encoding_version, "1.0.0") < 0 || version_compare($encoding_version, "2.0.0") >= 0){
+				$messages[] = "pmmp/ext-encoding ^1.0.0 is required, while you have $encoding_version.";
+			}
+		}
+
+		if(!defined('AF_INET6')){
+			$messages[] = "IPv6 support is required.";
+		}
+
+		return $messages;
+	}
+
+	function emit_performance_warnings(\Logger $logger) : void{
+		if(ZEND_DEBUG_BUILD){
+			$logger->warning("PHP binary compiled in debug mode. Performance is degraded.");
+		}
+		if(extension_loaded("xdebug") && (!function_exists('xdebug_info') || count(xdebug_info('mode')) !== 0)){
+			$logger->warning("Xdebug is enabled. Performance is degraded.");
+		}
+		if(((int) ini_get('zend.assertions')) !== -1){
+			$logger->warning("Assertions are enabled. Set zend.assertions = -1 in php.ini.");
+		}
+		if(function_exists('opcache_get_status') && ($opcacheStatus = opcache_get_status(false)) !== false){
+			if($opcacheStatus["jit"]["on"] ?? false){
+				$logger->warning("PHP JIT is enabled. This is experimental and may cause bugs.");
+			}
+		}
+	}
+
+	function set_ini_entries() : void{
+		ini_set("allow_url_fopen", '1');
+		ini_set("display_errors", '1');
+		ini_set("display_startup_errors", '1');
+		ini_set("default_charset", "utf-8");
+		ini_set('assert.exception', '1');
+	}
+
+	function getopt_string(string $opt) : ?string{
+		$opts = getopt("", ["$opt:"]);
+		if(isset($opts[$opt])){
+			if(is_string($opts[$opt])) return $opts[$opt];
+			critical_error(is_array($opts[$opt]) ? "Cannot specify --$opt multiple times" : "Missing value for --$opt");
+			exit(1);
+		}
+		return null;
+	}
+
+	function server() : void{
+		if(count($messages = check_platform_dependencies()) > 0){
+			echo PHP_EOL;
+			critical_error("Selected PHP binary does not satisfy requirements.");
+			foreach($messages as $m) echo " - $m" . PHP_EOL;
+			critical_error("PHP binary used: " . (version_compare(PHP_VERSION, "5.4") >= 0 ? PHP_BINARY : "unknown"));
+			critical_error("Loaded php.ini: " . (($file = php_ini_loaded_file()) !== false ? $file : "none"));
+			exit(1);
+		}
+
+		error_reporting(-1);
+		set_ini_entries();
+
+		$bootstrap = dirname(__FILE__, 2) . '/vendor/autoload.php';
+		if(!is_file($bootstrap)){
+			critical_error("Composer autoloader not found. Run 'composer install'.");
+			exit(1);
+		}
+		require_once($bootstrap);
+
+		$composerGitHash = InstalledVersions::getReference('nethergamesmc/pocketmine-mp');
+		if($composerGitHash !== null){
+			$currentGitHash = explode("-", VersionInfo::GIT_HASH(), 2)[0];
+			if($currentGitHash !== $composerGitHash){
+				critical_error("Composer dependencies out of sync (Server: $currentGitHash, Composer: $composerGitHash).");
+				exit(1);
+			}
+		}
+
+		ErrorToExceptionHandler::set();
+
+		if(count(getopt("", [BootstrapOptions::VERSION])) > 0){
+			printf("%s %s (git %s) for MC:BE %s\n", VersionInfo::NAME, VersionInfo::VERSION()->getFullVersion(true), VersionInfo::GIT_HASH(), ProtocolInfo::MINECRAFT_VERSION);
+			exit(0);
+		}
+
+		if(defined('pocketmine\ORIGINAL_PHAR_PATH')){
+			Filesystem::addCleanedPath(ORIGINAL_PHAR_PATH, Filesystem::CLEAN_PATH_SRC_PREFIX);
+		}
+
+		$cwd = Utils::assumeNotFalse(realpath(Utils::assumeNotFalse(getcwd())));
+		$dataPath = getopt_string(BootstrapOptions::DATA) ?? $cwd;
+		$pluginPath = getopt_string(BootstrapOptions::PLUGINS) ?? $cwd . DIRECTORY_SEPARATOR . "plugins";
+		Filesystem::addCleanedPath($pluginPath, Filesystem::CLEAN_PATH_PLUGINS_PREFIX);
+
+		if(!@mkdir($dataPath, 0777, true) && !is_dir($dataPath)){
+			critical_error("Unable to access data directory: $dataPath");
+			exit(1);
+		}
+		$dataPath = realpath($dataPath) . DIRECTORY_SEPARATOR;
+
+		$lockFilePath = Path::join($dataPath, 'server.lock');
+		try {
+			$pid = Filesystem::createLockFile($lockFilePath);
+		} catch(\InvalidArgumentException $e) {
+			critical_error($e->getMessage());
+			exit(1);
+		}
+		if($pid !== null){
+			critical_error("Another instance (PID $pid) is already using folder $dataPath");
+			exit(1);
+		}
+
+		if(!@mkdir($pluginPath, 0777, true) && !is_dir($pluginPath)){
+			critical_error("Unable to create plugin directory: $pluginPath");
+			exit(1);
+		}
+		$pluginPath = realpath($pluginPath) . DIRECTORY_SEPARATOR;
+
+		Timezone::init();
+
+		$opts = getopt("", [BootstrapOptions::NO_WIZARD, BootstrapOptions::ENABLE_ANSI, BootstrapOptions::DISABLE_ANSI, BootstrapOptions::NO_LOG_FILE]);
+		Terminal::init(isset($opts[BootstrapOptions::ENABLE_ANSI]) ?: (isset($opts[BootstrapOptions::DISABLE_ANSI]) ? false : null));
+		
+		$logFile = isset($opts[BootstrapOptions::NO_LOG_FILE]) ? null : Path::join($dataPath, "server.log");
+		$logger = new MainLogger($logFile, Terminal::hasFormattingCodes(), "Server", new \DateTimeZone(Timezone::get()), false, Path::join($dataPath, "log_archive"));
+		
+		echo "
+\033[38;2;255;93;112m██╗     ██╗   ██╗███╗  ██╗ █████╗  █████╗ ██╗   ██╗
+\033[38;2;251;87;102m██║     ██║   ██║████╗ ██║██╔══██╗██╔══██╗╚██╗ ██╔╝
+\033[38;2;248;81;92m██║     ██║   ██║██╔██╗██║███████║██║  ╚═╝ ╚████╔╝
+\033[38;2;244;74;82m██║     ██║   ██║██║╚████║██╔══██║██║  ██╗  ╚██╔╝
+\033[38;2;241;68;72m███████╗╚██████╔╝██║ ╚███║██║  ██║╚█████╔╝   ██║
+\033[38;2;237;62;62m╚══════╝ ╚═════╝ ╚═╝  ╚══╝╚═╝  ╚═╝ ╚════╝    ╚═╝
+\033[0m" . PHP_EOL;
+		
+		\GlobalLogger::set($logger);
+		emit_performance_warnings($logger);
+
+		$exitCode = 0;
+		do {
+			if(!file_exists(Path::join($dataPath, "server.properties")) && !isset($opts[BootstrapOptions::NO_WIZARD])){
+				if(!(new SetupWizard($dataPath))->run()){
+					$exitCode = -1;
+					break;
+				}
+			}
+
+			$autoloader = new ThreadSafeClassLoader();
+			$autoloader->register(false);
+
+			new Server($autoloader, $logger, $dataPath, $pluginPath);
+
+			$killer = new ServerKiller(120);
+			$killer->start();
+			usleep(10000);
+
+			if(ThreadManager::getInstance()->stopAll() > 0){
+				Process::kill(Process::pid());
+			}
+		} while(false);
+
+		$logger->shutdownLogWriterThread();
+		echo Terminal::$FORMAT_RESET . PHP_EOL;
+		Filesystem::releaseLockFile($lockFilePath);
+		exit($exitCode);
+	}
+
+	\pocketmine\server();
+}

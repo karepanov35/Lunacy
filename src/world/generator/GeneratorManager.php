@@ -1,0 +1,135 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\world\generator;
+
+use pocketmine\utils\SingletonTrait;
+use pocketmine\utils\Utils;
+use pocketmine\world\generator\nether\NetherGenerator;
+use pocketmine\world\generator\overworld\OverworldGenerator;
+use function array_keys;
+use function strtolower;
+
+final class GeneratorManager{
+	use SingletonTrait;
+
+	/**
+	 * @var GeneratorManagerEntry[] name => classname mapping
+	 * @phpstan-var array<string, GeneratorManagerEntry>
+	 */
+	private array $list = [];
+
+	public function __construct(){
+		$this->addGenerator(Flat::class, "flat", function(string $preset) : ?InvalidGeneratorOptionsException{
+			if($preset === ""){
+				return null;
+			}
+			try{
+				FlatGeneratorOptions::parsePreset($preset);
+				return null;
+			}catch(InvalidGeneratorOptionsException $e){
+				return $e;
+			}
+		}, fast: true);
+		$this->addGenerator(OverworldGenerator::class, "normal", fn() => null);
+		$this->addAlias("normal", "default");
+		$this->addAlias("normal", "lunacy");
+		$this->addAlias("normal", "vanilla");
+		$this->addGenerator(NetherGenerator::class, "nether", fn() => null);
+		$this->addAlias("nether", "hell");
+	}
+
+	/**
+	 * @param string   $class           Fully qualified name of class that extends \pocketmine\world\generator\Generator
+	 * @param string   $name            Alias for this generator type that can be written in configs
+	 * @param \Closure $presetValidator Callback to validate generator options for new worlds
+	 * @param bool     $overwrite       Whether to force overwriting any existing registered generator with the same name
+	 * @param bool     $fast            Whether this generator is fast enough to run without async tasks
+	 *
+	 * @phpstan-param \Closure(string) : ?InvalidGeneratorOptionsException $presetValidator
+	 *
+	 * @phpstan-param class-string<Generator> $class
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public function addGenerator(string $class, string $name, \Closure $presetValidator, bool $overwrite = false, bool $fast = false) : void{
+		Utils::testValidInstance($class, Generator::class);
+
+		$name = strtolower($name);
+		if(!$overwrite && isset($this->list[$name])){
+			throw new \InvalidArgumentException("Alias \"$name\" is already assigned");
+		}
+
+		$this->list[$name] = new GeneratorManagerEntry($class, $presetValidator, $fast);
+	}
+
+	/**
+	 * Aliases an already-registered generator name to another name. Useful if you want to map a generator name to an
+	 * existing generator without having to replicate the parameters.
+	 */
+	public function addAlias(string $name, string $alias) : void{
+		$name = strtolower($name);
+		$alias = strtolower($alias);
+		if(!isset($this->list[$name])){
+			throw new \InvalidArgumentException("Alias \"$name\" is not assigned");
+		}
+		if(isset($this->list[$alias])){
+			throw new \InvalidArgumentException("Alias \"$alias\" is already assigned");
+		}
+		$this->list[$alias] = $this->list[$name];
+	}
+
+	/**
+	 * Returns a list of names for registered generators.
+	 *
+	 * @return string[]
+	 */
+	public function getGeneratorList() : array{
+		return array_keys($this->list);
+	}
+
+	/**
+	 * Returns the generator entry of a registered Generator matching the given name, or null if not found.
+	 */
+	public function getGenerator(string $name) : ?GeneratorManagerEntry{
+		return $this->list[strtolower($name)] ?? null;
+	}
+
+	/**
+	 * Returns the registered name of the given Generator class.
+	 *
+	 * @param string $class Fully qualified name of class that extends \pocketmine\world\generator\Generator
+	 * @phpstan-param class-string<Generator> $class
+	 *
+	 * @throws \InvalidArgumentException if the class type cannot be matched to a known alias
+	 */
+	public function getGeneratorName(string $class) : string{
+		Utils::testValidInstance($class, Generator::class);
+		foreach(Utils::stringifyKeys($this->list) as $name => $c){
+			if($c->getGeneratorClass() === $class){
+				return $name;
+			}
+		}
+
+		throw new \InvalidArgumentException("Generator class $class is not registered");
+	}
+}

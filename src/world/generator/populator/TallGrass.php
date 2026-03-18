@@ -1,0 +1,88 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\world\generator\populator;
+
+use pocketmine\block\BlockTypeIds;
+use pocketmine\block\Leaves;
+use pocketmine\block\VanillaBlocks;
+use pocketmine\utils\Random;
+use pocketmine\world\ChunkManager;
+use pocketmine\world\format\Chunk;
+
+class TallGrass implements Populator{
+	private int $randomAmount = 1;
+	private int $baseAmount = 0;
+
+	public function setRandomAmount(int $amount) : void{
+		$this->randomAmount = $amount;
+	}
+
+	public function setBaseAmount(int $amount) : void{
+		$this->baseAmount = $amount;
+	}
+
+	public function populate(ChunkManager $world, int $chunkX, int $chunkZ, Random $random) : void{
+		$amount = $random->nextRange(0, $this->randomAmount) + $this->baseAmount;
+
+		for($i = 0; $i < $amount; ++$i){
+			$x = $random->nextRange($chunkX * Chunk::EDGE_LENGTH, $chunkX * Chunk::EDGE_LENGTH + (Chunk::EDGE_LENGTH - 1));
+			$z = $random->nextRange($chunkZ * Chunk::EDGE_LENGTH, $chunkZ * Chunk::EDGE_LENGTH + (Chunk::EDGE_LENGTH - 1));
+			$y = $this->getHighestWorkableBlock($world, $x, $z);
+
+			if($y !== -1 && $this->canTallGrassStay($world, $x, $y, $z)){
+				// 30% chance for double tall grass, 70% for regular tall grass
+				if($random->nextBoundedInt(10) < 3){
+					// Place double tall grass
+					if($world->getBlockAt($x, $y + 1, $z)->getTypeId() === BlockTypeIds::AIR){
+						$doubleTallGrass = VanillaBlocks::DOUBLE_TALLGRASS();
+						$world->setBlockAt($x, $y, $z, (clone $doubleTallGrass)->setTop(false));
+						$world->setBlockAt($x, $y + 1, $z, (clone $doubleTallGrass)->setTop(true));
+					}
+				}else{
+					// Place regular tall grass
+					$world->setBlockAt($x, $y, $z, VanillaBlocks::TALL_GRASS());
+				}
+			}
+		}
+	}
+
+	private function canTallGrassStay(ChunkManager $world, int $x, int $y, int $z) : bool{
+		$b = $world->getBlockAt($x, $y, $z)->getTypeId();
+		return ($b === BlockTypeIds::AIR || $b === BlockTypeIds::SNOW_LAYER) && $world->getBlockAt($x, $y - 1, $z)->getTypeId() === BlockTypeIds::GRASS;
+	}
+
+	private function getHighestWorkableBlock(ChunkManager $world, int $x, int $z) : int{
+		$highestBlock = $world->getChunk($x >> Chunk::COORD_BIT_SIZE, $z >> Chunk::COORD_BIT_SIZE)?->getHighestBlockAt($x & Chunk::COORD_MASK, $z & Chunk::COORD_MASK);
+		if($highestBlock === null){
+			return -1;
+		}
+		for($y = $highestBlock; $y >= 0; --$y){
+			$b = $world->getBlockAt($x, $y, $z);
+			if($b->getTypeId() !== BlockTypeIds::AIR && !($b instanceof Leaves) && $b->getTypeId() !== BlockTypeIds::SNOW_LAYER){
+				return $y + 1;
+			}
+		}
+
+		return -1;
+	}
+}

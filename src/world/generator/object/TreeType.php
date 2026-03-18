@@ -1,0 +1,64 @@
+<?php
+
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+declare(strict_types=1);
+namespace pocketmine\world\generator\object;
+
+use pocketmine\utils\LegacyEnumShimTrait;
+
+/**
+ * TODO: These tags need to be removed once we get rid of LegacyEnumShimTrait (PM6)
+ *  These are retained for backwards compatibility only.
+ *
+ * @method static TreeType ACACIA()
+ * @method static TreeType BIRCH()
+ * @method static TreeType DARK_OAK()
+ * @method static TreeType JUNGLE()
+ * @method static TreeType OAK()
+ * @method static TreeType SPRUCE()
+ */
+enum TreeType{
+	use LegacyEnumShimTrait;
+
+	case OAK;
+	case SPRUCE;
+	case BIRCH;
+	case JUNGLE;
+	case ACACIA;
+	case DARK_OAK;
+	case CRIMSON;
+	case WARPED;
+	//TODO: cherry blossom, mangrove, azalea
+	//TODO: perhaps huge mushrooms should be here too???
+
+	public function getDisplayName() : string{
+		return match($this){
+			self::OAK => "Oak",
+			self::SPRUCE => "Spruce",
+			self::BIRCH => "Birch",
+			self::JUNGLE => "Jungle",
+			self::ACACIA => "Acacia",
+			self::DARK_OAK => "Dark Oak",
+			self::CRIMSON => "Crimson",
+			self::WARPED => "Warped",
+		};
+	}
+}
