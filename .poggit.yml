@@ -1,0 +1,8 @@
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/karepanov35/Lunacy
+build-by-default: true
+branches:
+- main
+projects:
+  tests.plugins.TesterPlugin:
+    path: tests/plugins/TesterPlugin/
+...
