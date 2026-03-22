@@ -133,12 +133,12 @@ function main() : void{
 		echo "Set phar.readonly to 0 with -dphar.readonly=0" . PHP_EOL;
 		exit(1);
 	}
-	if(file_exists(dirname(__DIR__) . '/vendor/phpunit')){
+	$opts = getopt("", ["out:", "git:", "build:", "skip-dev-check"]);
+	if(file_exists(dirname(__DIR__) . '/vendor/phpunit') && !isset($opts["skip-dev-check"])){
 		echo "Remove Composer dev dependencies before building (composer install --no-dev)" . PHP_EOL;
+		echo "Or pass --skip-dev-check (dev files will be included in the phar)." . PHP_EOL;
 		exit(1);
 	}
-
-	$opts = getopt("", ["out:", "git:", "build:"]);
 	if(isset($opts["git"])){
 		$gitHash = $opts["git"];
 	}else{

@@ -24,7 +24,22 @@ namespace pocketmine {
 
 	use Composer\InstalledVersions;
 
+	use function is_dir;
+
 	$CoreConstants_srcRoot = dirname(__DIR__) . DIRECTORY_SEPARATOR;
+
+	$resolveComposerPackagePath = static function(string $packageName, string $vendorSubdir) use ($CoreConstants_srcRoot) : string{
+		if(InstalledVersions::isInstalled($packageName)){
+			return InstalledVersions::getInstallPath($packageName);
+		}
+		$p = $CoreConstants_srcRoot . 'vendor' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $vendorSubdir);
+		if(is_dir($p)){
+			return $p;
+		}
+		throw new \RuntimeException(
+			"Package \"$packageName\" is missing. Expected under vendor/$vendorSubdir — run: composer install"
+		);
+	};
 
 	if(!defined('pocketmine\PATH')){
 		define('pocketmine\PATH', $CoreConstants_srcRoot);
@@ -39,12 +54,36 @@ namespace pocketmine {
 		define('pocketmine\LOCALE_DATA_PATH', RESOURCE_PATH . 'translations' . DIRECTORY_SEPARATOR);
 	}
 	if(!defined('pocketmine\BEDROCK_DATA_PATH')){
-		define('pocketmine\BEDROCK_DATA_PATH', InstalledVersions::getInstallPath('pocketmine/bedrock-data') . DIRECTORY_SEPARATOR);
+		$bedrockData = null;
+		if(InstalledVersions::isInstalled('pocketmine/bedrock-data')){
+			$bedrockData = InstalledVersions::getInstallPath('pocketmine/bedrock-data');
+		}elseif(InstalledVersions::isInstalled('nethergamesmc/bedrock-data')){
+			$bedrockData = InstalledVersions::getInstallPath('nethergamesmc/bedrock-data');
+		}else{
+			$vendor = $CoreConstants_srcRoot . 'vendor' . DIRECTORY_SEPARATOR;
+			foreach(['pocketmine/bedrock-data', 'nethergamesmc/bedrock-data'] as $rel){
+				$p = $vendor . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+				if(is_dir($p)){
+					$bedrockData = $p;
+					break;
+				}
+			}
+		}
+		if($bedrockData === null || $bedrockData === ''){
+			throw new \RuntimeException('bedrock-data not found. Run: composer install');
+		}
+		define('pocketmine\BEDROCK_DATA_PATH', $bedrockData . DIRECTORY_SEPARATOR);
 	}
 	if(!defined('pocketmine\BEDROCK_BLOCK_UPGRADE_SCHEMA_PATH')){
-		define('pocketmine\BEDROCK_BLOCK_UPGRADE_SCHEMA_PATH', InstalledVersions::getInstallPath('pocketmine/bedrock-block-upgrade-schema') . DIRECTORY_SEPARATOR);
+		define(
+			'pocketmine\BEDROCK_BLOCK_UPGRADE_SCHEMA_PATH',
+			$resolveComposerPackagePath('pocketmine/bedrock-block-upgrade-schema', 'pocketmine/bedrock-block-upgrade-schema') . DIRECTORY_SEPARATOR
+		);
 	}
 	if(!defined('pocketmine\BEDROCK_ITEM_UPGRADE_SCHEMA_PATH')){
-		define('pocketmine\BEDROCK_ITEM_UPGRADE_SCHEMA_PATH', InstalledVersions::getInstallPath('pocketmine/bedrock-item-upgrade-schema') . DIRECTORY_SEPARATOR);
+		define(
+			'pocketmine\BEDROCK_ITEM_UPGRADE_SCHEMA_PATH',
+			$resolveComposerPackagePath('pocketmine/bedrock-item-upgrade-schema', 'pocketmine/bedrock-item-upgrade-schema') . DIRECTORY_SEPARATOR
+		);
 	}
 }
