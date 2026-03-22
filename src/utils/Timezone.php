@@ -26,6 +26,8 @@ use function date_default_timezone_set;
 use function date_parse;
 use function escapeshellarg;
 use function exec;
+use function getenv;
+use function is_file;
 use function file_get_contents;
 use function floor;
 use function hexdec;
@@ -108,6 +110,14 @@ abstract class Timezone{
 			case Utils::OS_WINDOWS:
 				$keyPath = 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation';
 
+				$systemRoot = getenv('SystemRoot');
+				$regExe = ($systemRoot !== false && $systemRoot !== '')
+					? $systemRoot . '\\System32\\reg.exe'
+					: 'C:\\Windows\\System32\\reg.exe';
+				if(!is_file($regExe)){
+					return false;
+				}
+
 				/*
 				 * Get the timezone offset through the registry
 				 *
@@ -141,7 +151,7 @@ abstract class Timezone{
 				 *   string(0) ""
 				 * }
 				 */
-				exec("reg query " . escapeshellarg($keyPath), $output);
+				exec(escapeshellarg($regExe) . ' query ' . escapeshellarg($keyPath), $output);
 
 				foreach($output as $line){
 					if(preg_match('/ActiveTimeBias\s+REG_DWORD\s+0x([0-9a-fA-F]+)/', $line, $matches) > 0){
