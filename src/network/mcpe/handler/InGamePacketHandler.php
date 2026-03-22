@@ -98,6 +98,7 @@ use pocketmine\network\mcpe\protocol\types\inventory\stackresponse\ItemStackResp
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemOnEntityTransactionData;
 use pocketmine\network\mcpe\protocol\types\inventory\UseItemTransactionData;
 use pocketmine\network\mcpe\protocol\types\PlayerAction;
+use pocketmine\network\mcpe\protocol\types\skin\SkinData;
 use pocketmine\network\mcpe\protocol\types\PlayerAuthInputFlags;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionStopBreak;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionWithBlockInfo;
@@ -123,6 +124,7 @@ use function microtime;
 use function sprintf;
 use function str_starts_with;
 use function strlen;
+use function hash;
 use const JSON_THROW_ON_ERROR;
 
 /**
@@ -144,7 +146,11 @@ class InGamePacketHandler extends PacketHandler{
 
 	public bool $forceMoveSync = false;
 
-	protected ?string $lastRequestedFullSkinId = null;
+	/**
+	 * SHA-256 отпечаток последнего принятого скина (Persona, анимации, текстура).
+	 * Сравнение только по fullSkinId ломало смену скина из гардеробной, если UUID не менялся.
+	 */
+	protected ?string $lastAcceptedSkinFingerprint = null;
 
 	public function __construct(
 		private Player $player,
@@ -876,23 +882,73 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handlePlayerSkin(PlayerSkinPacket $packet) : bool{
-		if($packet->skin->getFullSkinId() === $this->lastRequestedFullSkinId){
-			//TODO: HACK! In 1.19.60, the client sends its skin back to us if we sent it a skin different from the one
-			//it's using. We need to prevent this from causing a feedback loop.
-			$this->session->getLogger()->debug("Refused duplicate skin change request");
+		// Как Nukkit: не отбрасываем смену скина только из-за совпадения fullSkinId (гардеробная может переиспользовать UUID).
+		// Отсекаем лишь полный дубликат пакета (эхо после рассылки PlayerSkinPacket клиенту в 1.19.60+).
+		$fingerprint = self::skinDataFingerprint($packet->skin);
+		if($fingerprint === $this->lastAcceptedSkinFingerprint){
+			$this->session->getLogger()->debug("Refused duplicate skin packet (identical payload, likely client echo)");
 			return true;
 		}
-		$this->lastRequestedFullSkinId = $packet->skin->getFullSkinId();
 
 		$this->session->getLogger()->debug("Processing skin change request");
 		try{
 			$skin = $this->session->getTypeConverter()->getSkinAdapter()->fromSkinData($packet->skin);
-			return $this->player->changeSkin($skin, $packet->newSkinName, $packet->oldSkinName);
+			$this->player->changeSkin($skin, $packet->newSkinName, $packet->oldSkinName);
+			// Только если скин реально применён (событие не отменено) — иначе отпечаток не обновляем
+			$after = $this->session->getTypeConverter()->getSkinAdapter()->toSkinData($this->player->getSkin());
+			if(self::skinDataFingerprint($after) === $fingerprint){
+				$this->lastAcceptedSkinFingerprint = $fingerprint;
+			}
+			return true;
 		}catch(\Throwable $e){
 			// ПОЛНОСТЬЮ ИГНОРИРУЕМ ВСЕ ОШИБКИ СМЕНЫ СКИНА
 			$this->session->getLogger()->debug("Skin change error (ignored): " . $e->getMessage());
 			return true; // Просто возвращаем true
 		}
+	}
+
+	/**
+	 * Стабильный отпечаток SkinData (аналог полного состояния скина в Nukkit Skin).
+	 */
+	private static function skinDataFingerprint(SkinData $s) : string{
+		$h = hash_init("sha256");
+		hash_update($h, $s->getSkinId());
+		hash_update($h, $s->getFullSkinId());
+		hash_update($h, $s->getPlayFabId());
+		hash_update($h, $s->getResourcePatch());
+		hash_update($h, $s->getSkinImage()->getData());
+		hash_update($h, $s->getCapeImage()->getData());
+		hash_update($h, $s->getGeometryData());
+		hash_update($h, $s->getGeometryDataEngineVersion());
+		hash_update($h, $s->getAnimationData());
+		hash_update($h, $s->getCapeId());
+		hash_update($h, $s->getArmSize());
+		hash_update($h, $s->getSkinColor());
+		foreach($s->getAnimations() as $a){
+			hash_update($h, $a->getImage()->getData());
+			hash_update($h, (string) $a->getType());
+			hash_update($h, (string) $a->getFrames());
+			hash_update($h, (string) $a->getExpressionType());
+		}
+		foreach($s->getPersonaPieces() as $p){
+			hash_update($h, $p->getPieceId());
+			hash_update($h, $p->getPieceType());
+			hash_update($h, $p->getPackId());
+			hash_update($h, $p->isDefaultPiece() ? "1" : "0");
+			hash_update($h, $p->getProductId());
+		}
+		foreach($s->getPieceTintColors() as $t){
+			hash_update($h, $t->getPieceType());
+			foreach($t->getColors() as $c){
+				hash_update($h, $c);
+			}
+		}
+		hash_update($h, $s->isPremium() ? "1" : "0");
+		hash_update($h, $s->isPersona() ? "1" : "0");
+		hash_update($h, $s->isPersonaCapeOnClassic() ? "1" : "0");
+		hash_update($h, $s->isPrimaryUser() ? "1" : "0");
+		hash_update($h, $s->isOverride() ? "1" : "0");
+		return hash_final($h);
 	}
 
 	public function handleSubClientLogin(SubClientLoginPacket $packet) : bool{

@@ -51,7 +51,7 @@ class NetherGenerator extends VanillaGenerator{
 			$preset->exists("worldtype") ? WorldType::fromString($preset->getString("worldtype")) : null,
 			$preset
 		);
-		$this->addPopulators(new NetherPopulator($this->getMaxY())); // This isn't faithful to original code. Was $world->getWorldHeight()
+		$this->addPopulators(new NetherPopulator($this->getMaxY(), $this->seed));
 	}
 
 	public function getBedrockRoughness() : int{

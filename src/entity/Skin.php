@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace pocketmine\entity;
 
 use Ahc\Json\Comment as CommentedJsonDecoder;
+use pocketmine\network\mcpe\protocol\types\skin\SkinData;
 use pocketmine\utils\Limits;
 use function implode;
 use function in_array;
@@ -49,6 +50,9 @@ final class Skin{
 	private string $capeData;
 	private string $geometryName;
 	private string $geometryData;
+
+	/** Полные данные скина для Persona (моргающие глаза, анимации и т.д.) - сохраняются при fromSkinData для корректной рассылки */
+	private ?SkinData $fullSkinData = null;
 
 	private static function checkLength(string $string, string $name, int $maxLength) : void{
 		// ВАЛИДАЦИЯ ДЛИНЫ ПОЛНОСТЬЮ ОТКЛЮЧЕНА - ПРИНИМАЕМ ЛЮБУЮ ДЛИНУ
@@ -140,5 +144,13 @@ final class Skin{
 
 	public function getGeometryData() : string{
 		return $this->geometryData;
+	}
+
+	public function getFullSkinData() : ?SkinData{
+		return $this->fullSkinData;
+	}
+
+	public function setFullSkinData(?SkinData $data) : void{
+		$this->fullSkinData = $data;
 	}
 }

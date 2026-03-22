@@ -453,6 +453,7 @@ use function strtolower;
  * @method static EnchantingTable ENCHANTING_TABLE()
  * @method static EnderChest ENDER_CHEST()
  * @method static EndPortalFrame END_PORTAL_FRAME()
+ * @method static EndPortal END_PORTAL()
  * @method static EndRod END_ROD()
  * @method static Opaque END_STONE()
  * @method static Opaque END_STONE_BRICKS()
@@ -990,6 +991,7 @@ final class VanillaBlocks{
 		self::register("emerald", fn(BID $id) => new Opaque($id, "Emerald Block", new Info(BreakInfo::pickaxe(5.0, ToolTier::IRON, 30.0))));
 		self::register("enchanting_table", fn(BID $id) => new EnchantingTable($id, "Enchanting Table", new Info(BreakInfo::pickaxe(5.0, ToolTier::WOOD, 6000.0))), TileEnchantingTable::class);
 		self::register("end_portal_frame", fn(BID $id) => new EndPortalFrame($id, "End Portal Frame", new Info(BreakInfo::indestructible(18000000.0))));
+		self::register("end_portal", fn(BID $id) => new EndPortal($id, "End Portal", new Info(BreakInfo::indestructible(0.0))));
 		self::register("end_rod", fn(BID $id) => new EndRod($id, "End Rod", new Info(BreakInfo::instant())));
 		self::register("end_stone", fn(BID $id) => new Opaque($id, "End Stone", new Info(BreakInfo::pickaxe(3.0, ToolTier::WOOD, 45.0))));
 

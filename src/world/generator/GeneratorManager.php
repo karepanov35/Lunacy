@@ -24,6 +24,7 @@ namespace pocketmine\world\generator;
 
 use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\Utils;
+use pocketmine\world\generator\end\TheEndGenerator;
 use pocketmine\world\generator\nether\NetherGenerator;
 use pocketmine\world\generator\overworld\OverworldGenerator;
 use function array_keys;
@@ -56,6 +57,13 @@ final class GeneratorManager{
 		$this->addAlias("normal", "vanilla");
 		$this->addGenerator(NetherGenerator::class, "nether", fn() => null);
 		$this->addAlias("nether", "hell");
+		$this->addGenerator(TheEndGenerator::class, "the_end", fn() => null);
+		$this->addAlias("the_end", "end");
+		// Карты с void / voidgenerator (часто с Java или плагинов) — иначе unknown generator при загрузке мира
+		$this->addAlias("flat", "void");
+		$this->addAlias("flat", "voidgenerator");
+		$this->addAlias("flat", "void_generator");
+		$this->addAlias("flat", "voidgen");
 	}
 
 	/**

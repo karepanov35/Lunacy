@@ -1,4 +1,4 @@
-﻿[CmdletBinding(PositionalBinding=$false)]
+[CmdletBinding(PositionalBinding=$false)]
 param (
 	[string]$php = "",
 	[switch]$Loop = $false,
@@ -21,13 +21,15 @@ if($php -ne ""){
 }
 
 if($file -eq ""){
-	if(Test-Path "PocketMine-MP.phar"){
-	    $file = "PocketMine-MP.phar"
+	# Prefer running from source when available (ensures local code changes apply)
+	if(Test-Path "src\\PocketMine.php"){
+		$file = "src\\PocketMine.php"
+	}elseif(Test-Path "PocketMine-MP.phar"){
+		$file = "PocketMine-MP.phar"
 	}else{
-	    echo "PocketMine-MP.phar not found"
-	    echo "Downloads can be found at https://github.com/pmmp/PocketMine-MP/releases"
-	    pause
-	    exit 1
+		echo "Neither src\\PocketMine.php nor PocketMine-MP.phar found"
+		pause
+		exit 1
 	}
 }
 

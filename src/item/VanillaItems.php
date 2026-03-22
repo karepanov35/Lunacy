@@ -25,6 +25,7 @@ namespace pocketmine\item;
 use pocketmine\block\utils\RecordType;
 use pocketmine\block\VanillaBlocks as Blocks;
 use pocketmine\entity\Blaze;
+use pocketmine\entity\Chicken;
 use pocketmine\entity\Cow;
 use pocketmine\entity\Creeper;
 use pocketmine\entity\IronGolem;
@@ -37,6 +38,7 @@ use pocketmine\entity\Sheep;
 use pocketmine\entity\Skeleton;
 use pocketmine\entity\Villager;
 use pocketmine\entity\WitherSkeleton;
+use pocketmine\entity\Vindicator;
 use pocketmine\entity\Zombie;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\item\enchantment\ItemEnchantmentTags as EnchantmentTags;
@@ -143,6 +145,7 @@ use function strtolower;
  * @method static EnchantedBook ENCHANTED_BOOK()
  * @method static GoldenAppleEnchanted ENCHANTED_GOLDEN_APPLE()
  * @method static EnderPearl ENDER_PEARL()
+ * @method static EnderEye ENDER_EYE()
  * @method static EndCrystal END_CRYSTAL()
  * @method static ExperienceBottle EXPERIENCE_BOTTLE()
  * @method static Item EYE_ARMOR_TRIM_SMITHING_TEMPLATE()
@@ -338,6 +341,7 @@ use function strtolower;
  * @method static WritableBook WRITABLE_BOOK()
  * @method static WrittenBook WRITTEN_BOOK()
  * @method static SpawnEgg BLAZE_SPAWN_EGG()
+ * @method static SpawnEgg CHICKEN_SPAWN_EGG()
  * @method static SpawnEgg COW_SPAWN_EGG()
  * @method static SpawnEgg CREEPER_SPAWN_EGG()
  * @method static SpawnEgg ENDERMAN_SPAWN_EGG()
@@ -346,6 +350,7 @@ use function strtolower;
  * @method static SpawnEgg SKELETON_SPAWN_EGG()
  * @method static SpawnEgg VILLAGER_SPAWN_EGG()
  * @method static SpawnEgg ZOMBIE_SPAWN_EGG()
+ * @method static SpawnEgg VINDICATOR_SPAWN_EGG()
  */
 final class VanillaItems{
 	use CloningRegistryTrait;
@@ -462,6 +467,7 @@ final class VanillaItems{
 		self::register("enchanted_golden_apple", fn(IID $id) => new GoldenAppleEnchanted($id, "Enchanted Golden Apple"));
 		self::register("end_crystal", fn(IID $id) => new EndCrystal($id, "End Crystal"));
 		self::register("ender_pearl", fn(IID $id) => new EnderPearl($id, "Ender Pearl"));
+		self::register("ender_eye", fn(IID $id) => new EnderEye($id, "Eye of Ender"));
 		self::register("elytra", fn(IID $id) => new Armor($id, "Elytra", new ArmorTypeInfo(0, 433, ArmorInventory::SLOT_CHEST, material: ArmorMaterials::LEATHER()), [EnchantmentTags::ELYTRA]));
 		self::register("experience_bottle", fn(IID $id) => new ExperienceBottle($id, "Bottle o' Enchanting"));
 		self::register("feather", fn(IID $id) => new Item($id, "Feather"));
@@ -625,6 +631,11 @@ final class VanillaItems{
 				return new Cow(Location::fromObject($pos, $world, $yaw, $pitch));
 			}
 		});
+		self::register("chicken_spawn_egg", fn(IID $id) => new class($id, "Chicken Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Chicken(Location::fromObject($pos, $world, $yaw, $pitch));
+			}
+		});
 		self::register("pig_spawn_egg", fn(IID $id) => new class($id, "Pig Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Pig(Location::fromObject($pos, $world, $yaw, $pitch));
@@ -678,6 +689,11 @@ final class VanillaItems{
 		self::register("horse_spawn_egg", fn(IID $id) => new class($id, "Horse Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new \pocketmine\entity\Horse(Location::fromObject($pos, $world, $yaw, $pitch));
+			}
+		});
+		self::register("vindicator_spawn_egg", fn(IID $id) => new class($id, "Vindicator Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Vindicator(Location::fromObject($pos, $world, $yaw, $pitch));
 			}
 		});
 	}

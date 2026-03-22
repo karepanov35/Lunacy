@@ -15,14 +15,67 @@ use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
 use pocketmine\world\World;
 
+/**
+ * Руды Нижнего мира (в духе Lumi + ваниль): кварц, золото, магма, гравий, песок душ. Древние обломки — {@see AncientDebrisPopulator}.
+ */
 class OrePopulator implements VanillaPopulator{
 
 	/** @var OreTypeHolder[] */
 	private array $ores = [];
 
 	public function __construct(int $world_height = World::Y_MAX){
-		$this->addOre(new OreType(VanillaBlocks::NETHER_QUARTZ_ORE(), 10, $world_height - (10 * ($world_height >> 7)), 13, BlockTypeIds::NETHERRACK), 16);
-		$this->addOre(new OreType(VanillaBlocks::MAGMA(), 26, 32 + (5 * ($world_height >> 7)), 32, BlockTypeIds::NETHERRACK), 16);
+		$minY = 10;
+		$maxY = min(117, max($minY + 5, $world_height - 11));
+
+		// Кварц — как раньше, чуть подстраиваем верх под высоту мира
+		$this->addOre(new OreType(
+			VanillaBlocks::NETHER_QUARTZ_ORE(),
+			$minY,
+			$maxY,
+			13,
+			BlockTypeIds::NETHERRACK
+		), 16);
+
+		// Незерская золотая руда (основной запрос): y ~10–117, жилы среднего размера, частые попытки
+		$this->addOre(new OreType(
+			VanillaBlocks::NETHER_GOLD_ORE(),
+			$minY,
+			$maxY,
+			4,
+			BlockTypeIds::NETHERRACK
+		), 20);
+
+		// Магма
+		$magTop = min(32 + (5 * ($world_height >> 7)), $maxY);
+		if($magTop > 26){
+			$this->addOre(new OreType(
+				VanillaBlocks::MAGMA(),
+				26,
+				$magTop,
+				32,
+				BlockTypeIds::NETHERRACK
+			), 16);
+		}
+
+		// Древние обломки: см. {@see AncientDebrisPopulator} (ванильные два прохода на чанк)
+
+		// Гравий в незераке
+		$this->addOre(new OreType(
+			VanillaBlocks::GRAVEL(),
+			5,
+			min(105, $maxY),
+			15,
+			BlockTypeIds::NETHERRACK
+		), 10);
+
+		// Вкрапления песка душ в незераке
+		$this->addOre(new OreType(
+			VanillaBlocks::SOUL_SAND(),
+			30,
+			min(105, $maxY),
+			15,
+			BlockTypeIds::NETHERRACK
+		), 8);
 	}
 
 	protected function addOre(OreType $type, int $value) : void{

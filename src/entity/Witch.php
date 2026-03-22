@@ -126,8 +126,10 @@ class Witch extends Living{
 			$this->combatAI();
 		}
 
-		$this->motion->x = $this->smoothMotionX;
-		$this->motion->z = $this->smoothMotionZ;
+		if($this->attackTime <= 0){
+			$this->motion->x = $this->smoothMotionX;
+			$this->motion->z = $this->smoothMotionZ;
+		}
 
 		return true;
 	}

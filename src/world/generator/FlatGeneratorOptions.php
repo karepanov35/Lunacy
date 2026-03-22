@@ -75,6 +75,10 @@ final class FlatGeneratorOptions{
 		$y = 0;
 		$itemParser = LegacyStringToItemParser::getInstance();
 		foreach($split as $line){
+			// Пустые сегменты (часто у void / voidgenerator: пресет "0" или "2;;1;") — пустой мир как у void
+			if($line === ""){
+				continue;
+			}
 			if(preg_match('#^(?:(\d+)[x|*])?(.+)$#', $line, $matches) !== 1){
 				throw new InvalidGeneratorOptionsException("Invalid preset layer \"$line\"");
 			}

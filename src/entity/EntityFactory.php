@@ -43,6 +43,7 @@ use pocketmine\entity\object\PrimedTNT;
 use pocketmine\entity\projectile\Arrow;
 use pocketmine\entity\projectile\Egg;
 use pocketmine\entity\projectile\EnderPearl;
+use pocketmine\entity\projectile\EyeOfEnderSignal;
 use pocketmine\entity\projectile\ExperienceBottle;
 use pocketmine\entity\projectile\IceBomb;
 use pocketmine\entity\projectile\SmallFireball;
@@ -108,6 +109,10 @@ final class EntityFactory{
 		$this->register(EnderPearl::class, function(World $world, CompoundTag $nbt) : EnderPearl{
 			return new EnderPearl(Helper::parseLocation($nbt, $world), null, $nbt);
 		}, ['ThrownEnderpearl', 'minecraft:ender_pearl']);
+
+		$this->register(EyeOfEnderSignal::class, function(World $world, CompoundTag $nbt) : EyeOfEnderSignal{
+			return new EyeOfEnderSignal(Helper::parseLocation($nbt, $world), null, $nbt);
+		}, ['EyeOfEnderSignal', 'minecraft:eye_of_ender_signal']);
 
 		$this->register(ExperienceBottle::class, function(World $world, CompoundTag $nbt) : ExperienceBottle{
 			return new ExperienceBottle(Helper::parseLocation($nbt, $world), null, $nbt);
@@ -216,6 +221,10 @@ final class EntityFactory{
 			return new Zombie(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Zombie', 'minecraft:zombie']);
 
+		$this->register(Vindicator::class, function(World $world, CompoundTag $nbt) : Vindicator{
+			return new Vindicator(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Vindicator', 'minecraft:vindicator']);
+
 		$this->register(Skeleton::class, function(World $world, CompoundTag $nbt) : Skeleton{
 			return new Skeleton(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Skeleton', 'minecraft:skeleton']);
@@ -231,6 +240,10 @@ final class EntityFactory{
 		$this->register(Pig::class, function(World $world, CompoundTag $nbt) : Pig{
 			return new Pig(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Pig', 'minecraft:pig']);
+
+		$this->register(Chicken::class, function(World $world, CompoundTag $nbt) : Chicken{
+			return new Chicken(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Chicken', 'minecraft:chicken']);
 
 		$this->register(Sheep::class, function(World $world, CompoundTag $nbt) : Sheep{
 			return new Sheep(Helper::parseLocation($nbt, $world), $nbt);

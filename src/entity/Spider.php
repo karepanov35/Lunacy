@@ -85,8 +85,11 @@ class Spider extends Living{
 			$this->combatAI();
 		}
 
-		$this->motion->x = $this->smoothMotionX;
-		$this->motion->z = $this->smoothMotionZ;
+		// Не затирать knockback от удара игрока движением из AI
+		if($this->attackTime <= 0){
+			$this->motion->x = $this->smoothMotionX;
+			$this->motion->z = $this->smoothMotionZ;
+		}
 
 		return true;
 	}

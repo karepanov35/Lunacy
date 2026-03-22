@@ -1,0 +1,13 @@
+[
+	{
+		"group_name": "itemGroup.name.misc",
+		"group_icon": {
+			"name": "minecraft:ender_eye"
+		},
+		"items": [
+			{
+				"name": "minecraft:ender_eye"
+			}
+		]
+	}
+]

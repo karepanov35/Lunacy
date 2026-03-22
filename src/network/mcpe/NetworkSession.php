@@ -58,6 +58,7 @@ use pocketmine\network\mcpe\handler\ResourcePacksPacketHandler;
 use pocketmine\network\mcpe\handler\SessionStartPacketHandler;
 use pocketmine\network\mcpe\handler\SpawnResponsePacketHandler;
 use pocketmine\network\mcpe\protocol\AvailableCommandsPacket;
+use pocketmine\network\mcpe\protocol\ChangeDimensionPacket;
 use pocketmine\network\mcpe\protocol\ChunkRadiusUpdatedPacket;
 use pocketmine\network\mcpe\protocol\ClientboundCloseFormPacket;
 use pocketmine\network\mcpe\protocol\ClientboundPacket;
@@ -247,17 +248,24 @@ class NetworkSession{
 		if($this->player === null){
 			return DimensionIds::OVERWORLD;
 		}
-		
-		$worldName = strtolower($this->player->getWorld()->getFolderName());
-		
+
+		$world = $this->player->getWorld();
+		$generator = strtolower($world->getProvider()->getWorldData()->getGenerator());
+		if(in_array($generator, ["nether", "hell"], true)){
+			return DimensionIds::NETHER;
+		}
+		if(in_array($generator, ["the_end", "end"], true)){
+			return DimensionIds::THE_END;
+		}
+
+		$worldName = strtolower($world->getFolderName());
 		if($worldName === "nether" || str_contains($worldName, "nether")){
 			return DimensionIds::NETHER;
 		}
-		
 		if($worldName === "the_end" || $worldName === "end" || str_contains($worldName, "end")){
 			return DimensionIds::THE_END;
 		}
-		
+
 		return DimensionIds::OVERWORLD;
 	}
 
@@ -1341,6 +1349,30 @@ class NetworkSession{
 
 	public function stopUsingChunk(int $chunkX, int $chunkZ) : void{
 
+	}
+
+	/**
+	 * Синхронизирует измерение у Bedrock-клиента при смене мира (Overworld ↔ Nether ↔ End).
+	 * Без этого клиент остаётся в dimension из StartGamePacket и «видит пустоту», хотя чанки — другого мира.
+	 */
+	public function notifyDimensionChanged(World $from, World $to) : void{
+		if($this->player === null){
+			return;
+		}
+		$fromDim = ChunkCache::getDimensionIdForWorld($from);
+		$toDim = ChunkCache::getDimensionIdForWorld($to);
+		if($fromDim === $toDim){
+			return;
+		}
+		$pos = $this->player->getPosition();
+		// respawn=false — без зависания на экране загрузки; publisher обновляем сразу.
+		$this->sendDataPacket(ChangeDimensionPacket::create(
+			$toDim,
+			$pos,
+			false,
+			null
+		));
+		$this->syncViewAreaCenterPoint($pos, $this->player->getViewDistance());
 	}
 
 	public function onEnterWorld() : void{

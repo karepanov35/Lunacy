@@ -151,6 +151,17 @@ class Blaze extends Living{
 	}
 
 	private function combatAI() : void{
+		if($this->attackTime > 0){
+			$tp = $this->target->getPosition();
+			$lookY = $tp->y + 1.0;
+			$this->lookAt(new Vector3($tp->x, $lookY, $tp->z));
+			$pitch = $this->location->pitch;
+			$pitch = max(-35.0, min(35.0, $pitch));
+			$this->setRotation($this->location->yaw, $pitch);
+
+			return;
+		}
+
 		$targetPos = $this->target->getPosition();
 		$distSq = $this->location->distanceSquared($targetPos);
 		$dist = sqrt($distSq);

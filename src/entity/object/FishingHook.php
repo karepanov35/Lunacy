@@ -6,6 +6,7 @@ namespace pocketmine\entity\object;
 
 use pocketmine\block\Block;
 use pocketmine\block\BlockTypeIds;
+use pocketmine\block\VanillaBlocks;
 use pocketmine\entity\Entity;
 use pocketmine\entity\EntitySizeInfo;
 use pocketmine\entity\Location;
@@ -199,7 +200,7 @@ class FishingHook extends Projectile{
 				VanillaItems::BOW(),
 				VanillaItems::ENCHANTED_BOOK(),
 				VanillaItems::NAME_TAG(),
-				VanillaItems::LILY_PAD()
+				VanillaBlocks::LILY_PAD()->asItem()
 			];
 			$item = $items[array_rand($items)];
 		}else{

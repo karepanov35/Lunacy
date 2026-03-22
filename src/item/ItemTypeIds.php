@@ -378,8 +378,11 @@ final class ItemTypeIds{
 	public const IRON_GOLEM_SPAWN_EGG = 20340;
 	public const WITCH_SPAWN_EGG = 20341;
 	public const SPIDER_SPAWN_EGG = 20342;
+	public const CHICKEN_SPAWN_EGG = 20343;
+	public const VINDICATOR_SPAWN_EGG = 20344;
+	public const ENDER_EYE = 20345;
 
-	public const FIRST_UNUSED_ITEM_ID = 20343;
+	public const FIRST_UNUSED_ITEM_ID = 20346;
 
 	private static int $nextDynamicId = self::FIRST_UNUSED_ITEM_ID;
 

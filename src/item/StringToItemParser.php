@@ -644,6 +644,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("end_brick_stairs", fn() => Blocks::END_STONE_BRICK_STAIRS());
 		$result->registerBlock("end_bricks", fn() => Blocks::END_STONE_BRICKS());
 		$result->registerBlock("end_portal_frame", fn() => Blocks::END_PORTAL_FRAME());
+		$result->registerBlock("end_portal", fn() => Blocks::END_PORTAL());
 		$result->registerBlock("end_rod", fn() => Blocks::END_ROD());
 		$result->registerBlock("end_stone", fn() => Blocks::END_STONE());
 		$result->registerBlock("end_stone_brick_slab", fn() => Blocks::END_STONE_BRICK_SLAB());
@@ -1347,6 +1348,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("enchanting_bottle", fn() => Items::EXPERIENCE_BOTTLE());
 		$result->register("end_crystal", fn() => Items::END_CRYSTAL());
 		$result->register("ender_pearl", fn() => Items::ENDER_PEARL());
+		$result->register("ender_eye", fn() => Items::ENDER_EYE());
 		$result->register("experience_bottle", fn() => Items::EXPERIENCE_BOTTLE());
 		$result->register("eye_armor_trim_smithing_template", fn() => Items::EYE_ARMOR_TRIM_SMITHING_TEMPLATE());
 		$result->register("eye_drops", fn() => Items::MEDICINE()->setType(MedicineType::EYE_DROPS));
@@ -1567,6 +1569,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("writable_book", fn() => Items::WRITABLE_BOOK());
 		$result->register("written_book", fn() => Items::WRITTEN_BOOK());
 		$result->register("blaze_spawn_egg", fn() => Items::BLAZE_SPAWN_EGG());
+		$result->register("chicken_spawn_egg", fn() => Items::CHICKEN_SPAWN_EGG());
 		$result->register("cow_spawn_egg", fn() => Items::COW_SPAWN_EGG());
 		$result->register("creeper_spawn_egg", fn() => Items::CREEPER_SPAWN_EGG());
 		$result->register("enderman_spawn_egg", fn() => Items::ENDERMAN_SPAWN_EGG());
@@ -1575,6 +1578,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("skeleton_spawn_egg", fn() => Items::SKELETON_SPAWN_EGG());
 		$result->register("villager_spawn_egg", fn() => Items::VILLAGER_SPAWN_EGG());
 		$result->register("zombie_spawn_egg", fn() => Items::ZOMBIE_SPAWN_EGG());
+		$result->register("vindicator_spawn_egg", fn() => Items::VINDICATOR_SPAWN_EGG());
 		$result->register("horse_spawn_egg", fn() => Items::HORSE_SPAWN_EGG());
 		$result->register("wither_skeleton_spawn_egg", fn() => Items::WITHER_SKELETON_SPAWN_EGG());
 		$result->register("iron_golem_spawn_egg", fn() => Items::IRON_GOLEM_SPAWN_EGG());
