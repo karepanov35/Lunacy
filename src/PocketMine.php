@@ -22,7 +22,6 @@
 declare(strict_types=1);
 namespace pocketmine {
 
-	use Composer\InstalledVersions;
 	use pocketmine\errorhandler\ErrorToExceptionHandler;
 	use pocketmine\network\mcpe\protocol\ProtocolInfo;
 	use pocketmine\thread\ThreadManager;
@@ -200,15 +199,6 @@ namespace pocketmine {
 			exit(1);
 		}
 		require_once($bootstrap);
-
-		$composerGitHash = InstalledVersions::getReference('nethergamesmc/pocketmine-mp');
-		if($composerGitHash !== null){
-			$currentGitHash = explode("-", VersionInfo::GIT_HASH(), 2)[0];
-			if($currentGitHash !== $composerGitHash){
-				critical_error("Composer dependencies out of sync (Server: $currentGitHash, Composer: $composerGitHash).");
-				exit(1);
-			}
-		}
 
 		ErrorToExceptionHandler::set();
 

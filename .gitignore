@@ -39,7 +39,8 @@ Desktop.ini
 /docs/build/
 !/docs/requirements.txt
 
-# Composer: vendor/ is tracked in this fork (clone works without `composer install`).
+# Composer (never commit vendor/)
+vendor/*
 
 # Travis files
 test_data/*

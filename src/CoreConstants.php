@@ -39,7 +39,7 @@ namespace pocketmine {
 		define('pocketmine\LOCALE_DATA_PATH', RESOURCE_PATH . 'translations' . DIRECTORY_SEPARATOR);
 	}
 	if(!defined('pocketmine\BEDROCK_DATA_PATH')){
-		define('pocketmine\BEDROCK_DATA_PATH', InstalledVersions::getInstallPath('nethergamesmc/bedrock-data') . DIRECTORY_SEPARATOR);
+		define('pocketmine\BEDROCK_DATA_PATH', InstalledVersions::getInstallPath('pocketmine/bedrock-data') . DIRECTORY_SEPARATOR);
 	}
 	if(!defined('pocketmine\BEDROCK_BLOCK_UPGRADE_SCHEMA_PATH')){
 		define('pocketmine\BEDROCK_BLOCK_UPGRADE_SCHEMA_PATH', InstalledVersions::getInstallPath('pocketmine/bedrock-block-upgrade-schema') . DIRECTORY_SEPARATOR);
