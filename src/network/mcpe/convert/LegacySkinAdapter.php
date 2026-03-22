@@ -37,6 +37,12 @@ use const JSON_THROW_ON_ERROR;
 class LegacySkinAdapter implements SkinAdapter{
 
 	public function toSkinData(Skin $skin) : SkinData{
+		// Используем полные данные скина (Persona, анимации, моргающие глаза) если они были сохранены
+		$fullData = $skin->getFullSkinData();
+		if($fullData !== null){
+			return $fullData;
+		}
+
 		$capeData = $skin->getCapeData();
 		$capeImage = $capeData === "" ? new SkinImage(0, 0, "") : new SkinImage(32, 64, $capeData);
 		$geometryName = $skin->getGeometryName();
@@ -117,6 +123,8 @@ class LegacySkinAdapter implements SkinAdapter{
 			$geometryName = "geometry.humanoid.custom";
 		}
 
-		return new Skin($data->getSkinId(), $data->getSkinImage()->getData(), $capeData, $geometryName, $data->getGeometryData());
+		$skin = new Skin($data->getSkinId(), $data->getSkinImage()->getData(), $capeData, $geometryName, $data->getGeometryData());
+		$skin->setFullSkinData($data);
+		return $skin;
 	}
 }

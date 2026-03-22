@@ -836,8 +836,9 @@ final class BlockTypeIds{
 	public const MOSS_BLOCK = 10807;
 	public const MOSS_CARPET = 10808;
 	public const DRIPSTONE_BLOCK = 10809;
+	public const END_PORTAL = 10810;
 
-	public const FIRST_UNUSED_BLOCK_ID = 10810;
+	public const FIRST_UNUSED_BLOCK_ID = 10811;
 
 	private static int $nextDynamicId = self::FIRST_UNUSED_BLOCK_ID;
 

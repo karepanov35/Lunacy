@@ -112,6 +112,11 @@ class Zombie extends Living {
     }
 
     private function combatAI() : void {
+        if($this->attackTime > 0){
+            $this->lookAt($this->target->getEyePos());
+            return;
+        }
+
         $targetPos = $this->target->getPosition();
         $distSq = $this->location->distanceSquared($targetPos);
 

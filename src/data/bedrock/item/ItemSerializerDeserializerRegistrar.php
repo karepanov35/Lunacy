@@ -251,6 +251,7 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::ENCHANTED_GOLDEN_APPLE, Items::ENCHANTED_GOLDEN_APPLE());
 		$this->map1to1Item(Ids::END_CRYSTAL, Items::END_CRYSTAL());
 		$this->map1to1Item(Ids::ENDER_PEARL, Items::ENDER_PEARL());
+		$this->map1to1Item(Ids::ENDER_EYE, Items::ENDER_EYE());
 		$this->map1to1Item(Ids::ELYTRA, Items::ELYTRA());
 		$this->map1to1Item(Ids::EXPERIENCE_BOTTLE, Items::EXPERIENCE_BOTTLE());
 		$this->map1to1Item(Ids::EYE_ARMOR_TRIM_SMITHING_TEMPLATE, Items::EYE_ARMOR_TRIM_SMITHING_TEMPLATE());
@@ -434,6 +435,7 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::WRITABLE_BOOK, Items::WRITABLE_BOOK());
 		$this->map1to1Item(Ids::WRITTEN_BOOK, Items::WRITTEN_BOOK());
 		$this->map1to1Item(Ids::BLAZE_SPAWN_EGG, Items::BLAZE_SPAWN_EGG());
+		$this->map1to1Item(Ids::CHICKEN_SPAWN_EGG, Items::CHICKEN_SPAWN_EGG());
 		$this->map1to1Item(Ids::COW_SPAWN_EGG, Items::COW_SPAWN_EGG());
 		$this->map1to1Item(Ids::CREEPER_SPAWN_EGG, Items::CREEPER_SPAWN_EGG());
 		$this->map1to1Item(Ids::PIG_SPAWN_EGG, Items::PIG_SPAWN_EGG());
@@ -445,6 +447,7 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::IRON_GOLEM_SPAWN_EGG, Items::IRON_GOLEM_SPAWN_EGG());
 		$this->map1to1Item(Ids::WITCH_SPAWN_EGG, Items::WITCH_SPAWN_EGG());
 		$this->map1to1Item(Ids::SPIDER_SPAWN_EGG, Items::SPIDER_SPAWN_EGG());
+		$this->map1to1Item(Ids::VINDICATOR_SPAWN_EGG, Items::VINDICATOR_SPAWN_EGG());
 		$this->map1to1Item(Ids::SADDLE, Items::SADDLE());
 		$this->map1to1Item(Ids::LEATHER_HORSE_ARMOR, Items::LEATHER_HORSE_ARMOR());
 		$this->map1to1Item(Ids::IRON_HORSE_ARMOR, Items::IRON_HORSE_ARMOR());

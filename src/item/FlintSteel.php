@@ -37,8 +37,10 @@ class FlintSteel extends Tool{
 		// Проверяем активацию портала в ад
 		if($blockClicked->getTypeId() === BlockTypeIds::OBSIDIAN){
 			// Пытаемся создать портал
-			if($this->tryCreateNetherPortal($world, $blockReplace->getPosition())){
-				$world->addSound($blockReplace->getPosition()->add(0.5, 0.5, 0.5), new FlintSteelSound());
+			// $blockReplace is the adjacent block in the clicked face direction, but portal ignition should be based on the
+			// actual obsidian block position that was clicked.
+			if($this->tryCreateNetherPortal($world, $blockClicked->getPosition())){
+				$world->addSound($blockClicked->getPosition()->add(0.5, 0.5, 0.5), new FlintSteelSound());
 				$this->applyDamage(1);
 				return ItemUseResult::SUCCESS;
 			}

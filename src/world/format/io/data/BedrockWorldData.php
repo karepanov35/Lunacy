@@ -141,11 +141,22 @@ class BedrockWorldData extends BaseNbtWorldData{
 		if(strlen($rawLevelData) <= 8){
 			throw new CorruptedWorldException("Truncated level.dat");
 		}
+		$nbtPayload = substr($rawLevelData, 8);
+		if($nbtPayload === "" || ord($nbtPayload[0]) === 0){
+			throw new CorruptedWorldException(
+				"level.dat: пустой или битый NBT (часто неполное копирование мира, пустой шаблон или level.dat от другого формата). " .
+				"Нужны целые файлы Bedrock: level.dat + папка db/. Перекопируй мир из бэкапа или создай новый мир в клиенте и перенеси карту."
+			);
+		}
 		$nbt = new LittleEndianNbtSerializer();
 		try{
-			$worldData = $nbt->read(substr($rawLevelData, 8))->mustGetCompoundTag();
+			$worldData = $nbt->read($nbtPayload)->mustGetCompoundTag();
 		}catch(NbtDataException $e){
-			throw new CorruptedWorldException($e->getMessage(), 0, $e);
+			throw new CorruptedWorldException(
+				"level.dat не читается как Bedrock NBT: " . $e->getMessage() . " — проверь целостность level.dat и что это мир Bedrock Edition, не Java.",
+				0,
+				$e
+			);
 		}
 
 		$version = $worldData->getInt(self::TAG_STORAGE_VERSION, Limits::INT32_MAX);

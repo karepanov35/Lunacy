@@ -30,7 +30,7 @@ use function str_repeat;
 
 final class VersionInfo{
 	public const NAME = "Lunacy";
-	public const BASE_VERSION = "1.0.0";
+	public const BASE_VERSION = "0.1.1";
 	public const API_VERSION = "5.0.0";
 	public const IS_DEVELOPMENT_BUILD = true;
 	public const BUILD_CHANNEL = "stable";

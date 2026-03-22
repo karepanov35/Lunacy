@@ -123,6 +123,10 @@ use pocketmine\world\generator\GeneratorManager;
 use pocketmine\world\generator\InvalidGeneratorOptionsException;
 use pocketmine\world\Position;
 use pocketmine\world\World;
+use pocketmine\math\Vector3;
+use pocketmine\world\generator\end\TheEndGenerator;
+use pocketmine\world\generator\nether\NetherGenerator;
+use pocketmine\world\generator\overworld\OverworldGenerator;
 use pocketmine\world\WorldCreationOptions;
 use pocketmine\world\WorldManager;
 use pocketmine\YmlServerProperties as Yml;
@@ -1257,6 +1261,38 @@ class Server{
 				throw new AssumptionFailedError("We just loaded/generated the default world, so it must exist");
 			}
 			$this->worldManager->setDefaultWorld($world);
+		}
+
+		$defaultWorld = $this->worldManager->getDefaultWorld();
+		if($defaultWorld !== null){
+			$gen = strtolower($defaultWorld->getProvider()->getWorldData()->getGenerator());
+			$folder = strtolower($defaultWorld->getFolderName());
+			$defaultIsNether = str_contains($folder, "nether") || in_array($gen, ["nether", "hell"], true);
+			$otherWorldName = $defaultIsNether ? "world" : "nether";
+
+			if(!$this->worldManager->isWorldLoaded($otherWorldName)){
+				if(!$this->worldManager->loadWorld($otherWorldName, true) && !$this->worldManager->isWorldGenerated($otherWorldName)){
+					$opts = WorldCreationOptions::create()
+						->setSeed($defaultWorld->getSeed())
+						->setDifficulty($defaultWorld->getDifficulty());
+					$opts = $defaultIsNether
+						? $opts->setGeneratorClass(OverworldGenerator::class)
+						: $opts->setGeneratorClass(NetherGenerator::class);
+					$this->worldManager->generateWorld($otherWorldName, $opts, true);
+				}
+			}
+
+			$endWorldName = "the_end";
+			if(!$this->worldManager->isWorldLoaded($endWorldName)){
+				if(!$this->worldManager->loadWorld($endWorldName, true) && !$this->worldManager->isWorldGenerated($endWorldName)){
+					$endOpts = WorldCreationOptions::create()
+						->setGeneratorClass(TheEndGenerator::class)
+						->setSeed($defaultWorld->getSeed())
+						->setDifficulty($defaultWorld->getDifficulty())
+						->setSpawnPosition(new Vector3(100, 49, 0));
+					$this->worldManager->generateWorld($endWorldName, $endOpts, true);
+				}
+			}
 		}
 
 		return !$anyWorldFailedToLoad;

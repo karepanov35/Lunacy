@@ -101,18 +101,26 @@ class ChunkCache implements ChunkListener{
 		private int $dimensionId = DimensionIds::OVERWORLD
 	){}
 	
-	private static function getDimensionIdForWorld(World $world) : int{
-		// Определяем dimension ID на основе имени мира или генератора
+	public static function getDimensionIdForWorld(World $world) : int{
+		// Определяем dimension ID в первую очередь по генератору (содержимое мира),
+		// иначе по имени папки. Иначе при несовпадении (папка "world" + генератор nether)
+		// клиент получал бы dimension OVERWORLD, но блоки — незерак, и частицы поломки отображались бы неправильно.
+		$generator = strtolower($world->getProvider()->getWorldData()->getGenerator());
+		if(in_array($generator, ["nether", "hell"], true)){
+			return DimensionIds::NETHER;
+		}
+		if(in_array($generator, ["the_end", "end"], true)){
+			return DimensionIds::THE_END;
+		}
+
 		$worldName = strtolower($world->getFolderName());
-		
 		if($worldName === "nether" || str_contains($worldName, "nether")){
 			return DimensionIds::NETHER;
 		}
-		
 		if($worldName === "the_end" || $worldName === "end" || str_contains($worldName, "end")){
 			return DimensionIds::THE_END;
 		}
-		
+
 		return DimensionIds::OVERWORLD;
 	}
 

@@ -26,13 +26,16 @@ use pocketmine\crafting\CraftingManagerFromDataHelper;
 use pocketmine\data\bedrock\BedrockDataFiles;
 use pocketmine\inventory\json\CreativeGroupData;
 use pocketmine\item\Item;
+use pocketmine\item\VanillaItems;
 use pocketmine\lang\Translatable;
 use pocketmine\utils\DestructorCallbackTrait;
 use pocketmine\utils\ObjectSet;
 use pocketmine\utils\SingletonTrait;
 use Symfony\Component\Filesystem\Path;
+use const pocketmine\RESOURCE_PATH;
 use function array_filter;
 use function array_map;
+use function is_file;
 
 final class CreativeInventory{
 	use SingletonTrait;
@@ -75,6 +78,40 @@ final class CreativeInventory{
 					$this->add($item, $categoryEnum, $group);
 				}
 			}
+		}
+
+		// Доп. предметы креатива из ядра (resources/creative/*.json) — не зависят от vendor bedrock-data
+		$lunacyCreative = Path::join(RESOURCE_PATH, 'creative', 'items.json');
+		if(is_file($lunacyCreative)){
+			$extraGroups = CraftingManagerFromDataHelper::loadJsonArrayOfObjectsFile(
+				$lunacyCreative,
+				CreativeGroupData::class
+			);
+			foreach($extraGroups as $groupData){
+				$icon = $groupData->group_icon === null ? null : CraftingManagerFromDataHelper::deserializeItemStack($groupData->group_icon);
+				$group = $icon === null ? null : new CreativeGroup(
+					new Translatable($groupData->group_name),
+					$icon
+				);
+				$items = array_filter(array_map(static fn($itemStack) => CraftingManagerFromDataHelper::deserializeItemStack($itemStack), $groupData->items));
+				foreach($items as $item){
+					if($this->getItemIndex($item) === -1){
+						$this->add($item, CreativeCategory::ITEMS, $group);
+					}
+				}
+			}
+		}
+
+		// Яйцо и яйцо призыва курицы (часто отсутствуют в bedrock-data creative JSON для форков)
+		if(!$this->contains(VanillaItems::EGG())){
+			$this->add(VanillaItems::EGG(), CreativeCategory::ITEMS);
+		}
+		if(!$this->contains(VanillaItems::CHICKEN_SPAWN_EGG())){
+			$this->add(VanillaItems::CHICKEN_SPAWN_EGG(), CreativeCategory::NATURE);
+		}
+		// Око края — запасной вариант, если JSON не загрузился
+		if(!$this->contains(VanillaItems::ENDER_EYE())){
+			$this->add(VanillaItems::ENDER_EYE(), CreativeCategory::ITEMS);
 		}
 	}
 

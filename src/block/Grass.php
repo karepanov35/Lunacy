@@ -87,7 +87,11 @@ class Grass extends Opaque{
 		$world = $this->position->getWorld();
 		if($item instanceof Fertilizer){
 			$item->pop();
-			TallGrassObject::growGrass($world, $this->position, new Random(mt_rand()), 8, 2);
+			$random = new Random(mt_rand());
+			$pos = $this->position;
+			// TerrainObject\TallGrass: instance + generate() (старый статический growGrass() отсутствует)
+			$plant = (mt_rand() & 1) === 0 ? VanillaBlocks::TALL_GRASS() : VanillaBlocks::FERN();
+			(new TallGrassObject($plant))->generate($world, $random, $pos->getFloorX(), $pos->getFloorY(), $pos->getFloorZ());
 
 			return true;
 		}

@@ -183,14 +183,25 @@ class WorldManager{
 		$path = $this->getWorldPath($name);
 
 		$providers = $this->providerManager->getMatchingProviders($path);
-		if(count($providers) !== 1){
+		if(count($providers) === 0){
 			$this->server->getLogger()->error($this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_loadError(
 				$name,
-				count($providers) === 0 ?
-					KnownTranslationFactory::pocketmine_level_unknownFormat() :
-					KnownTranslationFactory::pocketmine_level_ambiguousFormat(implode(", ", array_keys($providers)))
+				KnownTranslationFactory::pocketmine_level_unknownFormat()
 			)));
 			return false;
+		}
+		if(count($providers) > 1){
+			// Bedrock миры — LevelDB; лишняя папка region/ (остаток Java/шаблона) заставляет совпасть и с PMAnvil
+			if(isset($providers["leveldb"])){
+				$this->server->getLogger()->notice("Мир «{$name}»: несколько форматов (" . implode(", ", array_keys($providers)) . ") — загружается как leveldb (Bedrock). Удали лишнюю папку region/ в worlds/{$name}/ если мир только Bedrock.");
+				$providers = ["leveldb" => $providers["leveldb"]];
+			}else{
+				$this->server->getLogger()->error($this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_loadError(
+					$name,
+					KnownTranslationFactory::pocketmine_level_ambiguousFormat(implode(", ", array_keys($providers)))
+				)));
+				return false;
+			}
 		}
 		$providerClass = array_shift($providers);
 
