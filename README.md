@@ -31,7 +31,6 @@ composer install
 
 ```powershell
 composer install --no-dev
-.\build-phar.ps1
 ```
 
 This creates **`PocketMine-MP.phar`** in the project root. Run it with **`start_phar.bat`** (uses `bin\php\php.exe` if present).
