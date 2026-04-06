@@ -17,13 +17,11 @@ Lunacy are not affiliated with Mojang. All brands and trademarks belong to their
 
 1) Install dependencies:
 
-```powershell
+```bash
 composer install
 ```
 
-(If Composer is not in PATH, use `.\composer.ps1 install`.)
-
-2) Start the server from **source**:
+2) Start the server:
 - `start.bat` (regular start)
 - `start.ps1 -Loop` (restart loop after shutdown)
 
@@ -36,7 +34,6 @@ composer install --no-dev
 This creates **`PocketMine-MP.phar`** in the project root. Run it with **`start_phar.bat`** (uses `bin\php\php.exe` if present).
 
 > `vendor/` is **not** stored in Git — run `composer install` after clone. The `.phar` file is not committed (`*.phar` in `.gitignore`); build it locally or attach to [Releases](https://github.com/karepanov35/Lunacy/releases).
-
 ### Linux / macOS
 
 1) Install dependencies:

@@ -1415,6 +1415,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("jungle_hanging_sign", fn() => Items::JUNGLE_HANGING_SIGN());
 		$result->register("lapis_lazuli", fn() => Items::LAPIS_LAZULI());
 		$result->register("lava_bucket", fn() => Items::LAVA_BUCKET());
+		$result->register("lead", fn() => Items::LEAD());
 		$result->register("leather", fn() => Items::LEATHER());
 		$result->register("leather_boots", fn() => Items::LEATHER_BOOTS());
 		$result->register("leather_cap", fn() => Items::LEATHER_CAP());
@@ -1584,6 +1585,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("iron_golem_spawn_egg", fn() => Items::IRON_GOLEM_SPAWN_EGG());
 		$result->register("witch_spawn_egg", fn() => Items::WITCH_SPAWN_EGG());
 		$result->register("spider_spawn_egg", fn() => Items::SPIDER_SPAWN_EGG());
+		$result->register("wolf_spawn_egg", fn() => Items::WOLF_SPAWN_EGG());
 		$result->register("saddle", fn() => Items::SADDLE());
 		$result->register("leather_horse_armor", fn() => Items::LEATHER_HORSE_ARMOR());
 		$result->register("iron_horse_armor", fn() => Items::IRON_HORSE_ARMOR());

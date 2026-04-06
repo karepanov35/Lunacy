@@ -15,21 +15,24 @@ use function sin;
 class Cave implements Populator{
 
 	public function populate(ChunkManager $world, int $chunkX, int $chunkZ, Random $random) : void{
-		$overLap = 8;
+		// Соседи 3×3: пещеры могут заходить в соседний чанк. Раньше overlap=8 давал 17×17 (289 вызовов на чанк) —
+		// одна и та же территория вырезалась десятки раз → огромные дыры и «ломаный» рельеф на поверхности.
+		$overlap = 1;
 		$firstSeed = $random->nextInt();
 		$secondSeed = $random->nextInt();
-		
-		for($cxx = 0; $cxx < 1; $cxx++){
-			for($czz = 0; $czz < 1; $czz++){
-				$dcx = $chunkX + $cxx;
-				$dcz = $chunkZ + $czz;
-				for($cxxx = -$overLap; $cxxx <= $overLap; $cxxx++){
-					for($czzz = -$overLap; $czzz <= $overLap; $czzz++){
-						$dcxx = $dcx + $cxxx;
-						$dczz = $dcz + $czzz;
-						$this->pop($world, $dcxx, $dczz, $dcx, $dcz, new Random(($dcxx * $firstSeed) ^ ($dczz * $secondSeed) ^ $random->getSeed()));
-					}
-				}
+
+		for($ox = -$overlap; $ox <= $overlap; ++$ox){
+			for($oz = -$overlap; $oz <= $overlap; ++$oz){
+				$targetChunkX = $chunkX + $ox;
+				$targetChunkZ = $chunkZ + $oz;
+				$this->pop(
+					$world,
+					$targetChunkX,
+					$targetChunkZ,
+					$chunkX,
+					$chunkZ,
+					new Random(($targetChunkX * $firstSeed) ^ ($targetChunkZ * $secondSeed) ^ $random->getSeed())
+				);
 			}
 		}
 	}

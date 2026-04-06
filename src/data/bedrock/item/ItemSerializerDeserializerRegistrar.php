@@ -304,6 +304,7 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::JUNGLE_SIGN, Items::JUNGLE_SIGN());
 		$this->map1to1Item(Ids::LAPIS_LAZULI, Items::LAPIS_LAZULI());
 		$this->map1to1Item(Ids::LAVA_BUCKET, Items::LAVA_BUCKET());
+		$this->map1to1Item(Ids::LEAD, Items::LEAD());
 		$this->map1to1Item(Ids::LEATHER, Items::LEATHER());
 		$this->map1to1Item(Ids::LEATHER_BOOTS, Items::LEATHER_BOOTS());
 		$this->map1to1Item(Ids::LEATHER_CHESTPLATE, Items::LEATHER_TUNIC());
@@ -448,6 +449,7 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::WITCH_SPAWN_EGG, Items::WITCH_SPAWN_EGG());
 		$this->map1to1Item(Ids::SPIDER_SPAWN_EGG, Items::SPIDER_SPAWN_EGG());
 		$this->map1to1Item(Ids::VINDICATOR_SPAWN_EGG, Items::VINDICATOR_SPAWN_EGG());
+		$this->map1to1Item(Ids::WOLF_SPAWN_EGG, Items::WOLF_SPAWN_EGG());
 		$this->map1to1Item(Ids::SADDLE, Items::SADDLE());
 		$this->map1to1Item(Ids::LEATHER_HORSE_ARMOR, Items::LEATHER_HORSE_ARMOR());
 		$this->map1to1Item(Ids::IRON_HORSE_ARMOR, Items::IRON_HORSE_ARMOR());

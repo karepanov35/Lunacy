@@ -112,8 +112,6 @@ use pocketmine\nbt\tag\IntTag;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\AnimatePacket;
 use pocketmine\network\mcpe\protocol\MovePlayerPacket;
-use pocketmine\network\mcpe\protocol\PlayerListPacket;
-use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\SetActorMotionPacket;
 use pocketmine\network\mcpe\protocol\types\BlockPosition;
 use pocketmine\network\mcpe\protocol\types\DimensionIds;
@@ -730,26 +728,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	 * If null is given, will additionally send the skin to the player itself as well as its viewers.
 	 */
 	public function sendSkin(?array $targets = null) : void{
-		$targets = $targets ?? $this->server->getOnlinePlayers();
-		parent::sendSkin($targets);
-
-		// Как Nukkit Server.updatePlayerListData: обновляем запись в списке игроков со скином (таб, гардеробная, Persona).
-		foreach($targets as $recipient){
-			if(!($recipient instanceof Player)){
-				continue;
-			}
-			$session = $recipient->getNetworkSession();
-			$skinData = $session->getTypeConverter()->getSkinAdapter()->toSkinData($this->getSkin());
-			$session->sendDataPacket(PlayerListPacket::add([
-				PlayerListEntry::createAdditionEntry(
-					$this->getUniqueId(),
-					$this->getId(),
-					$this->getDisplayName(),
-					$skinData,
-					$this->getXuid()
-				),
-			]));
-		}
+		parent::sendSkin($targets ?? $this->server->getOnlinePlayers());
 	}
 
 	/**

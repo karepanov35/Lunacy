@@ -4,6 +4,16 @@
    "type": "project",
    "homepage": "https://pmmp.io",
    "license": "LGPL-3.0",
+   "repositories": [
+      {
+         "type": "vcs",
+         "url": "https://github.com/NetherGamesMC/BedrockProtocol.git"
+      },
+      {
+         "type": "vcs",
+         "url": "https://github.com/NetherGamesMC/BedrockData.git"
+      }
+   ],
    "require": {
       "php": "^8.1",
       "php-64bit": "*",
@@ -35,9 +45,9 @@
       "adhocore/json-comment": "~1.2.0",
       "netresearch/jsonmapper": "~v5.0.0",
       "pocketmine/bedrock-block-upgrade-schema": "~5.2.0+bedrock-1.21.110",
-      "pocketmine/bedrock-data": "~6.4.0+bedrock-1.26.0",
+      "nethergamesmc/bedrock-data": "dev-master#4733202865879df1ac3955adfd803eb0447d2bb7",
       "pocketmine/bedrock-item-upgrade-schema": "~1.16.0+bedrock-1.21.110",
-      "pocketmine/bedrock-protocol": "~55.0.0+bedrock-1.26.0",
+      "nethergamesmc/bedrock-protocol": "dev-master#c74f98b242b6ec697d917910be62bb6f085d9cca",
       "pocketmine/binaryutils": "^0.2.1",
       "pocketmine/callback-validator": "~1.0.4",
       "pocketmine/color": "^0.3.0",
@@ -91,13 +101,13 @@
          "@php -dphar.readonly=0 build/server-phar.php"
       ],
       "update-codegen": [
-         "@php build/codegen/bedrockdata-path-consts.php",
-         "@php build/codegen/biome-ids.php",
-         "@php build/codegen/block-serializer-consts.php vendor/pocketmine/bedrock-data/canonical_block_states.nbt",
-         "@php build/codegen/item-type-names.php vendor/pocketmine/bedrock-data/required_item_list.json",
-         "@php build/codegen/known-translation-apis.php",
-         "@php build/codegen/pocketmine-yml-property-consts.php",
-         "@php build/codegen/registry-interface.php src generated"
+         "@php build/generate-bedrockdata-path-consts.php",
+         "@php build/generate-biome-ids.php",
+         "@php build/generate-block-serializer-consts.php vendor/nethergamesmc/bedrock-data/canonical_block_states.nbt",
+         "@php build/generate-item-type-names.php vendor/nethergamesmc/bedrock-data/required_item_list.json",
+         "@php build/generate-known-translation-apis.php",
+         "@php build/generate-pocketmine-yml-property-consts.php",
+         "@php build/generate-registry-annotations.php src"
       ]
    }
 }

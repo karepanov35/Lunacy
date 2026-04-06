@@ -39,6 +39,7 @@ use pocketmine\entity\Skeleton;
 use pocketmine\entity\Villager;
 use pocketmine\entity\WitherSkeleton;
 use pocketmine\entity\Vindicator;
+use pocketmine\entity\Wolf;
 use pocketmine\entity\Zombie;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\item\enchantment\ItemEnchantmentTags as EnchantmentTags;
@@ -200,6 +201,7 @@ use function strtolower;
  * @method static ItemBlockWallOrFloor JUNGLE_SIGN()
  * @method static Item LAPIS_LAZULI()
  * @method static LiquidBucket LAVA_BUCKET()
+ * @method static Lead LEAD()
  * @method static Item LEATHER()
  * @method static Armor LEATHER_BOOTS()
  * @method static Armor LEATHER_CAP()
@@ -351,6 +353,7 @@ use function strtolower;
  * @method static SpawnEgg VILLAGER_SPAWN_EGG()
  * @method static SpawnEgg ZOMBIE_SPAWN_EGG()
  * @method static SpawnEgg VINDICATOR_SPAWN_EGG()
+ * @method static SpawnEgg WOLF_SPAWN_EGG()
  */
 final class VanillaItems{
 	use CloningRegistryTrait;
@@ -501,6 +504,7 @@ final class VanillaItems{
 		self::register("jungle_hanging_sign", fn(IID $id) => new HangingSign($id, "Jungle Hanging Sign", Blocks::JUNGLE_CEILING_CENTER_HANGING_SIGN(), Blocks::JUNGLE_CEILING_EDGES_HANGING_SIGN(), Blocks::JUNGLE_WALL_HANGING_SIGN()));
 		self::register("lapis_lazuli", fn(IID $id) => new Item($id, "Lapis Lazuli"));
 		self::register("lava_bucket", fn(IID $id) => new LiquidBucket($id, "Lava Bucket", Blocks::LAVA()));
+		self::register("lead", fn(IID $id) => new Lead($id, "Lead"));
 		self::register("leather", fn(IID $id) => new Item($id, "Leather"));
 		self::register("lingering_potion", fn(IID $id) => new SplashPotion($id, "Lingering Potion", linger: true));
 		self::register("magma_cream", fn(IID $id) => new Item($id, "Magma Cream"));
@@ -694,6 +698,11 @@ final class VanillaItems{
 		self::register("vindicator_spawn_egg", fn(IID $id) => new class($id, "Vindicator Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Vindicator(Location::fromObject($pos, $world, $yaw, $pitch));
+			}
+		});
+		self::register("wolf_spawn_egg", fn(IID $id) => new class($id, "Wolf Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Wolf(Location::fromObject($pos, $world, $yaw, $pitch), null);
 			}
 		});
 	}

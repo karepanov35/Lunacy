@@ -43,28 +43,16 @@ class NetherPortal extends Transparent{
 
 	protected int $axis = Axis::X;
 
-	/**
-	 * Teleport cooldown to prevent entities from bouncing every tick while overlapping portal blocks.
-	 *
-	 * @var array<int, int> entityId => nextAllowedTick
-	 */
 	private static array $teleportCooldown = [];
 
-	/**
-	 * После межмирного телепорта игрок остаётся в блоке портала — срабатывает обратный перенос.
-	 * Иммунитет на несколько секунд отключает обработку портала (аналог задержки в ванилле).
-	 *
-	 * @var array<int, int> entityId => server tick до которого портал игнорируется
-	 */
 	private static array $crossDimensionPortalImmuneUntil = [];
 
 	private const TELEPORT_COOLDOWN_TICKS = 100;
 
-	/** Доп. иммунитет к порталу после Overworld ↔ Nether (тики) */
 	private const CROSS_DIMENSION_PORTAL_IMMUNITY_TICKS = 400;
 
 	private const OVERWORLD_WORLD_NAME = "world";
-	private const OVERWORLD_FALLBACK_NAME = "overworld"; // если "world" создан с генератором Nether
+	private const OVERWORLD_FALLBACK_NAME = "overworld";
 	private const NETHER_WORLD_NAME = "nether";
 
 	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
@@ -112,8 +100,6 @@ class NetherPortal extends Transparent{
 	}
 
 	public function onEntityInside(Entity $entity) : bool{
-		// Vanilla behaviour: portals teleport entities (at least players and mobs).
-		// Add a cooldown to avoid repeated teleporting while overlapping the portal.
 		if(!($entity instanceof Living)){
 			return true;
 		}
@@ -135,7 +121,6 @@ class NetherPortal extends Transparent{
 		$generator = strtolower($world->getProvider()->getWorldData()->getGenerator());
 		$folderName = strtolower($world->getFolderName());
 
-		// Выбор целевого мира по текущему миру (папка + генератор).
 		$sourceIsNether = str_contains($folderName, "nether") || in_array($generator, ["nether", "hell"], true);
 		$destWorldName = $sourceIsNether ? self::OVERWORLD_WORLD_NAME : self::NETHER_WORLD_NAME;
 
@@ -149,8 +134,6 @@ class NetherPortal extends Transparent{
 				->setSeed($world->getSeed())
 				->setDifficulty($world->getDifficulty());
 
-			// Try to create/generate the destination world so that teleport doesn't fail with a null world reference.
-			// (If already generated, WorldCreationOptions should be harmless; but to avoid duplicates, check first.)
 			if($worldManager->isWorldGenerated($destWorldName)){
 				$worldManager->loadWorld($destWorldName);
 			}else{
@@ -160,8 +143,6 @@ class NetherPortal extends Transparent{
 			$destWorld = $worldManager->getWorldByName($destWorldName);
 		}
 
-		// Если нужен Overworld, но "world" имеет генератор Nether (ошибка конфигурации),
-		// используем "overworld" с правильным генератором — иначе частицы поломки будут незерак.
 		if($destWorld !== null && $sourceIsNether){
 			$destGen = strtolower($destWorld->getProvider()->getWorldData()->getGenerator());
 			if(in_array($destGen, ["nether", "hell"], true)){
@@ -182,7 +163,7 @@ class NetherPortal extends Transparent{
 		}
 
 		if($destWorld === null){
-			return true; // Unable to resolve destination world.
+			return true;
 		}
 
 		$pos = $entity->getPosition();
@@ -191,32 +172,35 @@ class NetherPortal extends Transparent{
 		$srcZ = (int) floor($pos->z);
 
 		if($sourceIsNether){
-			// Nether -> Overworld
 			$destX = $srcX * 8;
 			$destZ = $srcZ * 8;
 		}else{
-			// Overworld -> Nether
 			$destX = self::floorDiv($srcX, 8);
 			$destZ = self::floorDiv($srcZ, 8);
 		}
 		$destY = max($destWorld->getMinY(), min($destWorld->getMaxY() - 1, (float) $srcY));
 
-		// Сначала генерируем чанки в точке назначения, иначе игрок телепортируется в пустоту.
 		$chunkX = $destX >> Chunk::COORD_BIT_SIZE;
 		$chunkZ = $destZ >> Chunk::COORD_BIT_SIZE;
 
 		$crossDimension = ChunkCache::getDimensionIdForWorld($world) !== ChunkCache::getDimensionIdForWorld($destWorld);
 
 		$destWorld->requestChunkPopulation($chunkX, $chunkZ, null)->onCompletion(
-			function() use ($entity, $destWorld, $destX, $destY, $destZ, $world, $pos, $entityId, $server, $crossDimension) : void{
+			function() use ($entity, $destWorld, $destX, $destY, $destZ, $world, $pos, $entityId, $server, $crossDimension, $sourceIsNether) : void{
 				if($entity->isClosed()){
 					return;
 				}
 
-				// Ищем существующий портал или создаём минимальный.
 				$targetPos = $this->findDestinationPortalPosition($destWorld, $destX, $destY, $destZ);
 				if($targetPos === null){
-					$createdPos = $this->tryCreateMinimalPortal($destWorld, $destX, (int) floor($destY), $destZ, $this->axis);
+					$createdPos = $this->tryCreateMinimalPortal(
+						$destWorld,
+						$destX,
+						(int) floor($destY),
+						$destZ,
+						$this->axis,
+						!$sourceIsNether
+					);
 					if($createdPos !== null){
 						$targetPos = $createdPos;
 					}else{
@@ -229,14 +213,11 @@ class NetherPortal extends Transparent{
 					}
 				}
 
-				// Безопасная высота (не в пустоту).
 				try{
 					$targetPos = $destWorld->getSafeSpawn($targetPos);
 				}catch(\Throwable){
-					// Оставляем targetPos как есть
 				}
 
-				// Смещение перпендикулярно плоскости портала (ось X — портал тянется по X, выходим по Z и наоборот).
 				if($crossDimension){
 					$axis = $this->axis;
 					$ox = $axis === Axis::Z ? 1.0 : 0.0;
@@ -257,7 +238,6 @@ class NetherPortal extends Transparent{
 				$entity->teleport($targetPos);
 			},
 			function() : void{
-				// Генерация отменена (мир выгружен) — телепорт не выполняем
 			}
 		);
 
@@ -265,7 +245,6 @@ class NetherPortal extends Transparent{
 	}
 
 	private static function floorDiv(int $a, int $b) : int{
-		// floor division for negatives, unlike intdiv() which truncates toward zero.
 		$q = intdiv($a, $b);
 		$r = $a % $b;
 		if($r !== 0 && ($a < 0) !== ($b < 0)){
@@ -281,19 +260,15 @@ class NetherPortal extends Transparent{
 	private function findDestinationPortalPosition(World $destWorld, int $destX, float $destY, int $destZ) : ?Position{
 		$centerY = (int) floor($destY);
 
-		// Portals are typically within +/- 16 blocks vertically of the transformed coordinates.
 		$minY = max($destWorld->getMinY(), $centerY - 16);
 		$maxY = min($destWorld->getMaxY() - 1, $centerY + 16);
 
-		// Search a small horizontal area around the transformed coords.
 		$minX = $destX - 4;
 		$maxX = $destX + 4;
 		$minZ = $destZ - 4;
 		$maxZ = $destZ + 4;
 
 		$axisHint = $this->axis;
-		// Pass 1: prefer destination portals with the same orientation.
-		// Pass 2: if none found, allow any destination portal.
 		for($pass = 0; $pass < 2; ++$pass){
 			$requireAxisMatch = $pass === 0;
 			for($y = $minY; $y <= $maxY; ++$y){
@@ -321,32 +296,69 @@ class NetherPortal extends Transparent{
 		return null;
 	}
 
-	/**
-	 * Attempts to create a minimal Nether portal (frame 4x5, interior 2x3) centered around transformed coords.
-	 * Returns a target Position inside the portal if creation succeeded.
-	 */
-	private function tryCreateMinimalPortal(World $world, int $destX, int $destYInt, int $destZ, int $axis) : ?Position{
-		// Frame dimensions for vanilla: width=4, height=5, interior portal size: (4-2) x (5-2) = 2x3.
+	private function tryCreateMinimalPortal(World $world, int $destX, int $destYInt, int $destZ, int $axis, bool $requireNetherrackBase = false) : ?Position{
 		$width = 4;
 		$height = 5;
 
-		// The frame's bottom edge.
-		$frameBaseY = $destYInt - 1;
-		if($frameBaseY < $world->getMinY() || ($frameBaseY + $height - 1) >= $world->getMaxY()){
+		$minBaseY = $world->getMinY() + 1;
+		$maxBaseY = $world->getMaxY() - $height;
+		if($minBaseY > $maxBaseY){
 			return null;
 		}
 
-		// Corner of the frame.
-		// For Axis::X portals, width runs along X and Z is fixed. For Axis::Z portals, vice versa.
-		if($axis === Axis::X){
-			$cornerX = $destX - 1;
-			$cornerZ = $destZ;
-		}else{
-			$cornerX = $destX;
-			$cornerZ = $destZ - 1;
+		$startBaseY = max($minBaseY, min($maxBaseY, $destYInt - 1));
+		$searchRadius = 6;
+
+		for($y = $startBaseY; $y >= $minBaseY; --$y){
+			for($xOff = -$searchRadius; $xOff <= $searchRadius; ++$xOff){
+				for($zOff = -$searchRadius; $zOff <= $searchRadius; ++$zOff){
+					$centerX = $destX + $xOff;
+					$centerZ = $destZ + $zOff;
+					$cornerX = $axis === Axis::X ? $centerX - 1 : $centerX;
+					$cornerZ = $axis === Axis::X ? $centerZ : $centerZ - 1;
+
+					if(!$this->canPlaceMinimalPortalAt($world, $cornerX, $y, $cornerZ, $axis, $width, $height, $requireNetherrackBase)){
+						continue;
+					}
+
+					$obsidian = VanillaBlocks::OBSIDIAN();
+					for($yOff = 0; $yOff < $height; ++$yOff){
+						for($wOff = 0; $wOff < $width; ++$wOff){
+							$x = $axis === Axis::X ? ($cornerX + $wOff) : $cornerX;
+							$z = $axis === Axis::Z ? ($cornerZ + $wOff) : $cornerZ;
+							$yy = $y + $yOff;
+
+							$isEdge = ($yOff === 0 || $yOff === $height - 1 || $wOff === 0 || $wOff === $width - 1);
+							try{
+								if($isEdge){
+									$world->setBlockAt($x, $yy, $z, $obsidian, true);
+								}else{
+									$world->setBlockAt($x, $yy, $z, VanillaBlocks::NETHER_PORTAL()->setAxis($axis), true);
+								}
+							}catch(\Throwable){
+								return null;
+							}
+						}
+					}
+
+					return new Position(
+						(float) $centerX + 0.5,
+						(float) $y + 1.5,
+						(float) $centerZ + 0.5,
+						$world
+					);
+				}
+			}
 		}
 
-		// Validate that we won't overwrite solid blocks.
+		return null;
+	}
+
+	private function canPlaceMinimalPortalAt(World $world, int $cornerX, int $frameBaseY, int $cornerZ, int $axis, int $width, int $height, bool $requireNetherrackBase) : bool{
+		if($frameBaseY < $world->getMinY() + 1 || ($frameBaseY + $height - 1) >= $world->getMaxY()){
+			return false;
+		}
+
 		for($yOff = 0; $yOff < $height; ++$yOff){
 			for($wOff = 0; $wOff < $width; ++$wOff){
 				$x = $axis === Axis::X ? ($cornerX + $wOff) : $cornerX;
@@ -355,47 +367,29 @@ class NetherPortal extends Transparent{
 
 				$isEdge = ($yOff === 0 || $yOff === $height - 1 || $wOff === 0 || $wOff === $width - 1);
 				$block = $world->getBlockAt($x, $y, $z);
-
 				if($isEdge){
-					// Edges must be air or existing obsidian.
 					if($block->getTypeId() !== BlockTypeIds::AIR && $block->getTypeId() !== BlockTypeIds::OBSIDIAN){
-						return null;
+						return false;
 					}
 				}else{
-					// Interior must be air or existing portal blocks.
 					if($block->getTypeId() !== BlockTypeIds::AIR && $block->getTypeId() !== BlockTypeIds::NETHER_PORTAL){
-						return null;
+						return false;
 					}
 				}
 			}
 		}
 
-		// Place blocks. setBlock() can throw if chunks aren't generated yet; in that case, abort safely.
-		$obsidian = VanillaBlocks::OBSIDIAN();
-		for($yOff = 0; $yOff < $height; ++$yOff){
+		if($requireNetherrackBase){
 			for($wOff = 0; $wOff < $width; ++$wOff){
 				$x = $axis === Axis::X ? ($cornerX + $wOff) : $cornerX;
 				$z = $axis === Axis::Z ? ($cornerZ + $wOff) : $cornerZ;
-				$y = $frameBaseY + $yOff;
-
-				$isEdge = ($yOff === 0 || $yOff === $height - 1 || $wOff === 0 || $wOff === $width - 1);
-				try{
-					if($isEdge){
-						$world->setBlockAt($x, $y, $z, $obsidian, true);
-					}else{
-						$world->setBlockAt($x, $y, $z, VanillaBlocks::NETHER_PORTAL()->setAxis($axis), true);
-					}
-				}catch(\Throwable){
-					return null;
+				$support = $world->getBlockAt($x, $frameBaseY - 1, $z);
+				if($support->getTypeId() !== BlockTypeIds::NETHERRACK){
+					return false;
 				}
 			}
 		}
 
-		return new Position(
-			(float) $destX + 0.5,
-			(float) $destYInt + 0.5,
-			(float) $destZ + 0.5,
-			$world
-		);
+		return true;
 	}
 }

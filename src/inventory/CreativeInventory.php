@@ -109,6 +109,12 @@ final class CreativeInventory{
 		if(!$this->contains(VanillaItems::CHICKEN_SPAWN_EGG())){
 			$this->add(VanillaItems::CHICKEN_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
+		if(!$this->contains(VanillaItems::WOLF_SPAWN_EGG())){
+			$this->add(VanillaItems::WOLF_SPAWN_EGG(), CreativeCategory::NATURE);
+		}
+		if(!$this->contains(VanillaItems::LEAD())){
+			$this->add(VanillaItems::LEAD(), CreativeCategory::EQUIPMENT);
+		}
 		// Око края — запасной вариант, если JSON не загрузился
 		if(!$this->contains(VanillaItems::ENDER_EYE())){
 			$this->add(VanillaItems::ENDER_EYE(), CreativeCategory::ITEMS);
