@@ -1401,6 +1401,18 @@ class NetworkSession{
 	 * @param Player[] $players
 	 */
 	public function syncPlayerList(array $players) : void{
+		$uniqueByUuid = [];
+		foreach($players as $player){
+			// Локальный игрок уже задан через StartGamePacket; запись в PLAYER_LIST для себя дублирует ник в табе (Bedrock 1.20+).
+			if($this->player !== null && $player === $this->player){
+				continue;
+			}
+			$uniqueByUuid[$player->getUniqueId()->getBytes()] = $player;
+		}
+		$players = array_values($uniqueByUuid);
+		if(count($players) === 0){
+			return;
+		}
 		$this->sendDataPacket(PlayerListPacket::add(array_map(function(Player $player) : PlayerListEntry{
 			return PlayerListEntry::createAdditionEntry($player->getUniqueId(), $player->getId(), $player->getDisplayName(), $this->typeConverter->getSkinAdapter()->toSkinData($player->getSkin()), $player->getXuid());
 		}, $players)));
