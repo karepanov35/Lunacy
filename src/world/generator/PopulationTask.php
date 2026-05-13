@@ -23,6 +23,8 @@ declare(strict_types=1);
 namespace pocketmine\world\generator;
 
 use pocketmine\scheduler\AsyncTask;
+use pocketmine\timings\Timings;
+use pocketmine\timings\TimingsHandler;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\world\format\Chunk;
 use pocketmine\world\format\io\FastChunkSerializer;
@@ -42,6 +44,10 @@ use function igbinary_unserialize;
  */
 class PopulationTask extends AsyncTask{
 	private const TLS_KEY_ON_COMPLETION = "onCompletion";
+
+	private static ?TimingsHandler $timingsDeserialize = null;
+	private static ?TimingsHandler $timingsPopulate = null;
+	private static ?TimingsHandler $timingsSerialize = null;
 
 	private ?string $chunk;
 
@@ -70,12 +76,29 @@ class PopulationTask extends AsyncTask{
 		$this->storeLocal(self::TLS_KEY_ON_COMPLETION, $onCompletion);
 	}
 
+	/**
+	 * @return array{TimingsHandler, TimingsHandler, TimingsHandler}
+	 */
+	private static function getPhaseTimings(AsyncTask $task) : array{
+		if(self::$timingsDeserialize === null){
+			$parent = Timings::getAsyncTaskRunTimings($task);
+			self::$timingsDeserialize = new TimingsHandler("AsyncTask - PopulationTask - Run - Deserialize", $parent);
+			self::$timingsPopulate = new TimingsHandler("AsyncTask - PopulationTask - Run - Populate", $parent);
+			self::$timingsSerialize = new TimingsHandler("AsyncTask - PopulationTask - Run - Serialize", $parent);
+		}
+
+		return [self::$timingsDeserialize, self::$timingsPopulate, self::$timingsSerialize];
+	}
+
 	public function onRun() : void{
 		$context = ThreadLocalGeneratorContext::fetch($this->worldId);
 		if($context === null){
 			throw new AssumptionFailedError("Generator context should have been initialized before any PopulationTask execution");
 		}
 
+		[$timingDeserialize, $timingPopulate, $timingSerialize] = self::getPhaseTimings($this);
+
+		$timingDeserialize->startTiming();
 		$chunk = $this->chunk !== null ? FastChunkSerializer::deserializeTerrain($this->chunk) : null;
 
 		/**
@@ -94,7 +117,9 @@ class PopulationTask extends AsyncTask{
 			},
 			$serialChunks
 		);
+		$timingDeserialize->stopTiming();
 
+		$timingPopulate->startTiming();
 		[$chunk, $chunks] = PopulationUtils::populateChunkWithAdjacents(
 			$context->getWorldMinY(),
 			$context->getWorldMaxY(),
@@ -104,7 +129,9 @@ class PopulationTask extends AsyncTask{
 			$chunk,
 			$chunks
 		);
+		$timingPopulate->stopTiming();
 
+		$timingSerialize->startTiming();
 		$this->chunk = FastChunkSerializer::serializeTerrain($chunk);
 
 		$serialChunks = [];
@@ -112,6 +139,7 @@ class PopulationTask extends AsyncTask{
 			$serialChunks[$relativeChunkHash] = $c->isTerrainDirty() ? FastChunkSerializer::serializeTerrain($c) : null;
 		}
 		$this->adjacentChunks = igbinary_serialize($serialChunks) ?? throw new AssumptionFailedError("igbinary_serialize() returned null");
+		$timingSerialize->stopTiming();
 	}
 
 	public function onCompletion() : void{

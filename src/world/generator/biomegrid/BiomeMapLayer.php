@@ -12,7 +12,11 @@ class BiomeMapLayer extends MapLayer{
 	private static array $WARM = [BiomeIds::DESERT, BiomeIds::DESERT, BiomeIds::DESERT, BiomeIds::SAVANNA, BiomeIds::SAVANNA, BiomeIds::PLAINS];
 
 	/** @var int[] */
-	private static array $WET = [BiomeIds::PLAINS, BiomeIds::PLAINS, BiomeIds::FOREST, BiomeIds::BIRCH_FOREST, BiomeIds::ROOFED_FOREST, BiomeIds::EXTREME_HILLS, BiomeIds::SWAMPLAND];
+	private static array $WET = [
+		BiomeIds::PLAINS, BiomeIds::PLAINS, BiomeIds::FOREST, BiomeIds::BIRCH_FOREST,
+		BiomeIds::CHERRY_GROVE,
+		BiomeIds::ROOFED_FOREST, BiomeIds::EXTREME_HILLS, BiomeIds::SWAMPLAND
+	];
 
 	/** @var int[] */
 	private static array $DRY = [BiomeIds::PLAINS, BiomeIds::FOREST, BiomeIds::TAIGA, BiomeIds::EXTREME_HILLS];

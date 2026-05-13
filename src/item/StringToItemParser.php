@@ -164,6 +164,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("bed", fn() => Blocks::BED());
 		$result->registerBlock("bed_block", fn() => Blocks::BED());
 		$result->registerBlock("bedrock", fn() => Blocks::BEDROCK());
+		$result->registerBlock("bee_nest", fn() => Blocks::BEE_NEST());
 		$result->registerBlock("beetroot_block", fn() => Blocks::BEETROOTS());
 		$result->registerBlock("beetroots", fn() => Blocks::BEETROOTS());
 		$result->registerBlock("bell", fn() => Blocks::BELL());
@@ -233,6 +234,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("cherry_log", fn() => Blocks::CHERRY_LOG());
 		$result->registerBlock("cherry_planks", fn() => Blocks::CHERRY_PLANKS());
 		$result->registerBlock("cherry_pressure_plate", fn() => Blocks::CHERRY_PRESSURE_PLATE());
+		$result->registerBlock("cherry_sapling", fn() => Blocks::CHERRY_SAPLING());
 		$result->registerBlock("cherry_sign", fn() => Blocks::CHERRY_SIGN());
 		$result->registerBlock("cherry_slab", fn() => Blocks::CHERRY_SLAB());
 		$result->registerBlock("cherry_stairs", fn() => Blocks::CHERRY_STAIRS());
@@ -1586,6 +1588,8 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("witch_spawn_egg", fn() => Items::WITCH_SPAWN_EGG());
 		$result->register("spider_spawn_egg", fn() => Items::SPIDER_SPAWN_EGG());
 		$result->register("wolf_spawn_egg", fn() => Items::WOLF_SPAWN_EGG());
+		$result->register("hoglin_spawn_egg", fn() => Items::HOGLIN_SPAWN_EGG());
+		$result->register("zoglin_spawn_egg", fn() => Items::ZOGLIN_SPAWN_EGG());
 		$result->register("saddle", fn() => Items::SADDLE());
 		$result->register("leather_horse_armor", fn() => Items::LEATHER_HORSE_ARMOR());
 		$result->register("iron_horse_armor", fn() => Items::IRON_HORSE_ARMOR());

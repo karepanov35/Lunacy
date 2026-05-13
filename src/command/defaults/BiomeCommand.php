@@ -106,7 +106,8 @@ class BiomeCommand extends VanillaCommand{
 			134 => "Swampland M", 140 => "Ice Plains Spikes", 149 => "Jungle M", 151 => "Jungle Edge M",
 			155 => "Birch Forest M", 156 => "Birch Forest Hills M", 157 => "Roofed Forest M", 158 => "Cold Taiga M",
 			160 => "Redwood Taiga M", 161 => "Redwood Taiga Hills M", 162 => "Extreme Hills+ M", 163 => "Savanna M",
-			164 => "Savanna Plateau M", 165 => "Mesa Bryce", 166 => "Mesa Plateau Stone M", 167 => "Mesa Plateau M",
+			164 => "Savanna Plateau M", 165 => "Mesa Bryce", 166 => "Mesa Plateau Stone M", 			167 => "Mesa Plateau M",
+			192 => "Cherry Grove",
 		];
 		return $names[$id] ?? "ID:" . $id;
 	}

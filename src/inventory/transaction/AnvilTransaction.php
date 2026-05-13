@@ -78,7 +78,9 @@ class AnvilTransaction extends InventoryTransaction{
 
 	private function calculateResult() : void{
 		$currentRepairCost = $this->input->getNamedTag()->getInt(self::TAG_REPAIR_COST, 0);
-		$currentRepairCost += $this->material->getNamedTag()->getInt(self::TAG_REPAIR_COST, 0);
+		if(!$this->material->isNull()){
+			$currentRepairCost += $this->material->getNamedTag()->getInt(self::TAG_REPAIR_COST, 0);
+		}
 		$this->xpCost += $currentRepairCost;
 
 		$addRepairCost = false;
@@ -98,8 +100,6 @@ class AnvilTransaction extends InventoryTransaction{
 				// therefore if input is instance of Durable, result must also be Durable
 				$damage = $this->result->getDamage();
 				if(ItemRepairUtils::isRepairableWith($this->result, $this->material)){
-					$currentRepairCost += $this->material->getNamedTag()->getInt(self::TAG_REPAIR_COST, 0);
-
 					$consumedCount = 0;
 					for($i = 0; $i < $this->material->getCount() && $damage > 0; $i++){
 						$damage -= (int) floor($this->result->getMaxDurability() / 4);
@@ -133,7 +133,7 @@ class AnvilTransaction extends InventoryTransaction{
 					$this->xpCost += EnchantmentTransfer::getCost(
 						$type = $enchant->getType(),
 						max($enchant->getLevel() - $this->result->getEnchantmentLevel($type), 0),
-						!$this->material instanceof EnchantedBook
+						!($this->material instanceof EnchantedBook)
 					);
 
 					$this->result->addEnchantment(clone $enchant);
@@ -188,8 +188,31 @@ class AnvilTransaction extends InventoryTransaction{
 		if($created->getTypeId() !== $this->result->getTypeId() || $created->getCount() !== $this->result->getCount()){
 			throw new TransactionValidationException("Transaction produced a different output item");
 		}
-		if(count($deletedItems) > count($this->consumed)){
-			throw new TransactionValidationException("Transaction consumed more than required items");
+		$expectedConsumed = [];
+		foreach($this->consumed as $consumed){
+			if(!$consumed->isNull()){
+				$expectedConsumed[] = clone $consumed;
+			}
+		}
+		foreach($deletedItems as $deleted){
+			$remaining = $deleted->getCount();
+			foreach($expectedConsumed as $idx => $expected){
+				if(!$deleted->canStackWith($expected)){
+					continue;
+				}
+				$matched = min($remaining, $expected->getCount());
+				$remaining -= $matched;
+				$expected->setCount($expected->getCount() - $matched);
+				if($expected->getCount() <= 0){
+					unset($expectedConsumed[$idx]);
+				}
+				if($remaining <= 0){
+					break;
+				}
+			}
+			if($remaining > 0){
+				throw new TransactionValidationException("Transaction consumed more than required items");
+			}
 		}
 		$cost = $this->getXPCost();
 		if($cost > self::MAX_COST || $cost > $this->source->getXpManager()->getXpLevel()){
@@ -230,7 +253,7 @@ class AnvilTransaction extends InventoryTransaction{
 			$enchantmentType = $enchantment->getType();
 			if(
 				!$canEnchant($enchantmentType) &&
-				!$target instanceof EnchantedBook // enchanted books let in any compatible
+				!($target instanceof EnchantedBook) // enchanted books let in any compatible
 			){
 				continue;
 			}

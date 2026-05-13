@@ -28,6 +28,7 @@ use pocketmine\entity\Blaze;
 use pocketmine\entity\Chicken;
 use pocketmine\entity\Cow;
 use pocketmine\entity\Creeper;
+use pocketmine\entity\Hoglin;
 use pocketmine\entity\IronGolem;
 use pocketmine\entity\Spider;
 use pocketmine\entity\Witch;
@@ -40,6 +41,7 @@ use pocketmine\entity\Villager;
 use pocketmine\entity\WitherSkeleton;
 use pocketmine\entity\Vindicator;
 use pocketmine\entity\Wolf;
+use pocketmine\entity\Zoglin;
 use pocketmine\entity\Zombie;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\item\enchantment\ItemEnchantmentTags as EnchantmentTags;
@@ -354,6 +356,8 @@ use function strtolower;
  * @method static SpawnEgg ZOMBIE_SPAWN_EGG()
  * @method static SpawnEgg VINDICATOR_SPAWN_EGG()
  * @method static SpawnEgg WOLF_SPAWN_EGG()
+ * @method static SpawnEgg HOGLIN_SPAWN_EGG()
+ * @method static SpawnEgg ZOGLIN_SPAWN_EGG()
  */
 final class VanillaItems{
 	use CloningRegistryTrait;
@@ -703,6 +707,16 @@ final class VanillaItems{
 		self::register("wolf_spawn_egg", fn(IID $id) => new class($id, "Wolf Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Wolf(Location::fromObject($pos, $world, $yaw, $pitch), null);
+			}
+		});
+		self::register("hoglin_spawn_egg", fn(IID $id) => new class($id, "Hoglin Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Hoglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
+			}
+		});
+		self::register("zoglin_spawn_egg", fn(IID $id) => new class($id, "Zoglin Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Zoglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
 			}
 		});
 	}

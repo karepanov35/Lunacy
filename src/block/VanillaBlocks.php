@@ -121,6 +121,7 @@ use function strtolower;
  * @method static Beacon BEACON()
  * @method static Bed BED()
  * @method static Bedrock BEDROCK()
+ * @method static Opaque BEE_NEST()
  * @method static Beetroot BEETROOTS()
  * @method static Bell BELL()
  * @method static BigDripleafHead BIG_DRIPLEAF_HEAD()
@@ -187,6 +188,7 @@ use function strtolower;
  * @method static Wood CHERRY_LOG()
  * @method static Planks CHERRY_PLANKS()
  * @method static WoodenPressurePlate CHERRY_PRESSURE_PLATE()
+ * @method static Sapling CHERRY_SAPLING()
  * @method static FloorSign CHERRY_SIGN()
  * @method static WoodenSlab CHERRY_SLAB()
  * @method static WoodenStairs CHERRY_STAIRS()
@@ -928,6 +930,7 @@ final class VanillaBlocks{
 		self::register("wall_banner", fn(BID $id) => new WallBanner($id, "Wall Banner", $bannerBreakInfo), TileBanner::class);
 		self::register("ominous_banner", fn(BID $id) => new OminousFloorBanner($id, "Ominous Banner", $bannerBreakInfo), TileBanner::class);
 		self::register("ominous_wall_banner", fn(BID $id) => new OminousWallBanner($id, "Ominous Wall Banner", $bannerBreakInfo), TileBanner::class);
+		self::register("bee_nest", fn(BID $id) => new Opaque($id, "Bee Nest", new Info(BreakInfo::axe(0.3))));
 		self::register("barrel", fn(BID $id) => new Barrel($id, "Barrel", new Info(BreakInfo::axe(2.5))), TileBarrel::class);
 		self::register("barrier", fn(BID $id) => new Transparent($id, "Barrier", new Info(BreakInfo::indestructible())));
 		self::register("beacon", fn(BID $id) => new Beacon($id, "Beacon", new Info(new BreakInfo(3.0))), TileBeacon::class);

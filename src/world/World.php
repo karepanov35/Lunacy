@@ -565,7 +565,16 @@ class World implements ChunkManager{
 			$this->chunkTickRadius = 0;
 		}
 		$this->tickedBlocksPerSubchunkPerTick = $cfg->getPropertyInt(YmlServerProperties::CHUNK_TICKING_BLOCKS_PER_SUBCHUNK_PER_TICK, self::DEFAULT_TICKED_BLOCKS_PER_SUBCHUNK_PER_TICK);
-		$this->maxConcurrentChunkPopulationTasks = $cfg->getPropertyInt(YmlServerProperties::CHUNK_GENERATION_POPULATION_QUEUE_SIZE, 8); // Уменьшено до 8 для стабильного TPS
+		$populationQueueSize = $cfg->getPropertyInt(YmlServerProperties::CHUNK_GENERATION_POPULATION_QUEUE_SIZE, 32);
+		if($populationQueueSize < 1){
+			$this->logger->warning(\sprintf("%s (%d) is below 1, using 1", YmlServerProperties::CHUNK_GENERATION_POPULATION_QUEUE_SIZE, $populationQueueSize));
+			$this->maxConcurrentChunkPopulationTasks = 1;
+		}elseif($populationQueueSize > 256){
+			$this->logger->warning(\sprintf("%s (%d) exceeds 256, using 256", YmlServerProperties::CHUNK_GENERATION_POPULATION_QUEUE_SIZE, $populationQueueSize));
+			$this->maxConcurrentChunkPopulationTasks = 256;
+		}else{
+			$this->maxConcurrentChunkPopulationTasks = $populationQueueSize;
+		}
 
 		$this->initRandomTickBlocksFromConfig($cfg);
 
@@ -1049,30 +1058,50 @@ class World implements ChunkManager{
 		$this->timings->scheduledBlockUpdates->stopTiming();
 
 		$this->timings->neighbourBlockUpdates->startTiming();
-		//Normal updates
-		while($this->neighbourBlockUpdateQueue->count() > 0){
-			$index = $this->neighbourBlockUpdateQueue->dequeue();
-			unset($this->neighbourBlockUpdateQueueIndex[$index]);
-			World::getBlockXYZ($index, $x, $y, $z);
-			if(!$this->isChunkLoaded($x >> Chunk::COORD_BIT_SIZE, $z >> Chunk::COORD_BIT_SIZE)){
-				continue;
-			}
+		//Normal updates — batch entity notifications to avoid O(n*m) AABB lookups
+		if($this->neighbourBlockUpdateQueue->count() > 0){
+			/** @var Block[] $updatedBlocks */
+			$updatedBlocks = [];
 
-			$block = $this->getBlockAt($x, $y, $z);
-
-			if(BlockUpdateEvent::hasHandlers()){
-				$ev = new BlockUpdateEvent($block);
-				$ev->call();
-				if($ev->isCancelled()){
+			while($this->neighbourBlockUpdateQueue->count() > 0){
+				$index = $this->neighbourBlockUpdateQueue->dequeue();
+				unset($this->neighbourBlockUpdateQueueIndex[$index]);
+				World::getBlockXYZ($index, $x, $y, $z);
+				if(!$this->isChunkLoaded($x >> Chunk::COORD_BIT_SIZE, $z >> Chunk::COORD_BIT_SIZE)){
 					continue;
 				}
-			}
-			foreach($this->getNearbyEntities(AxisAlignedBB::one()->offset($x, $y, $z)) as $entity){
-				$entity->onNearbyBlockChange();
-			}
-			$block->onNearbyBlockChange();
-		}
 
+				$block = $this->getBlockAt($x, $y, $z);
+
+				if(BlockUpdateEvent::hasHandlers()){
+					$ev = new BlockUpdateEvent($block);
+					$ev->call();
+					if($ev->isCancelled()){
+						continue;
+					}
+				}
+
+				$block->onNearbyBlockChange();
+				$updatedBlocks[] = $block;
+			}
+
+			// Notify entities once per unique entity, not once per block update.
+			// Build a merged AABB covering all changed blocks, then deduplicate entities.
+			if(count($updatedBlocks) > 0 && count($this->updateEntities) > 0){
+				/** @var Entity[] $notified */
+				$notified = [];
+				foreach($updatedBlocks as $b){
+					$pos = $b->getPosition();
+					foreach($this->getNearbyEntities(AxisAlignedBB::one()->offset($pos->x, $pos->y, $pos->z)) as $entity){
+						$eid = $entity->getId();
+						if(!isset($notified[$eid])){
+							$notified[$eid] = $entity;
+							$entity->onNearbyBlockChange();
+						}
+					}
+				}
+			}
+		}
 		$this->timings->neighbourBlockUpdates->stopTiming();
 
 		$this->timings->entityTick->startTiming();
@@ -1104,7 +1133,7 @@ class World implements ChunkManager{
 						//a previous chunk may have caused this one to be unloaded by a ChunkListener
 						continue;
 					}
-					if(count($blocks) > 512){
+					if(count($blocks) > 1024){
 						$chunk = $this->getChunk($chunkX, $chunkZ) ?? throw new AssumptionFailedError("We already checked that the chunk is loaded");
 						foreach($this->getChunkPlayers($chunkX, $chunkZ) as $p){
 							$p->onChunkChanged($chunkX, $chunkZ, $chunk);
@@ -1476,7 +1505,6 @@ class World implements ChunkManager{
 	private function tickChunk(int $chunkX, int $chunkZ) : void{
 		$chunk = $this->getChunk($chunkX, $chunkZ);
 		if($chunk === null){
-			//the chunk may have been unloaded during a previous chunk's update (e.g. during BlockGrowEvent)
 			return;
 		}
 		foreach($this->getChunkEntities($chunkX, $chunkZ) as $entity){
@@ -1484,12 +1512,17 @@ class World implements ChunkManager{
 		}
 
 		$blockFactory = $this->blockStateRegistry;
+		// Кэш: переиспользуем объект блока для одного и того же stateId в рамках тика чанка.
+		// fromStateId клонирует внутри, поэтому кэшируем уже готовый объект и клонируем его сами —
+		// это дешевле чем полный lookup + clone каждый раз.
+		/** @var Block[] $blockCache */
+		$blockCache = [];
+
 		foreach($chunk->getSubChunks() as $Y => $subChunk){
 			if(!$subChunk->isEmptyFast()){
 				$k = 0;
 				for($i = 0; $i < $this->tickedBlocksPerSubchunkPerTick; ++$i){
 					if(($i % 5) === 0){
-						//60 bits will be used by 5 blocks (12 bits each)
 						$k = mt_rand(0, (1 << 60) - 1);
 					}
 					$x = $k & SubChunk::COORD_MASK;
@@ -1500,7 +1533,10 @@ class World implements ChunkManager{
 					$state = $subChunk->getBlockStateId($x, $y, $z);
 
 					if(isset($this->randomTickBlocks[$state])){
-						$block = $blockFactory->fromStateId($state);
+						if(!isset($blockCache[$state])){
+							$blockCache[$state] = $blockFactory->fromStateId($state);
+						}
+						$block = clone $blockCache[$state];
 						$block->position($this, $chunkX * Chunk::EDGE_LENGTH + $x, ($Y << SubChunk::COORD_BIT_SIZE) + $y, $chunkZ * Chunk::EDGE_LENGTH + $z);
 						$block->onRandomTick();
 					}
@@ -2640,6 +2676,18 @@ class World implements ChunkManager{
 		return $this->chunks;
 	}
 
+	public function getActiveChunkPopulationTaskCount() : int{
+		return count($this->activeChunkPopulationTasks);
+	}
+
+	public function getQueuedChunkPopulationTaskCount() : int{
+		return $this->chunkPopulationRequestQueue->count();
+	}
+
+	public function getMaxConcurrentChunkPopulationTasks() : int{
+		return $this->maxConcurrentChunkPopulationTasks;
+	}
+
 	public function getChunk(int $chunkX, int $chunkZ) : ?Chunk{
 		return $this->chunks[World::chunkHash($chunkX, $chunkZ)] ?? null;
 	}
@@ -3597,13 +3645,18 @@ class World implements ChunkManager{
 		$timings->startTiming();
 
 		try{
-			for($xx = -1; $xx <= 1; ++$xx){
-				for($zz = -1; $zz <= 1; ++$zz){
-					if($this->isChunkLocked($chunkX + $xx, $chunkZ + $zz)){
-						//chunk is already in use by another generation request; queue the request for later
-						return $resolver?->getPromise() ?? $this->enqueuePopulationRequest($chunkX, $chunkZ, $associatedChunkLoader);
+			$this->timings->chunkPopulationOrderLockCheck->startTiming();
+			try{
+				for($xx = -1; $xx <= 1; ++$xx){
+					for($zz = -1; $zz <= 1; ++$zz){
+						if($this->isChunkLocked($chunkX + $xx, $chunkZ + $zz)){
+							//chunk is already in use by another generation request; queue the request for later
+							return $resolver?->getPromise() ?? $this->enqueuePopulationRequest($chunkX, $chunkZ, $associatedChunkLoader);
+						}
 					}
 				}
+			}finally{
+				$this->timings->chunkPopulationOrderLockCheck->stopTiming();
 			}
 
 			$this->activeChunkPopulationTasks[$chunkHash] = true;
@@ -3616,29 +3669,40 @@ class World implements ChunkManager{
 
 			$temporaryChunkLoader = new class implements ChunkLoader{
 			};
-			for($xx = -1; $xx <= 1; ++$xx){
-				for($zz = -1; $zz <= 1; ++$zz){
-					$this->lockChunk($chunkX + $xx, $chunkZ + $zz, $chunkPopulationLockId);
-					$this->registerChunkLoader($temporaryChunkLoader, $chunkX + $xx, $chunkZ + $zz);
+
+			$this->timings->chunkPopulationOrderLockAndLoad->startTiming();
+			try{
+				for($xx = -1; $xx <= 1; ++$xx){
+					for($zz = -1; $zz <= 1; ++$zz){
+						$this->lockChunk($chunkX + $xx, $chunkZ + $zz, $chunkPopulationLockId);
+						$this->registerChunkLoader($temporaryChunkLoader, $chunkX + $xx, $chunkZ + $zz);
+					}
 				}
+
+				$centerChunk = $this->loadChunk($chunkX, $chunkZ);
+				$adjacentChunks = $this->getAdjacentChunks($chunkX, $chunkZ);
+			}finally{
+				$this->timings->chunkPopulationOrderLockAndLoad->stopTiming();
 			}
 
-			$centerChunk = $this->loadChunk($chunkX, $chunkZ);
-			$adjacentChunks = $this->getAdjacentChunks($chunkX, $chunkZ);
+			$this->timings->chunkPopulationOrderSubmitAsync->startTiming();
+			try{
+				$this->generatorExecutor->populate(
+					$chunkX,
+					$chunkZ,
+					$centerChunk,
+					$adjacentChunks,
+					function(Chunk $centerChunk, array $adjacentChunks) use ($chunkPopulationLockId, $chunkX, $chunkZ, $temporaryChunkLoader) : void{
+						if(!$this->isLoaded()){
+							return;
+						}
 
-			$this->generatorExecutor->populate(
-				$chunkX,
-				$chunkZ,
-				$centerChunk,
-				$adjacentChunks,
-				function(Chunk $centerChunk, array $adjacentChunks) use ($chunkPopulationLockId, $chunkX, $chunkZ, $temporaryChunkLoader) : void{
-					if(!$this->isLoaded()){
-						return;
+						$this->generateChunkCallback($chunkPopulationLockId, $chunkX, $chunkZ, $centerChunk, $adjacentChunks, $temporaryChunkLoader);
 					}
-
-					$this->generateChunkCallback($chunkPopulationLockId, $chunkX, $chunkZ, $centerChunk, $adjacentChunks, $temporaryChunkLoader);
-				}
-			);
+				);
+			}finally{
+				$this->timings->chunkPopulationOrderSubmitAsync->stopTiming();
+			}
 
 			return $resolver->getPromise();
 		}finally{
@@ -3654,76 +3718,94 @@ class World implements ChunkManager{
 		$timings = $this->timings->chunkPopulationCompletion;
 		$timings->startTiming();
 
-		$dirtyChunks = 0;
-		for($xx = -1; $xx <= 1; ++$xx){
-			for($zz = -1; $zz <= 1; ++$zz){
-				$this->unregisterChunkLoader($temporaryChunkLoader, $x + $xx, $z + $zz);
-				if(!$this->unlockChunk($x + $xx, $z + $zz, $chunkLockId)){
-					$dirtyChunks++;
+		try{
+			$dirtyChunks = 0;
+			$this->timings->chunkPopulationCompletionUnlock->startTiming();
+			try{
+				for($xx = -1; $xx <= 1; ++$xx){
+					for($zz = -1; $zz <= 1; ++$zz){
+						$this->unregisterChunkLoader($temporaryChunkLoader, $x + $xx, $z + $zz);
+						if(!$this->unlockChunk($x + $xx, $z + $zz, $chunkLockId)){
+							$dirtyChunks++;
+						}
+					}
 				}
+			}finally{
+				$this->timings->chunkPopulationCompletionUnlock->stopTiming();
 			}
-		}
 
-		$index = World::chunkHash($x, $z);
-		if(!isset($this->activeChunkPopulationTasks[$index])){
-			throw new AssumptionFailedError("This should always be set, regardless of whether the task was orphaned or not");
-		}
-		if(!$this->activeChunkPopulationTasks[$index]){
-			$this->logger->debug("Discarding orphaned population result for chunk x=$x,z=$z");
-			unset($this->activeChunkPopulationTasks[$index]);
-		}else{
-			if($dirtyChunks === 0){
-				$oldChunk = $this->loadChunk($x, $z);
-				$this->setChunk($x, $z, $chunk);
-
-				foreach($adjacentChunks as $relativeChunkHash => $adjacentChunk){
-					World::getXZ($relativeChunkHash, $relativeX, $relativeZ);
-					if($relativeX < -1 || $relativeX > 1 || $relativeZ < -1 || $relativeZ > 1){
-						throw new AssumptionFailedError("Adjacent chunks should be in range -1 ... +1 coordinates");
-					}
-					$this->setChunk($x + $relativeX, $z + $relativeZ, $adjacentChunk);
-				}
-
-				if(($oldChunk === null || !$oldChunk->isPopulated()) && $chunk->isPopulated()){
-					if(ChunkPopulateEvent::hasHandlers()){
-						(new ChunkPopulateEvent($this, $x, $z, $chunk))->call();
-					}
-
-					foreach($this->getChunkListeners($x, $z) as $listener){
-						$listener->onChunkPopulated($x, $z, $chunk);
-					}
-				}
+			$index = World::chunkHash($x, $z);
+			if(!isset($this->activeChunkPopulationTasks[$index])){
+				throw new AssumptionFailedError("This should always be set, regardless of whether the task was orphaned or not");
+			}
+			if(!$this->activeChunkPopulationTasks[$index]){
+				$this->logger->debug("Discarding orphaned population result for chunk x=$x,z=$z");
+				unset($this->activeChunkPopulationTasks[$index]);
 			}else{
-				$this->logger->debug("Discarding population result for chunk x=$x,z=$z - terrain was modified on the main thread before async population completed");
-			}
+				if($dirtyChunks === 0){
+					$this->timings->chunkPopulationCompletionApply->startTiming();
+					try{
+						$oldChunk = $this->loadChunk($x, $z);
+						$this->setChunk($x, $z, $chunk);
 
-			//This needs to be in this specific spot because user code might call back to orderChunkPopulation().
-			//If it does, and finds the promise, and doesn't find an active task associated with it, it will schedule
-			//another PopulationTask. We don't want that because we're here processing the results.
-			//We can't remove the promise from the array before setting the chunks in the world because that would lead
-			//to the same problem. Therefore, it's necessary that this code be split into two if/else, with this in the
-			//middle.
-			unset($this->activeChunkPopulationTasks[$index]);
+						foreach($adjacentChunks as $relativeChunkHash => $adjacentChunk){
+							World::getXZ($relativeChunkHash, $relativeX, $relativeZ);
+							if($relativeX < -1 || $relativeX > 1 || $relativeZ < -1 || $relativeZ > 1){
+								throw new AssumptionFailedError("Adjacent chunks should be in range -1 ... +1 coordinates");
+							}
+							$this->setChunk($x + $relativeX, $z + $relativeZ, $adjacentChunk);
+						}
 
-			if($dirtyChunks === 0){
-				$promise = $this->chunkPopulationRequestMap[$index] ?? null;
-				if($promise !== null){
-					unset($this->chunkPopulationRequestMap[$index]);
-					$promise->resolve($chunk);
+						if(($oldChunk === null || !$oldChunk->isPopulated()) && $chunk->isPopulated()){
+							if(ChunkPopulateEvent::hasHandlers()){
+								(new ChunkPopulateEvent($this, $x, $z, $chunk))->call();
+							}
+
+							foreach($this->getChunkListeners($x, $z) as $listener){
+								$listener->onChunkPopulated($x, $z, $chunk);
+							}
+						}
+					}finally{
+						$this->timings->chunkPopulationCompletionApply->stopTiming();
+					}
 				}else{
-					//Handlers of ChunkPopulateEvent, ChunkLoadEvent, or just ChunkListeners can cause this
-					$this->logger->debug("Unable to resolve population promise for chunk x=$x,z=$z - populated chunk was forcibly unloaded while setting modified chunks");
+					$this->logger->debug("Discarding population result for chunk x=$x,z=$z - terrain was modified on the main thread before async population completed");
 				}
-			}else{
-				//request failed, stick it back on the queue
-				//we didn't resolve the promise or touch it in any way, so any fake chunk loaders are still valid and
-				//don't need to be added a second time.
-				$this->addChunkHashToPopulationRequestQueue($index);
-			}
 
-			$this->drainPopulationRequestQueue();
+				//This needs to be in this specific spot because user code might call back to orderChunkPopulation().
+				//If it does, and finds the promise, and doesn't find an active task associated with it, it will schedule
+				//another PopulationTask. We don't want that because we're here processing the results.
+				//We can't remove the promise from the array before setting the chunks in the world because that would lead
+				//to the same problem. Therefore, it's necessary that this code be split into two if/else, with this in the
+				//middle.
+				unset($this->activeChunkPopulationTasks[$index]);
+
+				$this->timings->chunkPopulationCompletionFinalize->startTiming();
+				try{
+					if($dirtyChunks === 0){
+						$promise = $this->chunkPopulationRequestMap[$index] ?? null;
+						if($promise !== null){
+							unset($this->chunkPopulationRequestMap[$index]);
+							$promise->resolve($chunk);
+						}else{
+							//Handlers of ChunkPopulateEvent, ChunkLoadEvent, or just ChunkListeners can cause this
+							$this->logger->debug("Unable to resolve population promise for chunk x=$x,z=$z - populated chunk was forcibly unloaded while setting modified chunks");
+						}
+					}else{
+						//request failed, stick it back on the queue
+						//we didn't resolve the promise or touch it in any way, so any fake chunk loaders are still valid and
+						//don't need to be added a second time.
+						$this->addChunkHashToPopulationRequestQueue($index);
+					}
+
+					$this->drainPopulationRequestQueue();
+				}finally{
+					$this->timings->chunkPopulationCompletionFinalize->stopTiming();
+				}
+			}
+		}finally{
+			$timings->stopTiming();
 		}
-		$timings->stopTiming();
 	}
 
 	public function doChunkGarbageCollection() : void{

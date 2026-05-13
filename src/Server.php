@@ -338,7 +338,7 @@ class Server{
 
 	public function getVersion() : string{
 		// Возвращаем диапазон поддерживаемых версий вместо одной версии
-		return "1.20.0 - 1.26.12";
+		return "1.20.0 - 1.26.20";
 	}
 
 	public function getApiVersion() : string{

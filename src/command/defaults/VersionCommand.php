@@ -57,7 +57,7 @@ class VersionCommand extends VanillaCommand{
 			$sender->sendMessage("§fВерсия модификации (ядра): §av" . VersionInfo::BASE_VERSION);
 			
 			// Диапазон поддерживаемых версий Minecraft
-			$minecraftVersions = "1.20.0 - 1.26.12";
+			$minecraftVersions = "1.20.0 - 1.26.20";
 			
 			// Диапазон протоколов (от самого старого до самого нового)
 			$protocolRange = "589 - 944";

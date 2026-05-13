@@ -87,23 +87,42 @@ final class JwtUtils{
 	/**
 	 * TODO: replace this result with an object
 	 *
+	 * @param string[] $parts Result of {@see split()}
+	 * @phpstan-param array{string, string, string} $parts
+	 *
+	 * @return mixed[]
+	 * @phpstan-return array{mixed[], mixed[], string}
+	 *
+	 * @throws JwtException
+	 */
+	public static function parseSplit(array $parts) : array{
+		if(count($parts) !== 3){
+			throw new JwtException("Expected exactly 3 JWT parts delimited by a period");
+		}
+		[$headerB64, $bodyB64, $signatureB64] = $parts;
+
+		$header = json_decode(self::b64UrlDecode($headerB64), true);
+		if(!is_array($header)){
+			throw new JwtException("Failed to decode JWT header JSON: " . json_last_error_msg());
+		}
+		$body = json_decode(self::b64UrlDecode($bodyB64), true);
+		if(!is_array($body)){
+			throw new JwtException("Failed to decode JWT payload JSON: " . json_last_error_msg());
+		}
+		$signature = self::b64UrlDecode($signatureB64);
+		return [$header, $body, $signature];
+	}
+
+	/**
+	 * TODO: replace this result with an object
+	 *
 	 * @return mixed[]
 	 * @phpstan-return array{mixed[], mixed[], string}
 	 *
 	 * @throws JwtException
 	 */
 	public static function parse(string $token) : array{
-		$v = self::split($token);
-		$header = json_decode(self::b64UrlDecode($v[0]), true);
-		if(!is_array($header)){
-			throw new JwtException("Failed to decode JWT header JSON: " . json_last_error_msg());
-		}
-		$body = json_decode(self::b64UrlDecode($v[1]), true);
-		if(!is_array($body)){
-			throw new JwtException("Failed to decode JWT payload JSON: " . json_last_error_msg());
-		}
-		$signature = self::b64UrlDecode($v[2]);
-		return [$header, $body, $signature];
+		return self::parseSplit(self::split($token));
 	}
 
 	private static function signaturePartToAsn1(string $part) : string{
@@ -171,10 +190,16 @@ final class JwtUtils{
 	}
 
 	/**
+	 * @param string[] $parts Result of {@see split()} — three base64url-encoded JWT segments (header, payload, signature).
+	 * @phpstan-param array{string, string, string} $parts
+	 *
 	 * @throws JwtException
 	 */
-	public static function verify(string $jwt, string $signingKeyDer, bool $ec) : bool{
-		[$header, $body, $signature] = self::split($jwt);
+	public static function verifyFromSplit(array $parts, string $signingKeyDer, bool $ec) : bool{
+		if(count($parts) !== 3){
+			throw new JwtException("Expected exactly 3 JWT parts delimited by a period");
+		}
+		[$header, $body, $signature] = $parts;
 
 		$rawSignature = self::b64UrlDecode($signature);
 		$derSignature = $ec ? self::rawSignatureToDer($rawSignature) : $rawSignature;
@@ -191,6 +216,13 @@ final class JwtUtils{
 			case -1: throw new JwtException("Error verifying JWT signature: " . openssl_error_string());
 			default: throw new AssumptionFailedError("openssl_verify() should only return -1, 0 or 1");
 		}
+	}
+
+	/**
+	 * @throws JwtException
+	 */
+	public static function verify(string $jwt, string $signingKeyDer, bool $ec) : bool{
+		return self::verifyFromSplit(self::split($jwt), $signingKeyDer, $ec);
 	}
 
 	/**

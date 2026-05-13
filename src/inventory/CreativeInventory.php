@@ -24,6 +24,7 @@ namespace pocketmine\inventory;
 
 use pocketmine\crafting\CraftingManagerFromDataHelper;
 use pocketmine\data\bedrock\BedrockDataFiles;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\inventory\json\CreativeGroupData;
 use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
@@ -35,6 +36,7 @@ use Symfony\Component\Filesystem\Path;
 use const pocketmine\RESOURCE_PATH;
 use function array_filter;
 use function array_map;
+use function array_values;
 use function is_file;
 
 final class CreativeInventory{
@@ -112,6 +114,12 @@ final class CreativeInventory{
 		if(!$this->contains(VanillaItems::WOLF_SPAWN_EGG())){
 			$this->add(VanillaItems::WOLF_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
+		if(!$this->contains(VanillaItems::HOGLIN_SPAWN_EGG())){
+			$this->add(VanillaItems::HOGLIN_SPAWN_EGG(), CreativeCategory::NATURE);
+		}
+		if(!$this->contains(VanillaItems::ZOGLIN_SPAWN_EGG())){
+			$this->add(VanillaItems::ZOGLIN_SPAWN_EGG(), CreativeCategory::NATURE);
+		}
 		if(!$this->contains(VanillaItems::LEAD())){
 			$this->add(VanillaItems::LEAD(), CreativeCategory::EQUIPMENT);
 		}
@@ -119,6 +127,8 @@ final class CreativeInventory{
 		if(!$this->contains(VanillaItems::ENDER_EYE())){
 			$this->add(VanillaItems::ENDER_EYE(), CreativeCategory::ITEMS);
 		}
+
+		$this->stripHardenedGlassFromCreative();
 	}
 
 	/**
@@ -198,5 +208,25 @@ final class CreativeInventory{
 		foreach($this->contentChangedCallbacks as $callback){
 			$callback();
 		}
+	}
+
+	private function stripHardenedGlassFromCreative() : void{
+		foreach($this->creative as $index => $entry){
+			if(self::isHardenedGlassItem($entry->getItem())){
+				unset($this->creative[$index]);
+			}
+		}
+
+		$this->creative = array_values($this->creative);
+	}
+
+	private static function isHardenedGlassItem(Item $item) : bool{
+		return match($item->getBlock()->getTypeId()){
+			BlockTypeIds::HARDENED_GLASS,
+			BlockTypeIds::HARDENED_GLASS_PANE,
+			BlockTypeIds::STAINED_HARDENED_GLASS,
+			BlockTypeIds::STAINED_HARDENED_GLASS_PANE => true,
+			default => false
+		};
 	}
 }

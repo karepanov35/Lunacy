@@ -44,6 +44,7 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\FilterNoisyPacketException;
 use pocketmine\network\mcpe\convert\ItemTranslator;
+use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\InventoryManager;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
@@ -152,11 +153,15 @@ class InGamePacketHandler extends PacketHandler{
 	 */
 	protected ?string $lastAcceptedSkinFingerprint = null;
 
+	private TypeConverter $typeConverter;
+
 	public function __construct(
 		private Player $player,
 		private NetworkSession $session,
 		private InventoryManager $inventoryManager
-	){}
+	){
+		$this->typeConverter = $session->getTypeConverter();
+	}
 
 	public function handleText(TextPacket $packet) : bool{
 		if($packet->type === TextPacket::TYPE_CHAT){
@@ -438,7 +443,7 @@ class InGamePacketHandler extends PacketHandler{
 		if($sourceSlotItem->getCount() < $droppedCount){
 			return false;
 		}
-		$serverItemStack = $this->session->getTypeConverter()->coreItemStackToNet($sourceSlotItem);
+		$serverItemStack = $this->typeConverter->coreItemStackToNet($sourceSlotItem);
 		//Sadly we don't have itemstack IDs here, so we have to compare the basic item properties to ensure that we're
 		//dropping the item the client expects (inventory might be out of sync with the client).
 		if(
@@ -549,7 +554,7 @@ class InGamePacketHandler extends PacketHandler{
 			}else{
 				$blocks[] = $blockPos;
 			}
-			foreach($this->player->getWorld()->createBlockUpdatePackets($this->session->getTypeConverter(), $blocks) as $packet){
+			foreach($this->player->getWorld()->createBlockUpdatePackets($this->typeConverter, $blocks) as $packet){
 				$this->session->sendDataPacket($packet);
 			}
 		}
@@ -801,7 +806,7 @@ class InGamePacketHandler extends PacketHandler{
 
 		try{
 			if(!$block->updateFaceText($this->player, $frontFace, $text)){
-				foreach($this->player->getWorld()->createBlockUpdatePackets($this->session->getTypeConverter(), [$pos]) as $updatePacket){
+				foreach($this->player->getWorld()->createBlockUpdatePackets($this->typeConverter, [$pos]) as $updatePacket){
 					$this->session->sendDataPacket($updatePacket);
 				}
 				return false;
@@ -839,7 +844,7 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handleSetPlayerGameType(SetPlayerGameTypePacket $packet) : bool{
-		$gameMode = $this->session->getTypeConverter()->protocolGameModeToCore($packet->gamemode);
+		$gameMode = $this->typeConverter->protocolGameModeToCore($packet->gamemode);
 		if($gameMode !== $this->player->getGamemode()){
 			//Set this back to default. TODO: handle this properly
 			$this->session->syncGameMode($this->player->getGamemode(), true);
@@ -892,10 +897,10 @@ class InGamePacketHandler extends PacketHandler{
 
 		$this->session->getLogger()->debug("Processing skin change request");
 		try{
-			$skin = $this->session->getTypeConverter()->getSkinAdapter()->fromSkinData($packet->skin);
+			$skin = $this->typeConverter->getSkinAdapter()->fromSkinData($packet->skin);
 			$this->player->changeSkin($skin, $packet->newSkinName, $packet->oldSkinName);
 			// Только если скин реально применён (событие не отменено) — иначе отпечаток не обновляем
-			$after = $this->session->getTypeConverter()->getSkinAdapter()->toSkinData($this->player->getSkin());
+			$after = $this->typeConverter->getSkinAdapter()->toSkinData($this->player->getSkin());
 			if(self::skinDataFingerprint($after) === $fingerprint){
 				$this->lastAcceptedSkinFingerprint = $fingerprint;
 			}
