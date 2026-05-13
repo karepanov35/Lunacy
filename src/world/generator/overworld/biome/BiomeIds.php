@@ -69,4 +69,5 @@ interface BiomeIds{
 	public const MESA_BRYCE = VanillaBiomeIds::MESA_BRYCE;
 	public const MESA_PLATEAU_STONE_MUTATED = VanillaBiomeIds::MESA_PLATEAU_STONE_MUTATED;
 	public const MESA_PLATEAU_MUTATED = VanillaBiomeIds::MESA_PLATEAU_MUTATED;
+	public const CHERRY_GROVE = VanillaBiomeIds::CHERRY_GROVE;
 }

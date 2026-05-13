@@ -10,6 +10,7 @@ use pocketmine\world\generator\overworld\biome\BiomeIds;
 use pocketmine\world\generator\overworld\populator\biome\BiomePopulator;
 use pocketmine\world\generator\overworld\populator\biome\BirchForestMountainsPopulator;
 use pocketmine\world\generator\overworld\populator\biome\BirchForestPopulator;
+use pocketmine\world\generator\overworld\populator\biome\CherryGrovePopulator;
 use pocketmine\world\generator\overworld\populator\biome\DesertMountainsPopulator;
 use pocketmine\world\generator\overworld\populator\biome\DesertPopulator;
 use pocketmine\world\generator\overworld\populator\biome\FlowerForestPopulator;
@@ -56,6 +57,7 @@ class OverworldPopulator implements VanillaPopulator{
 		$this->registerBiomePopulator(new DesertMountainsPopulator());
 		$this->registerBiomePopulator(new JunglePopulator());
 		$this->registerBiomePopulator(new JungleEdgePopulator());
+		$this->registerBiomePopulator(new CherryGrovePopulator());
 		$this->registerBiomePopulator(new SwamplandPopulator());
 		$this->registerBiomePopulator(new TaigaPopulator());
 		$this->registerBiomePopulator(new MegaTaigaPopulator());

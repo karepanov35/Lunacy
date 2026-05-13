@@ -60,17 +60,13 @@ final class AuthJwtHelper{
 	 */
 	public static function validateOpenIdAuthToken(string $jwt, string $signingKeyDer, string $issuer, string $audience) : XboxAuthJwtBody{
 		try{
-			if(!JwtUtils::verify($jwt, $signingKeyDer, ec: false)){
+			$parts = JwtUtils::split($jwt);
+			if(!JwtUtils::verifyFromSplit($parts, $signingKeyDer, ec: false)){
 				throw new VerifyLoginException("Invalid JWT signature", KnownTranslationFactory::pocketmine_disconnect_invalidSession_badSignature());
 			}
+			[, $claimsArray, ] = JwtUtils::parseSplit($parts);
 		}catch(JwtException $e){
 			throw new VerifyLoginException($e->getMessage(), null, 0, $e);
-		}
-
-		try{
-			[, $claimsArray, ] = JwtUtils::parse($jwt);
-		}catch(JwtException $e){
-			throw new VerifyLoginException("Failed to parse JWT: " . $e->getMessage(), null, 0, $e);
 		}
 
 		$mapper = new \JsonMapper();
@@ -106,10 +102,14 @@ final class AuthJwtHelper{
 	 * @throws VerifyLoginException if errors are encountered
 	 */
 	public static function validateLegacyAuthToken(string $jwt, ?string $expectedKeyDer) : LegacyAuthJwtBody{
-		self::validateSelfSignedToken($jwt, $expectedKeyDer);
+		try{
+			$parts = JwtUtils::split($jwt);
+			[$headersArray, $claimsArray, ] = JwtUtils::parseSplit($parts);
+		}catch(JwtException $e){
+			throw new VerifyLoginException("Failed to parse JWT: " . $e->getMessage(), null, 0, $e);
+		}
 
-		//TODO: this parses the JWT twice and throws away a bunch of parts, optimize this
-		[, $claimsArray, ] = JwtUtils::parse($jwt);
+		self::validateSelfSignedFromParsedParts($parts, $headersArray, $expectedKeyDer);
 
 		$mapper = new \JsonMapper();
 		$mapper->bExceptionOnUndefinedProperty = false; //we only care about the properties we're using in this case
@@ -131,11 +131,20 @@ final class AuthJwtHelper{
 
 	public static function validateSelfSignedToken(string $jwt, ?string $expectedKeyDer) : void{
 		try{
-			[$headersArray, ] = JwtUtils::parse($jwt);
+			$parts = JwtUtils::split($jwt);
+			[$headersArray, , ] = JwtUtils::parseSplit($parts);
 		}catch(JwtException $e){
 			throw new VerifyLoginException("Failed to parse JWT: " . $e->getMessage(), null, 0, $e);
 		}
 
+		self::validateSelfSignedFromParsedParts($parts, $headersArray, $expectedKeyDer);
+	}
+
+	/**
+	 * @phpstan-param array{string, string, string} $parts
+	 * @phpstan-param array<string, mixed>          $headersArray
+	 */
+	private static function validateSelfSignedFromParsedParts(array $parts, array $headersArray, ?string $expectedKeyDer) : void{
 		$mapper = new \JsonMapper();
 		$mapper->bExceptionOnMissingData = true;
 		$mapper->bExceptionOnUndefinedProperty = true;
@@ -159,7 +168,7 @@ final class AuthJwtHelper{
 		}
 
 		try{
-			if(!JwtUtils::verify($jwt, $headerDerKey, ec: true)){
+			if(!JwtUtils::verifyFromSplit($parts, $headerDerKey, ec: true)){
 				throw new VerifyLoginException("Invalid JWT signature", KnownTranslationFactory::pocketmine_disconnect_invalidSession_badSignature());
 			}
 		}catch(JwtException $e){

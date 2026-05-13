@@ -725,6 +725,22 @@ class NetworkSession{
 
 	public function getTypeConverter() : TypeConverter{ return $this->typeConverter; }
 
+	public function getPendingGamePacketCount() : int{
+		return count($this->sendBuffer);
+	}
+
+	public function getPendingCompressedBatchCount() : int{
+		return $this->compressedQueue->count();
+	}
+
+	public function getPendingAckPromiseCount() : int{
+		return count($this->sendBufferAckPromises) + count($this->ackPromisesByReceiptId);
+	}
+
+	public function getPendingPacketQueueCount() : int{
+		return $this->getPendingGamePacketCount() + $this->getPendingCompressedBatchCount();
+	}
+
 	public function queueCompressed(CompressBatchPromise|string $payload, bool $immediate = false) : void{
 		Timings::$playerNetworkSend->startTiming();
 		try{

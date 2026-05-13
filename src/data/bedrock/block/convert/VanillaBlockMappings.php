@@ -164,6 +164,7 @@ final class VanillaBlockMappings{
 		$reg->mapSimple(Blocks::ANDESITE(), Ids::ANDESITE);
 		$reg->mapSimple(Blocks::BARRIER(), Ids::BARRIER);
 		$reg->mapSimple(Blocks::BEACON(), Ids::BEACON);
+		$reg->mapSimple(Blocks::BEE_NEST(), Ids::BEE_NEST);
 		$reg->mapSimple(Blocks::BLACKSTONE(), Ids::BLACKSTONE);
 		$reg->mapSimple(Blocks::BLUE_ICE(), Ids::BLUE_ICE);
 		$reg->mapSimple(Blocks::BOOKSHELF(), Ids::BOOKSHELF);
@@ -552,6 +553,7 @@ final class VanillaBlockMappings{
 		foreach([
 			Ids::ACACIA_SAPLING => Blocks::ACACIA_SAPLING(),
 			Ids::BIRCH_SAPLING => Blocks::BIRCH_SAPLING(),
+			Ids::CHERRY_SAPLING => Blocks::CHERRY_SAPLING(),
 			Ids::DARK_OAK_SAPLING => Blocks::DARK_OAK_SAPLING(),
 			Ids::JUNGLE_SAPLING => Blocks::JUNGLE_SAPLING(),
 			Ids::OAK_SAPLING => Blocks::OAK_SAPLING(),

@@ -1,22 +1,9 @@
 <?php
 
-
 /*
- *
- *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GPL-2.0 license as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * @author Karepanov
- * @link https://github.com/karepanov35/Lunacy
- *
- *
+ * Lunacy project source file.
+ * Copyright (c) Karepanov.
+ * Licensed under GPL-2.0.
  */
 
 declare(strict_types=1);
@@ -24,6 +11,7 @@ namespace pocketmine\network\mcpe\handler;
 
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerUIIds;
+use pocketmine\network\mcpe\protocol\types\inventory\UIInventorySlotOffset;
 use pocketmine\network\PacketHandlingException;
 
 final class ItemStackContainerIdTranslator{
@@ -48,8 +36,11 @@ final class ItemStackContainerIdTranslator{
 			//TODO: HACK! The client sends an incorrect slot ID for the offhand as of 1.19.70 (though this doesn't really matter since the offhand has only 1 slot anyway)
 			ContainerUIIds::OFFHAND => [ContainerIds::OFFHAND, 0],
 
-			ContainerUIIds::ANVIL_INPUT,
-			ContainerUIIds::ANVIL_MATERIAL,
+			ContainerUIIds::ANVIL_INPUT => [ContainerIds::UI, array_key_first(UIInventorySlotOffset::ANVIL)],
+			ContainerUIIds::ANVIL_MATERIAL => [ContainerIds::UI, array_key_last(UIInventorySlotOffset::ANVIL)],
+			ContainerUIIds::ENCHANTING_INPUT => [ContainerIds::UI, array_key_first(UIInventorySlotOffset::ENCHANTING_TABLE)],
+			ContainerUIIds::ENCHANTING_MATERIAL => [ContainerIds::UI, array_key_last(UIInventorySlotOffset::ENCHANTING_TABLE)],
+
 			ContainerUIIds::BEACON_PAYMENT,
 			ContainerUIIds::CARTOGRAPHY_ADDITIONAL,
 			ContainerUIIds::CARTOGRAPHY_INPUT,
@@ -57,8 +48,6 @@ final class ItemStackContainerIdTranslator{
 			ContainerUIIds::CRAFTING_INPUT,
 			ContainerUIIds::CREATED_OUTPUT,
 			ContainerUIIds::CURSOR,
-			ContainerUIIds::ENCHANTING_INPUT,
-			ContainerUIIds::ENCHANTING_MATERIAL,
 			ContainerUIIds::GRINDSTONE_ADDITIONAL,
 			ContainerUIIds::GRINDSTONE_INPUT,
 			ContainerUIIds::LAB_TABLE_INPUT,

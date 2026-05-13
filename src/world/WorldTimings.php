@@ -53,7 +53,14 @@ class WorldTimings{
 	public TimingsHandler $syncChunkSave;
 
 	public TimingsHandler $chunkPopulationOrder;
+	public TimingsHandler $chunkPopulationOrderLockCheck;
+	public TimingsHandler $chunkPopulationOrderLockAndLoad;
+	public TimingsHandler $chunkPopulationOrderSubmitAsync;
+
 	public TimingsHandler $chunkPopulationCompletion;
+	public TimingsHandler $chunkPopulationCompletionUnlock;
+	public TimingsHandler $chunkPopulationCompletionApply;
+	public TimingsHandler $chunkPopulationCompletionFinalize;
 
 	/**
 	 * @var TimingsHandler[]
@@ -97,6 +104,13 @@ class WorldTimings{
 		$this->syncChunkSave = self::newTimer($name, "Chunk Save");
 
 		$this->chunkPopulationOrder = self::newTimer($name, "Chunk Population - Order");
+		$this->chunkPopulationOrderLockCheck = self::newTimer($name, "Chunk Population - Order - Lock check");
+		$this->chunkPopulationOrderLockAndLoad = self::newTimer($name, "Chunk Population - Order - Lock and load");
+		$this->chunkPopulationOrderSubmitAsync = self::newTimer($name, "Chunk Population - Order - Submit async");
+
 		$this->chunkPopulationCompletion = self::newTimer($name, "Chunk Population - Completion");
+		$this->chunkPopulationCompletionUnlock = self::newTimer($name, "Chunk Population - Completion - Unlock");
+		$this->chunkPopulationCompletionApply = self::newTimer($name, "Chunk Population - Completion - Apply terrain");
+		$this->chunkPopulationCompletionFinalize = self::newTimer($name, "Chunk Population - Completion - Resolve and drain queue");
 	}
 }

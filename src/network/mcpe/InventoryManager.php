@@ -43,6 +43,7 @@ use pocketmine\item\enchantment\EnchantingOption;
 use pocketmine\item\enchantment\EnchantmentInstance;
 use pocketmine\item\Item;
 use pocketmine\network\mcpe\cache\CreativeInventoryCache;
+use pocketmine\network\mcpe\convert\TypeConverter;
 use pocketmine\network\mcpe\protocol\ClientboundPacket;
 use pocketmine\network\mcpe\protocol\ContainerClosePacket;
 use pocketmine\network\mcpe\protocol\ContainerOpenPacket;
@@ -121,10 +122,13 @@ class InventoryManager{
 	//conflict with regular recipes
 	private int $nextEnchantingTableOptionId = 100000;
 
+	private TypeConverter $typeConverter;
+
 	public function __construct(
 		private Player $player,
 		private NetworkSession $session
 	){
+		$this->typeConverter = $session->getTypeConverter();
 		$this->containerOpenCallbacks = new ObjectSet();
 		$this->containerOpenCallbacks->add(self::createContainerOpen(...));
 
@@ -235,19 +239,17 @@ class InventoryManager{
 	}
 
 	public function addPredictedSlotChange(Inventory $inventory, int $slot, Item $item) : void{
-		$typeConverter = $this->session->getTypeConverter();
-		$itemStack = $typeConverter->coreItemStackToNet($item);
+		$itemStack = $this->typeConverter->coreItemStackToNet($item);
 		$this->addPredictedSlotChangeInternal($inventory, $slot, $itemStack);
 	}
 
 	public function addTransactionPredictedSlotChanges(InventoryTransaction $tx) : void{
 		foreach($tx->getActions() as $action){
 			if($action instanceof SlotChangeAction){
-				//TODO: ItemStackRequestExecutor can probably build these predictions with much lower overhead
-				$this->addPredictedSlotChange(
+				$this->addPredictedSlotChangeInternal(
 					$action->getInventory(),
 					$action->getSlot(),
-					$action->getTargetItem()
+					$this->typeConverter->coreItemStackToNet($action->getTargetItem())
 				);
 			}
 		}
@@ -468,9 +470,8 @@ class InventoryManager{
 			return true;
 		}
 
-		$typeConverter = $this->session->getTypeConverter();
-		$leftExtraData = $typeConverter->deserializeItemStackExtraData($left->getRawExtraData(), $left->getId());
-		$rightExtraData = $typeConverter->deserializeItemStackExtraData($right->getRawExtraData(), $right->getId());
+		$leftExtraData = $this->typeConverter->deserializeItemStackExtraData($left->getRawExtraData(), $left->getId());
+		$rightExtraData = $this->typeConverter->deserializeItemStackExtraData($right->getRawExtraData(), $right->getId());
 
 		$leftNbt = $leftExtraData->getNbt();
 		$rightNbt = $rightExtraData->getNbt();
@@ -498,7 +499,7 @@ class InventoryManager{
 			//is cleared before removal.
 			return;
 		}
-		$currentItem = $this->session->getTypeConverter()->coreItemStackToNet($inventory->getItem($slot));
+		$currentItem = $this->typeConverter->coreItemStackToNet($inventory->getItem($slot));
 		$clientSideItem = $inventoryEntry->predictions[$slot] ?? null;
 		if($clientSideItem === null || !$this->itemStacksEqual($currentItem, $clientSideItem)){
 			//no prediction or incorrect - do not associate this with the currently active itemstack request
@@ -612,9 +613,8 @@ class InventoryManager{
 			$entry->predictions = [];
 			$entry->pendingSyncs = [];
 			$contents = [];
-			$typeConverter = $this->session->getTypeConverter();
 			foreach($inventory->getContents(true) as $slot => $item){
-				$itemStack = $typeConverter->coreItemStackToNet($item);
+				$itemStack = $this->typeConverter->coreItemStackToNet($item);
 				$info = $this->trackItemStack($entry, $slot, $itemStack, null);
 				$contents[] = new ItemStackWrapper($info->getStackId(), $itemStack);
 			}
@@ -643,7 +643,6 @@ class InventoryManager{
 	}
 
 	public function syncMismatchedPredictedSlotChanges() : void{
-		$typeConverter = $this->session->getTypeConverter();
 		foreach($this->inventories as $entry){
 			$inventory = $entry->inventory;
 			foreach($entry->predictions as $slot => $expectedItem){
@@ -653,7 +652,7 @@ class InventoryManager{
 
 				//any prediction that still exists at this point is a slot that was predicted to change but didn't
 				$this->session->getLogger()->debug("Detected prediction mismatch in inventory " . get_class($inventory) . "#" . spl_object_id($inventory) . " slot $slot");
-				$entry->pendingSyncs[$slot] = $typeConverter->coreItemStackToNet($inventory->getItem($slot));
+				$entry->pendingSyncs[$slot] = $this->typeConverter->coreItemStackToNet($inventory->getItem($slot));
 			}
 
 			$entry->predictions = [];
@@ -706,7 +705,7 @@ class InventoryManager{
 
 			$this->session->sendDataPacket(MobEquipmentPacket::create(
 				$this->player->getId(),
-				new ItemStackWrapper($itemStackInfo->getStackId(), $this->session->getTypeConverter()->coreItemStackToNet($playerInventory->getItemInHand())),
+				new ItemStackWrapper($itemStackInfo->getStackId(), $this->typeConverter->coreItemStackToNet($playerInventory->getItemInHand())),
 				$selected,
 				$selected,
 				ContainerIds::INVENTORY

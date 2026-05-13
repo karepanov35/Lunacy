@@ -265,6 +265,14 @@ final class EntityFactory{
 			return new Wolf(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Wolf', 'minecraft:wolf']);
 
+		$this->register(Hoglin::class, function(World $world, CompoundTag $nbt) : Hoglin{
+			return new Hoglin(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Hoglin', 'minecraft:hoglin']);
+
+		$this->register(Zoglin::class, function(World $world, CompoundTag $nbt) : Zoglin{
+			return new Zoglin(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Zoglin', 'minecraft:zoglin']);
+
 		$this->register(Blaze::class, function(World $world, CompoundTag $nbt) : Blaze{
 			return new Blaze(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Blaze', 'minecraft:blaze']);

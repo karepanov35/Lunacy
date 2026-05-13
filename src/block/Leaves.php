@@ -32,6 +32,7 @@ use pocketmine\item\VanillaItems;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
+use pocketmine\world\particle\SporeParticle;
 use pocketmine\world\BlockTransaction;
 use pocketmine\world\World;
 use function mt_rand;
@@ -111,10 +112,20 @@ class Leaves extends Transparent{
 	}
 
 	public function ticksRandomly() : bool{
-		return !$this->noDecay && $this->checkDecay;
+		return (!$this->noDecay && $this->checkDecay) || $this->leavesType === LeavesType::CHERRY;
 	}
 
 	public function onRandomTick() : void{
+		$world = $this->position->getWorld();
+
+		if(
+			$this->leavesType === LeavesType::CHERRY &&
+			mt_rand(1, 10) === 1 &&
+			$world->getBlock($this->position->getSide(Facing::DOWN))->getTypeId() === BlockTypeIds::AIR
+		){
+			$world->addParticle($this->position->add(0.5, -0.1, 0.5), new SporeParticle());
+		}
+
 		if(!$this->noDecay && $this->checkDecay){
 			$cancelled = false;
 			if(LeavesDecayEvent::hasHandlers()){
@@ -123,7 +134,6 @@ class Leaves extends Transparent{
 				$cancelled = $ev->isCancelled();
 			}
 
-			$world = $this->position->getWorld();
 			if($cancelled || $this->findLog($this->position)){
 				$this->checkDecay = false;
 				$world->setBlock($this->position, $this, false);
@@ -155,7 +165,7 @@ class Leaves extends Transparent{
 				LeavesType::SPRUCE => VanillaBlocks::SPRUCE_SAPLING(),
 				LeavesType::MANGROVE, //TODO: mangrove propagule
 				LeavesType::AZALEA, LeavesType::FLOWERING_AZALEA => null, //TODO: azalea
-				LeavesType::CHERRY => null, //TODO: cherry
+				LeavesType::CHERRY => VanillaBlocks::CHERRY_SAPLING(),
 				LeavesType::PALE_OAK => null, //TODO: pale oak
 			})?->asItem();
 			if($sapling !== null){

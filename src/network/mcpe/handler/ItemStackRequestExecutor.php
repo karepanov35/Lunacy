@@ -69,6 +69,12 @@ use function spl_object_id;
 class ItemStackRequestExecutor{
 	private TransactionBuilder $builder;
 
+	/** @var array<class-string<Inventory>, string> */
+	private static array $inventoryPrettyShortNames = [];
+
+	/** @var list<string> */
+	private array $filterStrings;
+
 	/** @var ItemStackRequestSlotInfo[] */
 	private array $requestSlotInfos = [];
 
@@ -80,20 +86,30 @@ class ItemStackRequestExecutor{
 	private ?Item $nextCreatedItem = null;
 	private bool $createdItemFromCreativeInventory = false;
 	private int $createdItemsTakenCount = 0;
+	/** @var array<class-string, string> */
+	private static array $itemStackRequestActionShortNames = [];
+
+	private ?string $anvilRename = null;
 
 	public function __construct(
 		private Player $player,
 		private InventoryManager $inventoryManager,
 		private ItemStackRequest $request
 	){
+		$this->filterStrings = $request->getFilterStrings();
 		$this->builder = new TransactionBuilder();
+		foreach($this->filterStrings as $filterString){
+			$this->anvilRename = $filterString;
+		}
 	}
 
 	protected function prettyInventoryAndSlot(Inventory $inventory, int $slot) : string{
 		if($inventory instanceof TransactionBuilderInventory){
 			$inventory = $inventory->getActualInventory();
 		}
-		return (new \ReflectionClass($inventory))->getShortName() . "#" . spl_object_id($inventory) . ", slot: $slot";
+		$class = $inventory::class;
+		$short = self::$inventoryPrettyShortNames[$class] ??= (new \ReflectionClass($inventory))->getShortName();
+		return $short . "#" . spl_object_id($inventory) . ", slot: $slot";
 	}
 
 	/**
@@ -151,15 +167,35 @@ class ItemStackRequestExecutor{
 	 */
 	protected function removeItemFromSlot(ItemStackRequestSlotInfo $slotInfo, int $count) : Item{
 		$containerId = $slotInfo->getContainerName()->getContainerId();
+		$currentWindow = $this->player->getCurrentWindow();
 		if($containerId === ContainerUIIds::CREATED_OUTPUT && $slotInfo->getSlotId() === UIInventorySlotOffset::CREATED_ITEM_OUTPUT){
 			$this->requestSlotInfos[] = $slotInfo;
 			return $this->takeCreatedItem($count);
 		}
 		// Bedrock client may send ANVIL_RESULT_PREVIEW when taking from anvil result slot
-		$currentWindow = $this->player->getCurrentWindow();
 		if($currentWindow instanceof AnvilInventory && $containerId === ContainerUIIds::ANVIL_RESULT_PREVIEW){
 			$this->requestSlotInfos[] = $slotInfo;
+			if(!$this->specialTransaction instanceof AnvilTransaction){
+				$this->beginAnvilTransaction($this->anvilRename);
+			}
 			return $this->takeCreatedItem($count);
+		}
+		if($currentWindow instanceof AnvilInventory && (
+			$containerId === ContainerUIIds::ANVIL_INPUT || $containerId === ContainerUIIds::ANVIL_MATERIAL
+		)){
+			$this->requestSlotInfos[] = $slotInfo;
+			$slot = $containerId === ContainerUIIds::ANVIL_INPUT ? AnvilInventory::SLOT_INPUT : AnvilInventory::SLOT_MATERIAL;
+			$inventory = $this->builder->getInventory($currentWindow);
+			if($count < 1){
+				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Cannot take less than 1 items from a stack");
+			}
+			$existingItem = $inventory->getItem($slot);
+			if($existingItem->getCount() < $count){
+				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Cannot take $count items from a stack of " . $existingItem->getCount());
+			}
+			$removed = $existingItem->pop($count);
+			$inventory->setItem($slot, $existingItem);
+			return $removed;
 		}
 		$this->requestSlotInfos[] = $slotInfo;
 		[$inventory, $slot] = $this->getBuilderInventoryAndSlot($slotInfo);
@@ -184,6 +220,26 @@ class ItemStackRequestExecutor{
 	 * @throws ItemStackRequestProcessException
 	 */
 	protected function addItemToSlot(ItemStackRequestSlotInfo $slotInfo, Item $item, int $count) : void{
+		$containerId = $slotInfo->getContainerName()->getContainerId();
+		$currentWindow = $this->player->getCurrentWindow();
+		if($currentWindow instanceof AnvilInventory && (
+			$containerId === ContainerUIIds::ANVIL_INPUT || $containerId === ContainerUIIds::ANVIL_MATERIAL
+		)){
+			$this->requestSlotInfos[] = $slotInfo;
+			$slot = $containerId === ContainerUIIds::ANVIL_INPUT ? AnvilInventory::SLOT_INPUT : AnvilInventory::SLOT_MATERIAL;
+			$inventory = $this->builder->getInventory($currentWindow);
+			if($count < 1){
+				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Cannot take less than 1 items from a stack");
+			}
+			$existingItem = $inventory->getItem($slot);
+			if(!$existingItem->isNull() && !$existingItem->canStackWith($item)){
+				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Can only add items to an empty slot, or a slot containing the same item");
+			}
+			$newItem = clone $item;
+			$newItem->setCount($existingItem->getCount() + $count);
+			$inventory->setItem($slot, $newItem);
+			return;
+		}
 		$this->requestSlotInfos[] = $slotInfo;
 		[$inventory, $slot] = $this->getBuilderInventoryAndSlot($slotInfo);
 		if($count < 1){
@@ -282,18 +338,20 @@ class ItemStackRequestExecutor{
 	 * @throws ItemStackRequestProcessException
 	 */
 	protected function beginAnvilTransaction(?string $rename) : void{
-		$this->assertFirstSpecialTransaction();
-
 		$currentWindow = $this->player->getCurrentWindow();
 		if(!$currentWindow instanceof AnvilInventory){
 			throw new ItemStackRequestProcessException("Player's current window is not an anvil inventory");
 		}
+		if($this->specialTransaction !== null && !$this->specialTransaction instanceof AnvilTransaction){
+			throw new ItemStackRequestProcessException("Another special transaction is already in progress");
+		}
+		$window = $this->builder->getInventory($currentWindow);
 
 		$this->specialTransaction = new AnvilTransaction(
 			$this->player,
 			$this->player->getWorld()->getBlock($currentWindow->getHolder()),
-			clone $currentWindow->getItem(0),
-			clone $currentWindow->getItem(1),
+			clone $window->getItem(AnvilInventory::SLOT_INPUT),
+			clone $window->getItem(AnvilInventory::SLOT_MATERIAL),
 			$rename, []
 		);
 		$this->setNextCreatedItem($this->specialTransaction->getResult());
@@ -381,20 +439,38 @@ class ItemStackRequestExecutor{
 			$window = $this->player->getCurrentWindow();
 			if($window instanceof EnchantInventory){
 				$optionId = $this->inventoryManager->getEnchantingTableOptionIndex($action->getRecipeId());
-				if($optionId !== null && ($option = $window->getOption($optionId)) !== null){
-					$this->specialTransaction = new EnchantingTransaction($this->player, $option, $optionId + 1);
-					$this->setNextCreatedItem($window->getOutput($optionId));
+				if($optionId === null){
+					throw new ItemStackRequestProcessException("Unknown enchanting option recipe ID " . $action->getRecipeId());
 				}
+				$option = $window->getOption($optionId);
+				$output = $window->getOutput($optionId);
+				if($option === null || $output === null){
+					throw new ItemStackRequestProcessException("Enchanting option at index $optionId is no longer available");
+				}
+				if($this->specialTransaction !== null && !$this->specialTransaction instanceof EnchantingTransaction){
+					throw new ItemStackRequestProcessException("Another special transaction is already in progress");
+				}
+				$this->specialTransaction = new EnchantingTransaction($this->player, $option, $optionId + 1);
+				$this->setNextCreatedItem($output);
+			}elseif($window instanceof AnvilInventory){
+				$this->beginAnvilTransaction($this->anvilRename);
 			}else{
 				$this->beginCrafting($action->getRecipeId(), $this->player->getNetworkSession()->getProtocolId() >= ProtocolInfo::PROTOCOL_1_21_20 ? $action->getRepetitions() : 1);
 			}
 		}elseif($action instanceof CraftRecipeAutoStackRequestAction){
 			$this->beginCrafting($action->getRecipeId(), $action->getRepetitions());
 		}elseif($action instanceof CraftRecipeOptionalStackRequestAction){
-			$filterStrings = $this->request->getFilterStrings();
+			$filterStrings = $this->filterStrings;
 			$filterStringIndex = $action->getFilterStringIndex();
-			$this->beginAnvilTransaction($filterStringIndex >= 0 ? ($filterStrings[$filterStringIndex] ?? null) : null);
+			$window = $this->player->getCurrentWindow();
+			if($window instanceof AnvilInventory){
+				$this->anvilRename = $filterStringIndex >= 0 ? ($filterStrings[$filterStringIndex] ?? null) : null;
+				$this->beginAnvilTransaction($this->anvilRename);
+			}
 		}elseif($action instanceof CraftingConsumeInputStackRequestAction){
+			if(!$this->specialTransaction instanceof AnvilTransaction && $this->player->getCurrentWindow() instanceof AnvilInventory){
+				$this->beginAnvilTransaction($this->anvilRename);
+			}
 			if(!$this->specialTransaction instanceof AnvilTransaction){
 				$this->assertDoingCrafting();
 			}
@@ -432,7 +508,8 @@ class ItemStackRequestExecutor{
 			try{
 				$this->processItemStackRequestAction($action);
 			}catch(ItemStackRequestProcessException $e){
-				throw new ItemStackRequestProcessException("Error processing action $k (" . (new \ReflectionClass($action))->getShortName() . "): " . $e->getMessage(), 0, $e);
+				$actionShort = self::$itemStackRequestActionShortNames[$action::class] ??= (new \ReflectionClass($action))->getShortName();
+				throw new ItemStackRequestProcessException("Error processing action $k ($actionShort): " . $e->getMessage(), 0, $e);
 			}
 		}
 		$this->setNextCreatedItem(null);
