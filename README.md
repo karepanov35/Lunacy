@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/IMG_0656.png" width="600" />
+  <img src="assets/IMG_0653.png" width="600" />
 
   ____________
 
@@ -9,7 +9,6 @@ Our modification runs on PHP language, version 8.1+, and also supports all new v
 ❗️This project is licensed under GPL-2.0. Please see the LICENSE file for details.
 Lunacy are not affiliated with Mojang. All brands and trademarks belong to their respective owners. Lunacy is not a Mojang-approved software, nor is it associated with Mojang.
 
-  <img src="assets/IMG_0681.png" width="600" />
 ---
 
 ## Installing our modification:
