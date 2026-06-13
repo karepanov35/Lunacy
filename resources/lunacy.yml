@@ -1,4 +1,24 @@
-# Main configuration file for PocketMine-MP
+<?php
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+# Main configuration file for Lunacy
 # These settings are the ones that cannot be included in server.properties
 # Some of these settings are safe, others can break your server if modified incorrectly
 # New settings/defaults won't appear automatically in this file when upgrading.
@@ -64,6 +84,19 @@ memory:
     chunk-radius: 4
 
 network:
+  # Минимальный протокол для входа на сервер / Minimum protocol for server login
+  # [RU] Как настроить?
+  # - Укажите число протокола минимально поддерживаемой версии клиента. Значение 0 отключает проверку (принимаются все протоколы, которые поддерживает ядро).
+  #
+  # [EN] How to configure?
+  # - Set the protocol number of the oldest client version you want to allow. Value 0 disables the check (all protocols supported by the core are accepted).
+  #
+  # [RU] Частые значения / [EN] Common values:
+  #   589  → 1.20.0    | 712 → 1.21.20  | 859 → 1.21.120 | 924 → 1.26.0
+  #   766  → 1.21.50   | 827 → 1.21.100 | 898 → 1.21.130 | 975 → 1.26.20
+  #
+  min-protocol: 0
+
   #Threshold for batching packets, in bytes. Only these packets will be compressed
   #Set to 0 to compress everything, -1 to disable.
   batch-threshold: 256

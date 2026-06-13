@@ -203,7 +203,7 @@ namespace pocketmine {
 		ErrorToExceptionHandler::set();
 
 		if(count(getopt("", [BootstrapOptions::VERSION])) > 0){
-			printf("%s %s (git %s) for MC:BE %s\n", VersionInfo::NAME, VersionInfo::VERSION()->getFullVersion(true), VersionInfo::GIT_HASH(), ProtocolInfo::MINECRAFT_VERSION);
+			printf("%s %s (git %s) for MC:BE %s\n", VersionInfo::NAME, VersionInfo::VERSION()->getFullVersion(true), VersionInfo::GIT_HASH_SHORT(), ProtocolInfo::MINECRAFT_VERSION);
 			exit(0);
 		}
 

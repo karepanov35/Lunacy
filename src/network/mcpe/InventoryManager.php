@@ -34,6 +34,9 @@ use pocketmine\block\inventory\LoomInventory;
 use pocketmine\block\inventory\SmithingTableInventory;
 use pocketmine\block\inventory\StonecutterInventory;
 use pocketmine\crafting\FurnaceType;
+use pocketmine\inventory\HorseInventoryInterface;
+use pocketmine\inventory\HopperMinecartInventoryInterface;
+use pocketmine\inventory\MinecartChestInventoryInterface;
 use pocketmine\inventory\VirtualContainerInventory;
 use pocketmine\data\bedrock\EnchantmentIdMap;
 use pocketmine\inventory\Inventory;
@@ -368,8 +371,18 @@ class InventoryManager{
 	protected static function createContainerOpen(int $id, Inventory $inv) : ?array{
 		//TODO: we should be using some kind of tagging system to identify the types. Instanceof is flaky especially
 		//if the class isn't final, not to mention being inflexible.
+		if($inv instanceof HorseInventoryInterface){
+			return [ContainerOpenPacket::entityInv($id, WindowTypes::HORSE, $inv->getEntityId())];
+		}
+		if($inv instanceof HopperMinecartInventoryInterface){
+			// Nukkit: InventoryType.MINECART_HOPPER → network type HOPPER (8), entityId = вагонетка
+			return [ContainerOpenPacket::entityInv($id, WindowTypes::HOPPER, $inv->getEntityId())];
+		}
+		if($inv instanceof MinecartChestInventoryInterface){
+			// Nukkit: InventoryType.MINECART_CHEST → network type CONTAINER (0), entityId = вагонетка
+			return [ContainerOpenPacket::entityInv($id, WindowTypes::CONTAINER, $inv->getEntityId())];
+		}
 		if($inv instanceof VirtualContainerInventory){
-			// MINECART_CHEST (10) — контейнер у сущности, 27 слотов; клиент показывает UI по entityInv
 			return [ContainerOpenPacket::entityInv($id, WindowTypes::MINECART_CHEST, $inv->getEntityId())];
 		}
 		if($inv instanceof BlockInventory){

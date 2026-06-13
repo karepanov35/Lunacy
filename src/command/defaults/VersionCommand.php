@@ -51,20 +51,11 @@ class VersionCommand extends VanillaCommand{
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
 		if(count($args) === 0){
-			// Кастомный текст для Lunacy
-			$sender->sendMessage("§r§fЭтот сервер работает на модификации §cLunacy§r§f.");
-			$sender->sendMessage("§fВерсия API: §a" . VersionInfo::API_VERSION);
-			$sender->sendMessage("§fВерсия модификации (ядра): §av" . VersionInfo::BASE_VERSION);
-			
-			// Диапазон поддерживаемых версий Minecraft
 			$minecraftVersions = "1.20.0 - 1.26.20";
-			
-			// Диапазон протоколов (от самого старого до самого нового)
-			$protocolRange = "589 - 944";
-			
-			$sender->sendMessage("§r§fСовместимые версии Minecraft: §a" . $minecraftVersions . " §7(§fверсия протоколов: §6" . $protocolRange . "§7)");
-			$sender->sendMessage("§r§fВерсия PHP: §a" . PHP_VERSION);
-			$sender->sendMessage("§r§fОперационная система: §6" . Utils::getOS());
+			$protocolRange = "589 - 975";
+
+			$gitLabel = VersionInfo::GIT_HASH_SHORT();
+			$sender->sendMessage(TextFormat::WHITE . "This server is running " . TextFormat::RED . "Lunacy v" . VersionInfo::VERSION()->getFullVersion(true) . TextFormat::GRAY . " (git " . $gitLabel . ")" . TextFormat::WHITE . " [PHP " . TextFormat::GREEN . PHP_VERSION . TextFormat::WHITE . "], API version: " . VersionInfo::API_VERSION . ", supported Minecraft Bedrock versions: " . TextFormat::GRAY . $minecraftVersions . TextFormat::WHITE . " (protocol versions: " . $protocolRange . ")");
 		}else{
 			$pluginName = implode(" ", $args);
 			$exactPlugin = $sender->getServer()->getPluginManager()->getPlugin($pluginName);

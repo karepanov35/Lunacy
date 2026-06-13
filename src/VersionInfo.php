@@ -30,11 +30,12 @@ use function str_repeat;
 
 final class VersionInfo{
 	public const NAME = "Lunacy";
-	public const BASE_VERSION = "0.1.3";
+	public const BASE_VERSION = "0.1.4";
 	public const API_VERSION = "5.0.0";
 	public const IS_DEVELOPMENT_BUILD = true;
 	public const BUILD_CHANNEL = "stable";
 	public const GITHUB_URL = "https://github.com/karepanov35/Lunacy";
+	public const GIT_UNKNOWN = "Dev Build";
 
 	/**
 	 * PocketMine-MP-specific version ID for world data. Used to determine what fixes need to be applied to old world
@@ -56,26 +57,57 @@ final class VersionInfo{
 	}
 
 	private static ?string $gitHash = null;
+	private static ?string $gitHashShort = null;
 
 	public static function GIT_HASH() : string{
 		if(self::$gitHash === null){
-			$gitHash = str_repeat("00", 20);
-
-			if(\Phar::running(true) === ""){
-				$gitHash = Git::getRepositoryStatePretty(\pocketmine\PATH);
-			}else{
-				$pharPath = \Phar::running(false);
-				$phar = \Phar::isValidPharFilename($pharPath) ? new \Phar($pharPath) : new \PharData($pharPath);
-				$meta = $phar->getMetadata();
-				if(isset($meta["git"])){
-					$gitHash = $meta["git"];
-				}
-			}
-
-			self::$gitHash = $gitHash;
+			self::$gitHash = self::resolveGitHash(false);
 		}
 
 		return self::$gitHash;
+	}
+
+	public static function GIT_HASH_SHORT() : string{
+		if(self::$gitHashShort === null){
+			self::$gitHashShort = self::resolveGitHash(true);
+		}
+
+		return self::$gitHashShort;
+	}
+
+	public static function isUnknownGitBuild() : bool{
+		return self::GIT_HASH() === self::GIT_UNKNOWN;
+	}
+
+	private static function resolveGitHash(bool $short) : string{
+		if(\Phar::running(true) === ""){
+			if($short){
+				$hash = Git::getShortRepositoryStatePretty(\pocketmine\PATH);
+				return $hash ?? self::GIT_UNKNOWN;
+			}
+
+			$hash = Git::getRepositoryStatePretty(\pocketmine\PATH);
+			return $hash === str_repeat("00", 20) ? self::GIT_UNKNOWN : $hash;
+		}
+
+		$pharPath = \Phar::running(false);
+		$phar = \Phar::isValidPharFilename($pharPath) ? new \Phar($pharPath) : new \PharData($pharPath);
+		$meta = $phar->getMetadata();
+		if(!isset($meta["git"])){
+			return self::GIT_UNKNOWN;
+		}
+
+		$gitHash = (string) $meta["git"];
+		if($gitHash === str_repeat("00", 20)){
+			return self::GIT_UNKNOWN;
+		}
+
+		if($short){
+			$base = str_contains($gitHash, "-dirty") ? substr($gitHash, 0, -6) : $gitHash;
+			return substr($base, 0, 7) . (str_contains($gitHash, "-dirty") ? "-dirty" : "");
+		}
+
+		return $gitHash;
 	}
 
 	private static ?int $buildNumber = null;

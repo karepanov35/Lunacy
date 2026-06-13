@@ -153,9 +153,11 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Block(Ids::NETHER_SPROUTS, Blocks::NETHER_SPROUTS());
 		$this->map1to1Block(Ids::NETHER_WART, Blocks::NETHER_WART());
 		$this->map1to1Block(Ids::PALE_OAK_DOOR, Blocks::PALE_OAK_DOOR());
+		$this->map1to1Block(Ids::PISTON, Blocks::PISTON());
 		$this->map1to1Block(Ids::REPEATER, Blocks::REDSTONE_REPEATER());
 		$this->map1to1Block(Ids::SOUL_CAMPFIRE, Blocks::SOUL_CAMPFIRE());
 		$this->map1to1Block(Ids::SPRUCE_DOOR, Blocks::SPRUCE_DOOR());
+		$this->map1to1Block(Ids::STICKY_PISTON, Blocks::STICKY_PISTON());
 		$this->map1to1Block(Ids::SUGAR_CANE, Blocks::SUGARCANE());
 		$this->map1to1Block(Ids::WARPED_DOOR, Blocks::WARPED_DOOR());
 		$this->map1to1Block(Ids::WOODEN_DOOR, Blocks::OAK_DOOR());
@@ -318,6 +320,9 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::MELON_SLICE, Items::MELON());
 		$this->map1to1Item(Ids::MILK_BUCKET, Items::MILK_BUCKET());
 		$this->map1to1Item(Ids::MINECART, Items::MINECART());
+		$this->map1to1Item(Ids::CHEST_MINECART, Items::CHEST_MINECART());
+		$this->map1to1Item(Ids::HOPPER_MINECART, Items::HOPPER_MINECART());
+		$this->map1to1Item(Ids::TNT_MINECART, Items::TNT_MINECART());
 		$this->map1to1Item(Ids::MUSHROOM_STEW, Items::MUSHROOM_STEW());
 		$this->map1to1Item(Ids::MUSIC_DISC_11, Items::RECORD_11());
 		$this->map1to1Item(Ids::MUSIC_DISC_13, Items::RECORD_13());
@@ -452,6 +457,8 @@ final class ItemSerializerDeserializerRegistrar{
 		$this->map1to1Item(Ids::WOLF_SPAWN_EGG, Items::WOLF_SPAWN_EGG());
 		$this->map1to1Item(Ids::HOGLIN_SPAWN_EGG, Items::HOGLIN_SPAWN_EGG());
 		$this->map1to1Item(Ids::ZOGLIN_SPAWN_EGG, Items::ZOGLIN_SPAWN_EGG());
+		$this->map1to1Item(Ids::ALLAY_SPAWN_EGG, Items::ALLAY_SPAWN_EGG());
+		$this->map1to1Item(Ids::PANDA_SPAWN_EGG, Items::PANDA_SPAWN_EGG());
 		$this->map1to1Item(Ids::SADDLE, Items::SADDLE());
 		$this->map1to1Item(Ids::LEATHER_HORSE_ARMOR, Items::LEATHER_HORSE_ARMOR());
 		$this->map1to1Item(Ids::IRON_HORSE_ARMOR, Items::IRON_HORSE_ARMOR());

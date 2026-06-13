@@ -46,6 +46,7 @@ abstract class SpawnEgg extends Item{
 					$entityTypeId = EntityFactory::getInstance()->getSaveId($entity::class);
 					$tile->setEntityTypeId($entityTypeId);
 					$tile->setSpawnDelay(TileMonsterSpawner::DEFAULT_MIN_SPAWN_DELAY);
+					$tile->syncToClients();
 					$world->scheduleDelayedBlockUpdate($blockClicked->getPosition(), 1);
 				}catch(\InvalidArgumentException){
 				}finally{

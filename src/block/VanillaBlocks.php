@@ -50,6 +50,8 @@ use pocketmine\block\tile\ItemFrame as TileItemFrame;
 use pocketmine\block\tile\Jukebox as TileJukebox;
 use pocketmine\block\tile\Lectern as TileLectern;
 use pocketmine\block\tile\MobHead as TileMobHead;
+use pocketmine\block\tile\MovingBlockTile as TileMovingBlock;
+use pocketmine\block\tile\PistonArm as TilePistonArm;
 use pocketmine\block\tile\MonsterSpawner as TileMonsterSpawner;
 use pocketmine\block\tile\NormalFurnace as TileNormalFurnace;
 use pocketmine\block\tile\Note as TileNote;
@@ -688,6 +690,9 @@ use function strtolower;
  * @method static Potato POTATOES()
  * @method static PotionCauldron POTION_CAULDRON()
  * @method static PoweredRail POWERED_RAIL()
+ * @method static MovingBlock MOVING_BLOCK()
+ * @method static Piston PISTON()
+ * @method static PistonArmCollision PISTON_ARM_COLLISION()
  * @method static Opaque PRISMARINE()
  * @method static Opaque PRISMARINE_BRICKS()
  * @method static Slab PRISMARINE_BRICKS_SLAB()
@@ -777,6 +782,8 @@ use function strtolower;
  * @method static Opaque SOUL_SOIL()
  * @method static Torch SOUL_TORCH()
  * @method static Sponge SPONGE()
+ * @method static StickyPiston STICKY_PISTON()
+ * @method static PistonArmCollision STICKY_PISTON_ARM_COLLISION()
  * @method static SporeBlossom SPORE_BLOSSOM()
  * @method static WoodenButton SPRUCE_BUTTON()
  * @method static CeilingCenterHangingSign SPRUCE_CEILING_CENTER_HANGING_SIGN()
@@ -1103,6 +1110,12 @@ final class VanillaBlocks{
 		self::register("podzol", fn(BID $id) => new Podzol($id, "Podzol", new Info(BreakInfo::shovel(0.5), [Tags::DIRT])));
 		self::register("potatoes", fn(BID $id) => new Potato($id, "Potato Block", new Info(BreakInfo::instant())));
 		self::register("powered_rail", fn(BID $id) => new PoweredRail($id, "Powered Rail", $railBreakInfo));
+		$pistonBreakInfo = new Info(BreakInfo::pickaxe(1.5, ToolTier::WOOD, 3.5));
+		self::register("moving_block", fn(BID $id) => new MovingBlock($id, "Moving Block", new Info(BreakInfo::indestructible())), TileMovingBlock::class);
+		self::register("piston", fn(BID $id) => new Piston($id, "Piston", $pistonBreakInfo), TilePistonArm::class);
+		self::register("sticky_piston", fn(BID $id) => new StickyPiston($id, "Sticky Piston", $pistonBreakInfo), TilePistonArm::class);
+		self::register("piston_arm_collision", fn(BID $id) => new PistonArmCollision($id, "Piston Arm Collision", new Info(BreakInfo::instant())));
+		self::register("sticky_piston_arm_collision", fn(BID $id) => (new PistonArmCollision($id, "Sticky Piston Arm Collision", new Info(BreakInfo::instant())))->setSticky(true));
 
 		$prismarineBreakInfo = new Info(BreakInfo::pickaxe(1.5, ToolTier::WOOD, 30.0));
 		self::register("prismarine", fn(BID $id) => new Opaque($id, "Prismarine", $prismarineBreakInfo));

@@ -28,6 +28,7 @@ use function array_change_key_case;
 use function array_fill_keys;
 use function array_keys;
 use function array_shift;
+use function basename;
 use function count;
 use function date;
 use function explode;
@@ -65,6 +66,7 @@ class Config{
 	public const CNF = Config::PROPERTIES; // .cnf
 	public const JSON = 1; // .js, .json
 	public const YAML = 2; // .yml, .yaml
+	public const LUNACY_YML = "lunacy.yml";
 	//const EXPORT = 3; // .export, .xport
 	public const SERIALIZED = 4; // .sl
 	public const ENUM = 5; // .txt, .list, .enum
@@ -138,6 +140,46 @@ class Config{
 		return preg_replace("#^( *)(y|Y|yes|Yes|YES|n|N|no|No|NO|true|True|TRUE|false|False|FALSE|on|On|ON|off|Off|OFF)( *)\:#m", "$1\"$2\"$3:", $str);
 	}
 
+	public static function getLunacyYmlHeader() : string{
+		return <<<'LUNACY_HEADER'
+<?php
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
+LUNACY_HEADER;
+	}
+
+	public static function stripPhpHeader(string $content) : string{
+		if(!str_starts_with(ltrim($content), "<?php")){
+			return $content;
+		}
+		$end = strpos($content, "*/");
+		if($end === false){
+			return $content;
+		}
+		return ltrim(substr($content, $end + 2));
+	}
+
+	private static function isLunacyYmlPath(string $file) : bool{
+		return strtolower(basename($file)) === self::LUNACY_YML;
+	}
+
 	/**
 	 * @param mixed[] $default
 	 * @phpstan-param array<string, mixed> $default
@@ -174,6 +216,9 @@ class Config{
 					}
 					break;
 				case Config::YAML:
+					if(self::isLunacyYmlPath($this->file)){
+						$content = self::stripPhpHeader($content);
+					}
 					$content = self::fixYAMLIndexes($content);
 					try{
 						$config = ErrorToExceptionHandler::trap(fn() => yaml_parse($content));
@@ -225,6 +270,9 @@ class Config{
 				break;
 			case Config::YAML:
 				$content = yaml_emit($this->config, YAML_UTF8_ENCODING);
+				if(self::isLunacyYmlPath($this->file)){
+					$content = self::getLunacyYmlHeader() . "\r\n" . $content;
+				}
 				break;
 			case Config::SERIALIZED:
 				$content = serialize($this->config);

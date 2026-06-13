@@ -22,6 +22,7 @@
 declare(strict_types=1);
 namespace pocketmine\block;
 
+use pocketmine\data\bedrock\LegacyEntityIdToStringIdMap;
 use pocketmine\block\tile\MonsterSpawner as TileMonsterSpawner;
 use pocketmine\block\utils\SupportType;
 use pocketmine\entity\Entity;
@@ -55,8 +56,13 @@ class MonsterSpawner extends Transparent{
 			return;
 		}
 
+		$tile->pushClientSyncIfNeeded();
+
 		$entityTypeId = $tile->getEntityTypeId();
-		if($entityTypeId === '' || $entityTypeId === ':'){
+		if($entityTypeId === "" && $tile->getLegacyEntityTypeId() > 0){
+			$entityTypeId = LegacyEntityIdToStringIdMap::getInstance()->legacyToString($tile->getLegacyEntityTypeId()) ?? "";
+		}
+		if(!$tile->hasValidEntityType() || $entityTypeId === ""){
 			$world->scheduleDelayedBlockUpdate($this->position, 100);
 			return;
 		}
@@ -140,7 +146,7 @@ class MonsterSpawner extends Transparent{
 					$entityTypeId = EntityFactory::getInstance()->getSaveId($entity::class);
 					$tile->setEntityTypeId($entityTypeId);
 					$tile->setSpawnDelay(TileMonsterSpawner::DEFAULT_MIN_SPAWN_DELAY);
-					$tile->setDirty();
+					$tile->syncToClients();
 					$world->scheduleDelayedBlockUpdate($this->position, 1);
 				}catch(\InvalidArgumentException){
 				}finally{

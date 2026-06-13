@@ -68,6 +68,8 @@ use pocketmine\block\NetherPortal;
 use pocketmine\block\NetherVines;
 use pocketmine\block\NetherWartPlant;
 use pocketmine\block\PinkPetals;
+use pocketmine\block\PistonArmCollision;
+use pocketmine\block\PistonBase;
 use pocketmine\block\PitcherCrop;
 use pocketmine\block\PoweredRail;
 use pocketmine\block\Rail;
@@ -1409,6 +1411,19 @@ final class VanillaBlockMappings{
 			new IntProperty(StateNames::GROWTH, 0, 7, fn(PinkPetals $b) => $b->getCount(), fn(PinkPetals $b, int $v) => $b->setCount(min($v, PinkPetals::MAX_COUNT)), offset: 1),
 			$commonProperties->horizontalFacingCardinal
 		]));
+		$reg->mapModel(Model::create(Blocks::PISTON(), Ids::PISTON)->properties([
+			new ValueFromIntProperty(StateNames::FACING_DIRECTION, ValueMappings::getInstance()->facing, fn(PistonBase $b) => $b->getFacing(), fn(PistonBase $b, int $v) => $b->setFacing($v)),
+		]));
+		$reg->mapModel(Model::create(Blocks::STICKY_PISTON(), Ids::STICKY_PISTON)->properties([
+			new ValueFromIntProperty(StateNames::FACING_DIRECTION, ValueMappings::getInstance()->facing, fn(PistonBase $b) => $b->getFacing(), fn(PistonBase $b, int $v) => $b->setFacing($v)),
+		]));
+		$reg->mapModel(Model::create(Blocks::PISTON_ARM_COLLISION(), Ids::PISTON_ARM_COLLISION)->properties([
+			new ValueFromIntProperty(StateNames::FACING_DIRECTION, ValueMappings::getInstance()->facing, fn(PistonArmCollision $b) => $b->getFacing(), fn(PistonArmCollision $b, int $v) => $b->setFacing($v)),
+		]));
+		$reg->mapModel(Model::create(Blocks::STICKY_PISTON_ARM_COLLISION(), Ids::STICKY_PISTON_ARM_COLLISION)->properties([
+			new ValueFromIntProperty(StateNames::FACING_DIRECTION, ValueMappings::getInstance()->facing, fn(PistonArmCollision $b) => $b->getFacing(), fn(PistonArmCollision $b, int $v) => $b->setFacing($v)),
+		]));
+		$reg->mapSimple(Blocks::MOVING_BLOCK(), Ids::MOVING_BLOCK);
 		$reg->mapModel(Model::create(Blocks::POWERED_RAIL(), Ids::GOLDEN_RAIL)->properties([
 			new BoolProperty(StateNames::RAIL_DATA_BIT, fn(PoweredRail $b) => $b->isPowered(), fn(PoweredRail $b, bool $v) => $b->setPowered($v)), //TODO: shared with ActivatorRail
 			new IntProperty(StateNames::RAIL_DIRECTION, 0, 5, fn(StraightOnlyRail $b) => $b->getShape(), fn(StraightOnlyRail $b, int $v) => $b->setShape($v)) //TODO: shared with ActivatorRail

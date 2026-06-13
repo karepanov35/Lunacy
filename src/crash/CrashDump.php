@@ -30,6 +30,7 @@ use pocketmine\plugin\PluginManager;
 use pocketmine\Server;
 use pocketmine\thread\ThreadCrashInfoFrame;
 use pocketmine\utils\AssumptionFailedError;
+use pocketmine\utils\Config;
 use pocketmine\utils\Filesystem;
 use pocketmine\utils\Utils;
 use pocketmine\VersionInfo;
@@ -166,8 +167,8 @@ class CrashDump{
 			if(($serverDotProperties = @file_get_contents(Path::join($this->server->getDataPath(), "server.properties"))) !== false){
 				$this->data->serverDotProperties = preg_replace("#^rcon\\.password=(.*)$#m", "rcon.password=******", $serverDotProperties) ?? throw new AssumptionFailedError("Pattern is valid");
 			}
-			if(($pocketmineDotYml = @file_get_contents(Path::join($this->server->getDataPath(), "pocketmine.yml"))) !== false){
-				$this->data->pocketmineDotYml = $pocketmineDotYml;
+			if(($lunacyDotYml = @file_get_contents(Path::join($this->server->getDataPath(), Config::LUNACY_YML))) !== false){
+				$this->data->lunacyDotYml = $lunacyDotYml;
 			}
 		}
 		$extensions = [];

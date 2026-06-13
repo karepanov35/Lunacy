@@ -838,8 +838,13 @@ final class BlockTypeIds{
 	public const DRIPSTONE_BLOCK = 10809;
 	public const END_PORTAL = 10810;
 	public const BEE_NEST = 10811;
+	public const PISTON = 10812;
+	public const STICKY_PISTON = 10813;
+	public const PISTON_ARM_COLLISION = 10814;
+	public const STICKY_PISTON_ARM_COLLISION = 10815;
+	public const MOVING_BLOCK = 10816;
 
-	public const FIRST_UNUSED_BLOCK_ID = 10812;
+	public const FIRST_UNUSED_BLOCK_ID = 10817;
 
 	private static int $nextDynamicId = self::FIRST_UNUSED_BLOCK_ID;
 
