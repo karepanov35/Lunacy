@@ -459,6 +459,7 @@ final class ItemTypeNames{
 	public const PINK_DYE = "minecraft:pink_dye";
 	public const PINK_HARNESS = "minecraft:pink_harness";
 	public const PITCHER_POD = "minecraft:pitcher_pod";
+	public const PISTON = "minecraft:piston";
 	public const PLANKS = "minecraft:planks";
 	public const PLENTY_POTTERY_SHERD = "minecraft:plenty_pottery_sherd";
 	public const POISONOUS_POTATO = "minecraft:poisonous_potato";
@@ -549,6 +550,7 @@ final class ItemTypeNames{
 	public const STAINED_GLASS_PANE = "minecraft:stained_glass_pane";
 	public const STAINED_HARDENED_CLAY = "minecraft:stained_hardened_clay";
 	public const STICK = "minecraft:stick";
+	public const STICKY_PISTON = "minecraft:sticky_piston";
 	public const STONE_AXE = "minecraft:stone_axe";
 	public const STONE_BLOCK_SLAB = "minecraft:stone_block_slab";
 	public const STONE_BLOCK_SLAB2 = "minecraft:stone_block_slab2";

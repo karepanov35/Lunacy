@@ -32,6 +32,7 @@ use pocketmine\network\mcpe\auth\ProcessOpenIdLoginTask;
 use pocketmine\network\mcpe\JwtException;
 use pocketmine\network\mcpe\JwtUtils;
 use pocketmine\network\mcpe\NetworkSession;
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\network\mcpe\protocol\LoginPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\login\AuthenticationInfo;
@@ -47,6 +48,7 @@ use pocketmine\player\Player;
 use pocketmine\player\PlayerInfo;
 use pocketmine\player\XboxLivePlayerInfo;
 use pocketmine\Server;
+use pocketmine\YmlServerProperties;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use function base64_decode;
@@ -85,9 +87,20 @@ class LoginPacketHandler extends PacketHandler{
 	}
 
 	public function handleLogin(LoginPacket $packet) : bool{
-		// Если сервер в оффлайн режиме, пропускаем всю JWT валидацию
+		$minProtocol = $this->server->getConfigGroup()->getPropertyInt(YmlServerProperties::NETWORK_MIN_PROTOCOL, 0);
+		if($minProtocol > 0){
+			$clientProtocol = $this->session->getProtocolId();
+			if($clientProtocol < $minProtocol){
+				$versionName = ProtocolVersionMapper::getVersionName($minProtocol);
+				$this->session->disconnect(
+					"§cВаша версия игры устарела! Требуется Minecraft Bedrock v{$versionName} (Протокол: {$minProtocol})",
+					"§cYour game version is outdated! Required: Minecraft Bedrock v{$versionName} (Protocol: {$minProtocol})"
+				);
+				return true;
+			}
+		}
+
 		if(!$this->server->isOnlineMode()){
-			// Создаем минимальную информацию для оффлайн входа
 			$authInfo = new AuthenticationInfo();
 			$authInfo->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
 			$authInfo->Certificate = $packet->authInfoJson;
@@ -106,7 +119,6 @@ class LoginPacketHandler extends PacketHandler{
 					$authInfo->Token = "";
 				}
 			}catch(\Throwable $e){
-				// Любая ошибка парсинга - используем SELF_SIGNED
 				$authInfo = new AuthenticationInfo();
 				$authInfo->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
 				$authInfo->Certificate = $packet->authInfoJson;
@@ -118,7 +130,6 @@ class LoginPacketHandler extends PacketHandler{
 			try{
 				[$headerArray, $claimsArray,] = JwtUtils::parse($authInfo->Token);
 			}catch(JwtException $e){
-				// В оффлайн режиме игнорируем ошибки JWT
 				if(!$this->server->isOnlineMode()){
 					$authInfo->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
 					$authInfo->Certificate = $packet->authInfoJson;
@@ -127,7 +138,6 @@ class LoginPacketHandler extends PacketHandler{
 				}
 			}
 			
-			// Проверяем что тип все еще FULL после try-catch
 			if($authInfo->AuthenticationType === AuthenticationType::FULL->value){
 				$header = $this->mapXboxTokenHeader($headerArray);
 				$claims = $this->mapXboxTokenBody($claimsArray);
@@ -138,7 +148,6 @@ class LoginPacketHandler extends PacketHandler{
 
 				$authRequired = $this->processLoginCommon($packet, $username, $legacyUuid, $xuid);
 				if($authRequired === null){
-					//plugin cancelled
 					return true;
 				}
 				$this->processOpenIdLogin($authInfo->Token, $header->kid, $packet->clientDataJwt, $authRequired);
@@ -157,8 +166,7 @@ class LoginPacketHandler extends PacketHandler{
 				if($this->server->isOnlineMode()){
 					throw PacketHandlingException::wrap($e, "Error parsing self-signed certificate chain");
 				}
-				// В оффлайн режиме логируем ошибку и создаем дефолтные данные
-				$this->session->getLogger()->warning("Failed to parse certificate chain (offline mode): " . $e->getMessage());
+				$this->session->getLogger()->warning("Failed to parse certificate chain: " . $e->getMessage());
 				$chainData = null;
 			}
 			
@@ -185,12 +193,11 @@ class LoginPacketHandler extends PacketHandler{
 			}
 			
 			if($chain !== null){
-				// Проверяем что chain->chain инициализирован
 				if(!isset($chain->chain) || !is_array($chain->chain)){
 					if($this->server->isOnlineMode()){
 						throw new PacketHandlingException("Certificate chain is not properly initialized");
 					}
-					$this->session->getLogger()->warning("Certificate chain not initialized (offline mode)");
+					$this->session->getLogger()->debug("Certificate chain not initialized (offline mode)");
 					$chain = null;
 					$claimsArray = null;
 				}elseif($this->session->getProtocolId() >= ProtocolInfo::PROTOCOL_1_21_93){
@@ -283,17 +290,15 @@ class LoginPacketHandler extends PacketHandler{
 					$username = $claims->displayName;
 					$xuid = $this->session->getProtocolId() >= ProtocolInfo::PROTOCOL_1_21_93 ? "" : $claims->XUID;
 					
-					$this->session->getLogger()->info("Successfully parsed player data: username=$username, uuid=$legacyUuid, xuid=$xuid");
+					$this->session->getLogger()->info("Parsed player data: username=$username, uuid=$legacyUuid, xuid=$xuid");
 				}
 			}
 			
-			// Если не удалось получить данные, создаем дефолтные
 			if($legacyUuid === null){
 				$legacyUuid = Uuid::uuid4();
-				$this->session->getLogger()->warning("Generated random UUID: $legacyUuid");
+				$this->session->getLogger()->debug("Generated random UUID: $legacyUuid");
 			}
 			if($username === null){
-				// В офлайн режиме пробуем взять ник из clientData (Xbox/клиентский ник)
 				$username = $this->tryGetUsernameFromClientData($packet->clientDataJwt);
 				if($username === null){
 					$username = "Player_" . bin2hex(random_bytes(4));
@@ -303,7 +308,6 @@ class LoginPacketHandler extends PacketHandler{
 
 			$authRequired = $this->processLoginCommon($packet, $username, $legacyUuid, $xuid);
 			if($authRequired === null){
-				//plugin cancelled
 				return true;
 			}
 			$this->processSelfSignedLogin($chain !== null ? $chain->chain : [], $packet->clientDataJwt, $authRequired);
@@ -324,10 +328,8 @@ class LoginPacketHandler extends PacketHandler{
 		try{
 			$clientData = $this->parseClientData($packet->clientDataJwt);
 		}catch(\Throwable $e){
-			// В оффлайн режиме игнорируем ошибки парсинга clientData
 			if(!$this->server->isOnlineMode()){
-				$this->session->getLogger()->debug("ClientData parse error (ignored in offline mode): " . $e->getMessage());
-				// Создаем минимальный ClientData
+				$this->session->getLogger()->debug("ClientData parse error: " . $e->getMessage());
 				$clientData = new ClientData();
 				$clientData->LanguageCode = "en_US";
 			}else{
@@ -338,9 +340,7 @@ class LoginPacketHandler extends PacketHandler{
 		try{
 			$skin = $this->session->getTypeConverter()->getSkinAdapter()->fromSkinData(ClientDataToSkinDataHelper::fromClientData($clientData));
 		}catch(\Throwable $e){
-			// ПОЛНОСТЬЮ ИГНОРИРУЕМ ВСЕ ОШИБКИ СКИНОВ
-			// Используем дефолтный скин, но сохраняем плащ из clientData если есть
-			$this->session->getLogger()->debug("Skin error (ignored): " . $e->getMessage());
+			$this->session->getLogger()->debug("Skin error: " . $e->getMessage());
 			try{
 				$skin = $this->getDefaultSkin();
 				$capeData = "";
@@ -360,12 +360,10 @@ class LoginPacketHandler extends PacketHandler{
 					);
 				}
 			}catch(\Throwable $e2){
-				// Даже если дефолтный скин не создался - продолжаем без скина
 				$skin = null;
 			}
 		}
-		
-		// Если скин null, создаем минимальный скин
+
 		if($skin === null){
 			$skin = new Skin("Default", str_repeat("\x00", 8192), "", "", "");
 		}
@@ -430,7 +428,6 @@ class LoginPacketHandler extends PacketHandler{
 		try{
 			$authInfoJson = json_decode($authInfo, associative: false, flags: JSON_THROW_ON_ERROR);
 		}catch(\JsonException $e){
-			// В оффлайн режиме возвращаем дефолтный AuthInfo
 			if(!$this->server->isOnlineMode()){
 				$defaultAuth = new AuthenticationInfo();
 				$defaultAuth->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
@@ -495,13 +492,9 @@ class LoginPacketHandler extends PacketHandler{
 		return $header;
 	}
 
-	/**
-	 * @throws PacketHandlingException
-	 */
-	/**
-	 * Пытается извлечь ник игрока из clientData JWT (ThirdPartyName — Xbox/клиентский ник).
-	 * Используется в офлайн режиме, когда сертификат не распарсился.
-	 */
+/**
+ * Resolves username from clientData JWT when certificate parsing fails.
+ */
 	private function tryGetUsernameFromClientData(string $clientDataJwt) : ?string{
 		try{
 			[, $clientDataClaims, ] = JwtUtils::parse($clientDataJwt);
@@ -542,11 +535,10 @@ class LoginPacketHandler extends PacketHandler{
 	 * @throws \InvalidArgumentException
 	 */
 	protected function processOpenIdLogin(string $token, string $keyId, string $clientData, bool $authRequired) : void{
-		$this->session->setHandler(null); //drop packets received during login verification
+		$this->session->setHandler(null);
 
 		$authKeyProvider = $this->server->getAuthKeyProvider();
-		
-		// Если AuthKeyProvider не доступен (оффлайн режим), разрешаем подключение
+
 		if($authKeyProvider === null){
 			($this->authCallback)(false, false, null, null);
 			return;
@@ -557,7 +549,7 @@ class LoginPacketHandler extends PacketHandler{
 				[$issuer, $mojangPublicKeyPem] = $issuerAndKey;
 				$this->server->getAsyncPool()->submitTask(new ProcessOpenIdLoginTask($token, $issuer, $mojangPublicKeyPem, $clientData, $authRequired, $this->authCallback));
 			},
-			fn() => ($this->authCallback)(false, false, null, null) // Разрешаем подключение даже при неизвестном ключе
+			fn() => ($this->authCallback)(false, false, null, null)
 		);
 	}
 
@@ -565,9 +557,8 @@ class LoginPacketHandler extends PacketHandler{
 	 * @param string[] $legacyCertificate
 	 */
 	protected function processSelfSignedLogin(array $legacyCertificate, string $clientDataJwt, bool $authRequired) : void{
-		$this->session->setHandler(null); //drop packets received during login verification
+		$this->session->setHandler(null);
 
-		// Если сервер в оффлайн режиме, пропускаем аутентификацию
 		if(!$this->server->isOnlineMode()){
 			($this->authCallback)(false, false, null, null);
 			return;
@@ -582,16 +573,15 @@ class LoginPacketHandler extends PacketHandler{
 
 	private function defaultJsonMapper(string $logContext) : \JsonMapper{
 		$mapper = new \JsonMapper();
-		$mapper->bExceptionOnMissingData = false; // Отключаем исключения для недостающих данных
+		$mapper->bExceptionOnMissingData = false;
 		$mapper->undefinedPropertyHandler = function(object $object, string $name, mixed $value) use ($logContext) : void{
-			// В оффлайн режиме не логируем warning
 			if($this->server->isOnlineMode()){
 				$this->session->getLogger()->debug(
 					"$logContext: Unexpected JSON property for " . (new \ReflectionClass($object))->getShortName() . ": " . $name
 				);
 			}
 		};
-		$mapper->bStrictObjectTypeChecking = false; // Отключаем строгую проверку типов
+		$mapper->bStrictObjectTypeChecking = false;
 		$mapper->bEnforceMapType = false;
 		return $mapper;
 	}
@@ -605,20 +595,15 @@ class LoginPacketHandler extends PacketHandler{
 		);
 	}
 
-	/**
-	 * Создает дефолтный скин Steve для игроков с невалидными скинами
-	 */
 	private function getDefaultSkin() : Skin{
-		// Создаем стандартный скин Steve (64x64, прозрачный)
-		// Используем прозрачные пиксели (RGBA: 0,0,0,0) вместо синих
 		$skinData = str_repeat("\x00\x00\x00\x00", 64 * 64);
-		
+
 		return new Skin(
-			"Standard_Steve_" . bin2hex(random_bytes(4)), // Уникальный ID
+			"Standard_Steve_" . bin2hex(random_bytes(4)),
 			$skinData,
-			"", // Нет плаща
-			"geometry.humanoid.custom", // Стандартная геометрия
-			""  // Нет данных геометрии
+			"",
+			"geometry.humanoid.custom",
+			""
 		);
 	}
 }

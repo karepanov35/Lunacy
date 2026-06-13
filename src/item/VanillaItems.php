@@ -34,6 +34,7 @@ use pocketmine\entity\Spider;
 use pocketmine\entity\Witch;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Location;
+use pocketmine\entity\Panda;
 use pocketmine\entity\Pig;
 use pocketmine\entity\Sheep;
 use pocketmine\entity\Skeleton;
@@ -358,6 +359,7 @@ use function strtolower;
  * @method static SpawnEgg WOLF_SPAWN_EGG()
  * @method static SpawnEgg HOGLIN_SPAWN_EGG()
  * @method static SpawnEgg ZOGLIN_SPAWN_EGG()
+ * @method static SpawnEgg ALLAY_SPAWN_EGG()
  */
 final class VanillaItems{
 	use CloningRegistryTrait;
@@ -519,6 +521,9 @@ final class VanillaItems{
 		self::register("melon_seeds", fn(IID $id) => new MelonSeeds($id, "Melon Seeds"));
 		self::register("milk_bucket", fn(IID $id) => new MilkBucket($id, "Milk Bucket"));
 		self::register("minecart", fn(IID $id) => new Minecart($id, "Minecart"));
+		self::register("chest_minecart", fn(IID $id) => new MinecartWithChest($id, "Minecart with Chest"));
+		self::register("hopper_minecart", fn(IID $id) => new MinecartWithHopper($id, "Minecart with Hopper"));
+		self::register("tnt_minecart", fn(IID $id) => new MinecartWithTNT($id, "Minecart with TNT"));
 		self::register("mushroom_stew", fn(IID $id) => new MushroomStew($id, "Mushroom Stew"));
 		self::register("name_tag", fn(IID $id) => new NameTag($id, "Name Tag"));
 		self::register("nautilus_shell", fn(IID $id) => new Item($id, "Nautilus Shell"));
@@ -717,6 +722,17 @@ final class VanillaItems{
 		self::register("zoglin_spawn_egg", fn(IID $id) => new class($id, "Zoglin Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Zoglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
+			}
+		});
+		self::register("allay_spawn_egg", fn(IID $id) => new class($id, "Allay Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new \pocketmine\entity\Allay(Location::fromObject($pos, $world, $yaw, $pitch));
+			}
+		});
+
+		self::register("panda_spawn_egg", fn(IID $id) => new class($id, "Panda Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Panda(Location::fromObject($pos, $world, $yaw, $pitch), null);
 			}
 		});
 	}

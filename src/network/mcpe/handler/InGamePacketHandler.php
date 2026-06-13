@@ -104,6 +104,9 @@ use pocketmine\network\mcpe\protocol\types\PlayerAuthInputFlags;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionStopBreak;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionWithBlockInfo;
 use pocketmine\network\PacketHandlingException;
+use pocketmine\entity\Horse;
+use pocketmine\entity\Minecart;
+use pocketmine\entity\RideableEntity;
 use pocketmine\player\Player;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Limits;
@@ -111,6 +114,7 @@ use pocketmine\utils\TextFormat;
 use pocketmine\utils\Utils;
 use pocketmine\world\format\Chunk;
 use function array_push;
+use function abs;
 use function count;
 use function fmod;
 use function get_debug_type;
@@ -198,6 +202,80 @@ class InGamePacketHandler extends PacketHandler{
 			}
 		}
 
+		$ridingMinecart = false;
+		foreach($this->player->getWorld()->getEntities() as $entity){
+			if(!($entity instanceof RideableEntity)){
+				continue;
+			}
+			if($entity->getRider() === null || $entity->getRider()->getId() !== $this->player->getId()){
+				continue;
+			}
+
+			if($entity instanceof Minecart){
+				$ridingMinecart = true;
+				$vehicleLoc = $entity->getLocation();
+				$seatH = $entity->getMountedSeatHeight();
+				$expectedY = $vehicleLoc->y + $seatH;
+				$eyePos = new Vector3($vehicleLoc->x, $expectedY + 1.62, $vehicleLoc->z);
+
+				$clientFeetY = $rawPos->y - 1.62;
+				if(abs($clientFeetY - $expectedY) > 0.15){
+					$this->session->sendDataPacket(MovePlayerPacket::create(
+						$this->player->getId(),
+						$eyePos,
+						$this->player->getLocation()->pitch,
+						$this->player->getLocation()->yaw,
+						$this->player->getLocation()->yaw,
+						MovePlayerPacket::MODE_NORMAL,
+						$this->player->onGround,
+						$entity->getId(),
+						0,
+						0,
+						0
+					));
+				}
+			}
+
+			if($entity instanceof Horse){
+				$vehicleLoc = $entity->getLocation();
+				$seatH      = $entity->getMountedSeatHeight();
+				$expectedY  = $vehicleLoc->y + $seatH;
+				$eyePos     = new Vector3($vehicleLoc->x, $expectedY + 1.62, $vehicleLoc->z);
+
+				$clientFeetY = $rawPos->y - 1.62;
+				if(abs($clientFeetY - $expectedY) > 0.12){
+					$this->session->sendDataPacket(MovePlayerPacket::create(
+						$this->player->getId(),
+						$eyePos,
+						$this->player->getLocation()->pitch,
+						$this->player->getLocation()->yaw,
+						$this->player->getLocation()->yaw,
+						MovePlayerPacket::MODE_NORMAL,
+						$this->player->onGround,
+						$entity->getId(),
+						0,
+						0,
+						0
+					));
+				}
+
+				try{
+					$reflection = new \ReflectionClass($packet);
+					$property   = $reflection->getProperty("position");
+					$property->setAccessible(true);
+					$property->setValue($packet, $eyePos);
+				}catch(\ReflectionException){
+				}
+			}
+
+			$entity->applyRiderInput(
+				$packet->getMoveVecX(),
+				$packet->getMoveVecZ(),
+				$this->player->getLocation()->yaw
+			);
+			break;
+		}
+
 		if($rawYaw !== $this->lastPlayerAuthInputYaw || $rawPitch !== $this->lastPlayerAuthInputPitch){
 			$this->lastPlayerAuthInputYaw = $rawYaw;
 			$this->lastPlayerAuthInputPitch = $rawPitch;
@@ -258,7 +336,7 @@ class InGamePacketHandler extends PacketHandler{
 			}
 		}
 
-		if(!$this->forceMoveSync && $hasMoved){
+		if(!$this->forceMoveSync && $hasMoved && !$ridingMinecart){
 			$this->lastPlayerAuthInputPosition = $rawPos;
 			$this->player->handleMovement($newPos);
 		}
@@ -674,6 +752,19 @@ class InGamePacketHandler extends PacketHandler{
 				return true;
 			}
 		}
+		// ── Слезть с лошади ───────────────────────────────────────────────────
+		if($packet->action === InteractPacket::ACTION_LEAVE_VEHICLE){
+			foreach($this->player->getWorld()->getEntities() as $entity){
+				if($entity instanceof RideableEntity
+					&& $entity->getRider() !== null
+					&& $entity->getRider()->getId() === $this->player->getId()
+				){
+					$entity->dismountPlayer();
+					return true;
+				}
+			}
+		}
+		// ─────────────────────────────────────────────────────────────────────
 		if($target !== null && $packet->action !== InteractPacket::ACTION_OPEN_NPC){
 			$clickPos = $packet->position ?? new Vector3(0, 0, 0);
 			return $this->player->interactEntity($target, $clickPos);

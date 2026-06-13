@@ -24,6 +24,7 @@ namespace pocketmine\block;
 
 use pocketmine\block\utils\Lightable;
 use pocketmine\block\utils\LightableTrait;
+use pocketmine\block\utils\RedstoneUpdater;
 use pocketmine\data\runtime\RuntimeDataDescriber;
 
 class RedstoneTorch extends Torch implements Lightable{
@@ -41,5 +42,13 @@ class RedstoneTorch extends Torch implements Lightable{
 
 	public function getLightLevel() : int{
 		return $this->lit ? 7 : 0;
+	}
+
+	public function onPostPlace() : void{
+		RedstoneUpdater::notifyAround($this);
+	}
+
+	public function onNearbyBlockChange() : void{
+		RedstoneUpdater::notifyAround($this);
 	}
 }

@@ -89,9 +89,9 @@ final class TileFactory{
 		//TODO: EndGateway
 		//TODO: EndPortal
 		//TODO: JigsawBlock
-		//TODO: MovingBlock
+		$this->register(MovingBlockTile::class, ["MovingBlock", "minecraft:moving_block"]);
 		//TODO: NetherReactor
-		//TODO: PistonArm
+		$this->register(PistonArm::class, ["PistonArm", "minecraft:piston_arm"]);
 		//TODO: StructureBlock
 	}
 

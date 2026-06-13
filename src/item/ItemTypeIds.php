@@ -188,6 +188,9 @@ final class ItemTypeIds{
 	public const MELON_SEEDS = 20150;
 	public const MILK_BUCKET = 20151;
 	public const MINECART = 20152;
+	public const CHEST_MINECART = 20153;
+	public const HOPPER_MINECART = 20850;
+	public const TNT_MINECART = 20851;
 
 	public const MUSHROOM_STEW = 20154;
 	public const NAUTILUS_SHELL = 20155;
@@ -385,8 +388,10 @@ final class ItemTypeIds{
 	public const LEAD = 20347;
 	public const HOGLIN_SPAWN_EGG = 20348;
 	public const ZOGLIN_SPAWN_EGG = 20349;
+	public const ALLAY_SPAWN_EGG = 20350;
+	public const PANDA_SPAWN_EGG = 20352;
 
-	public const FIRST_UNUSED_ITEM_ID = 20350;
+	public const FIRST_UNUSED_ITEM_ID = 20353;
 
 	private static int $nextDynamicId = self::FIRST_UNUSED_ITEM_ID;
 

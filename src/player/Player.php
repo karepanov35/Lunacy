@@ -39,6 +39,8 @@ use pocketmine\entity\animation\MagicHitAnimation;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\entity\Entity;
+use pocketmine\entity\Horse;
+use pocketmine\entity\RideableEntity;
 use pocketmine\entity\Human;
 use pocketmine\entity\Living;
 use pocketmine\entity\Location;
@@ -2123,6 +2125,20 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 			return false;
 		}
 		$this->setSneaking($sneak);
+
+		// Слезть с лошади при приседании
+		if($sneak){
+			foreach($this->getWorld()->getEntities() as $entity){
+				if($entity instanceof RideableEntity
+					&& $entity->getRider() !== null
+					&& $entity->getRider()->getId() === $this->getId()
+				){
+					$entity->dismountPlayer();
+					break;
+				}
+			}
+		}
+
 		return true;
 	}
 

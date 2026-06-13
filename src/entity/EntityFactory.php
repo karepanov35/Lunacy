@@ -31,6 +31,11 @@ use pocketmine\data\bedrock\PotionTypeIdMap;
 use pocketmine\data\bedrock\PotionTypeIds;
 use pocketmine\data\SavedDataLoadingException;
 use pocketmine\entity\EntityDataHelper as Helper;
+use pocketmine\entity\Allay;
+use pocketmine\entity\ChestMinecart;
+use pocketmine\entity\HopperMinecart;
+use pocketmine\entity\Minecart;
+use pocketmine\entity\TNTMinecart;
 use pocketmine\entity\object\AreaEffectCloud;
 use pocketmine\entity\object\EndCrystal;
 use pocketmine\entity\object\ExperienceOrb;
@@ -249,6 +254,10 @@ final class EntityFactory{
 			return new Sheep(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Sheep', 'minecraft:sheep']);
 
+		$this->register(Panda::class, function(World $world, CompoundTag $nbt) : Panda{
+			return new Panda(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Panda', 'minecraft:panda']);
+
 		$this->register(Horse::class, function(World $world, CompoundTag $nbt) : Horse{
 			return new Horse(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Horse', 'minecraft:horse']);
@@ -292,6 +301,26 @@ final class EntityFactory{
 		$this->register(Human::class, function(World $world, CompoundTag $nbt) : Human{
 			return new Human(Helper::parseLocation($nbt, $world), Human::parseSkinNBT($nbt), $nbt);
 		}, ['Human']);
+
+		$this->register(Allay::class, function(World $world, CompoundTag $nbt) : Allay{
+			return new Allay(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Allay', 'minecraft:allay']);
+
+		$this->register(Minecart::class, function(World $world, CompoundTag $nbt) : Minecart{
+			return new Minecart(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['MinecartRideable', 'minecraft:minecart']);
+
+		$this->register(ChestMinecart::class, function(World $world, CompoundTag $nbt) : ChestMinecart{
+			return new ChestMinecart(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['MinecartChest', 'minecraft:chest_minecart']);
+
+		$this->register(HopperMinecart::class, function(World $world, CompoundTag $nbt) : HopperMinecart{
+			return new HopperMinecart(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['MinecartHopper', 'minecraft:hopper_minecart']);
+
+		$this->register(TNTMinecart::class, function(World $world, CompoundTag $nbt) : TNTMinecart{
+			return new TNTMinecart(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['MinecartTnt', 'minecraft:tnt_minecart']);
 	}
 
 	/**

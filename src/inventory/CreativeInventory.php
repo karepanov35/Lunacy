@@ -25,6 +25,7 @@ namespace pocketmine\inventory;
 use pocketmine\crafting\CraftingManagerFromDataHelper;
 use pocketmine\data\bedrock\BedrockDataFiles;
 use pocketmine\block\BlockTypeIds;
+use pocketmine\block\VanillaBlocks;
 use pocketmine\inventory\json\CreativeGroupData;
 use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
@@ -126,6 +127,12 @@ final class CreativeInventory{
 		// Око края — запасной вариант, если JSON не загрузился
 		if(!$this->contains(VanillaItems::ENDER_EYE())){
 			$this->add(VanillaItems::ENDER_EYE(), CreativeCategory::ITEMS);
+		}
+		if(!$this->contains(VanillaBlocks::PISTON()->asItem())){
+			$this->add(VanillaBlocks::PISTON()->asItem(), CreativeCategory::CONSTRUCTION);
+		}
+		if(!$this->contains(VanillaBlocks::STICKY_PISTON()->asItem())){
+			$this->add(VanillaBlocks::STICKY_PISTON()->asItem(), CreativeCategory::CONSTRUCTION);
 		}
 
 		$this->stripHardenedGlassFromCreative();

@@ -9,5 +9,19 @@
 				"name": "minecraft:ender_eye"
 			}
 		]
+	},
+	{
+		"group_name": "itemGroup.name.redstone",
+		"group_icon": {
+			"name": "minecraft:piston"
+		},
+		"items": [
+			{
+				"name": "minecraft:piston"
+			},
+			{
+				"name": "minecraft:sticky_piston"
+			}
+		]
 	}
 ]

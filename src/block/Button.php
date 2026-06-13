@@ -24,6 +24,7 @@ namespace pocketmine\block;
 
 use pocketmine\block\utils\AnyFacing;
 use pocketmine\block\utils\AnyFacingTrait;
+use pocketmine\block\utils\RedstoneUpdater;
 use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\item\Item;
 use pocketmine\math\Facing;
@@ -66,6 +67,7 @@ abstract class Button extends Flowable implements AnyFacing{
 			$this->pressed = true;
 			$world = $this->position->getWorld();
 			$world->setBlock($this->position, $this);
+			RedstoneUpdater::notifyAround($this);
 			$world->scheduleDelayedBlockUpdate($this->position, $this->getActivationTime());
 			$world->addSound($this->position->add(0.5, 0.5, 0.5), new RedstonePowerOnSound());
 		}
@@ -78,6 +80,7 @@ abstract class Button extends Flowable implements AnyFacing{
 			$this->pressed = false;
 			$world = $this->position->getWorld();
 			$world->setBlock($this->position, $this);
+			RedstoneUpdater::notifyAround($this);
 			$world->addSound($this->position->add(0.5, 0.5, 0.5), new RedstonePowerOffSound());
 		}
 	}

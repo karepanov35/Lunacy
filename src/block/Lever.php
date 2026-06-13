@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\block\utils\LeverFacing;
+use pocketmine\block\utils\RedstoneUpdater;
 use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\item\Item;
 use pocketmine\math\Axis;
@@ -93,6 +94,7 @@ class Lever extends Flowable{
 		$this->activated = !$this->activated;
 		$world = $this->position->getWorld();
 		$world->setBlock($this->position, $this);
+		RedstoneUpdater::notifyAround($this);
 		$world->addSound(
 			$this->position->add(0.5, 0.5, 0.5),
 			$this->activated ? new RedstonePowerOnSound() : new RedstonePowerOffSound()

@@ -715,6 +715,8 @@ final class StringToItemParser extends StringToTParser{
 		$result->registerBlock("heavy_weighted_pressure_plate", fn() => Blocks::WEIGHTED_PRESSURE_PLATE_HEAVY());
 		$result->registerBlock("honeycomb_block", fn() => Blocks::HONEYCOMB());
 		$result->registerBlock("hopper", fn() => Blocks::HOPPER());
+		$result->registerBlock("piston", fn() => Blocks::PISTON());
+		$result->registerBlock("sticky_piston", fn() => Blocks::STICKY_PISTON());
 		$result->registerBlock("hopper_block", fn() => Blocks::HOPPER());
 		$result->registerBlock("ice", fn() => Blocks::ICE());
 		$result->registerBlock("inactive_redstone_lamp", fn() => Blocks::REDSTONE_LAMP());
@@ -1433,6 +1435,12 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("melon_slice", fn() => Items::MELON());
 		$result->register("milk_bucket", fn() => Items::MILK_BUCKET());
 		$result->register("minecart", fn() => Items::MINECART());
+		$result->register("chest_minecart", fn() => Items::CHEST_MINECART());
+		$result->register("minecart_with_chest", fn() => Items::CHEST_MINECART());
+		$result->register("hopper_minecart", fn() => Items::HOPPER_MINECART());
+		$result->register("minecart_with_hopper", fn() => Items::HOPPER_MINECART());
+		$result->register("tnt_minecart", fn() => Items::TNT_MINECART());
+		$result->register("minecart_with_tnt", fn() => Items::TNT_MINECART());
 		$result->register("mushroom_stew", fn() => Items::MUSHROOM_STEW());
 		$result->register("mutton", fn() => Items::RAW_MUTTON());
 		$result->register("mutton_cooked", fn() => Items::COOKED_MUTTON());
@@ -1590,6 +1598,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("wolf_spawn_egg", fn() => Items::WOLF_SPAWN_EGG());
 		$result->register("hoglin_spawn_egg", fn() => Items::HOGLIN_SPAWN_EGG());
 		$result->register("zoglin_spawn_egg", fn() => Items::ZOGLIN_SPAWN_EGG());
+		$result->register("allay_spawn_egg", fn() => Items::ALLAY_SPAWN_EGG());
 		$result->register("saddle", fn() => Items::SADDLE());
 		$result->register("leather_horse_armor", fn() => Items::LEATHER_HORSE_ARMOR());
 		$result->register("iron_horse_armor", fn() => Items::IRON_HORSE_ARMOR());

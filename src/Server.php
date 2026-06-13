@@ -33,6 +33,7 @@ use pocketmine\console\ConsoleCommandSender;
 use pocketmine\console\ConsoleReaderChildProcessDaemon;
 use pocketmine\crafting\CraftingManager;
 use pocketmine\crafting\CraftingManagerFromDataHelper;
+use pocketmine\crafting\LunacyCraftingRecipes;
 use pocketmine\crash\CrashDump;
 use pocketmine\crash\CrashDumpRenderer;
 use pocketmine\data\bedrock\BedrockDataFiles;
@@ -59,6 +60,7 @@ use pocketmine\network\mcpe\encryption\EncryptionContext;
 use pocketmine\network\mcpe\EntityEventBroadcaster;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\PacketBroadcaster;
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\types\CompressionAlgorithm;
 use pocketmine\network\mcpe\raklib\RakLibInterface;
@@ -864,17 +866,23 @@ class Server{
 			$this->pluginPath = realpath($pluginPath) . DIRECTORY_SEPARATOR;
 
 			$this->logger->info("Loading server configuration");
-			$pocketmineYmlPath = Path::join($this->dataPath, "pocketmine.yml");
-			if(!file_exists($pocketmineYmlPath)){
-				$content = Filesystem::fileGetContents(Path::join(\pocketmine\RESOURCE_PATH, "pocketmine.yml"));
-				if(VersionInfo::IS_DEVELOPMENT_BUILD){
-					$content = str_replace("preferred-channel: stable", "preferred-channel: beta", $content);
+			$lunacyYmlPath = Path::join($this->dataPath, Config::LUNACY_YML);
+			$legacyPocketmineYmlPath = Path::join($this->dataPath, "pocketmine.yml");
+			if(!file_exists($lunacyYmlPath)){
+				if(file_exists($legacyPocketmineYmlPath)){
+					Filesystem::safeFilePutContents($lunacyYmlPath, Filesystem::fileGetContents($legacyPocketmineYmlPath));
+					$this->logger->warning("Migrated legacy pocketmine.yml to " . Config::LUNACY_YML);
+				}else{
+					$content = Filesystem::fileGetContents(Path::join(\pocketmine\RESOURCE_PATH, Config::LUNACY_YML));
+					if(VersionInfo::IS_DEVELOPMENT_BUILD){
+						$content = str_replace("preferred-channel: stable", "preferred-channel: beta", $content);
+					}
+					@file_put_contents($lunacyYmlPath, $content);
 				}
-				@file_put_contents($pocketmineYmlPath, $content);
 			}
 
 			$this->configGroup = new ServerConfigGroup(
-				new Config($pocketmineYmlPath, Config::YAML, []),
+				new Config($lunacyYmlPath, Config::YAML, []),
 				new Config(Path::join($this->dataPath, "server.properties"), Config::PROPERTIES, [
 					ServerProperties::MOTD => self::DEFAULT_SERVER_NAME,
 					ServerProperties::SERVER_PORT_IPV4 => self::DEFAULT_PORT_IPV4,
@@ -925,6 +933,7 @@ class Server{
 			$this->memoryManager = new MemoryManager($this);
 
 			$this->logger->info($this->language->translate(KnownTranslationFactory::pocketmine_server_start(TextFormat::AQUA . $this->getVersion() . TextFormat::RESET)));
+			$this->logger->info(TextFormat::GRAY . "Lunacy build git: " . TextFormat::YELLOW . VersionInfo::GIT_HASH_SHORT() . TextFormat::RESET);
 
 			if(($poolSize = $this->configGroup->getPropertyString(Yml::SETTINGS_ASYNC_WORKERS, "auto")) === "auto"){
 				$poolSize = 4; // Увеличено с 2 до 4 для лучшей производительности генерации
@@ -1048,6 +1057,7 @@ class Server{
 			$this->commandMap = new SimpleCommandMap($this);
 
 			$this->craftingManager = CraftingManagerFromDataHelper::make(BedrockDataFiles::RECIPES);
+			LunacyCraftingRecipes::register($this->craftingManager);
 
 			$this->resourceManager = new ResourcePackManager(Path::join($this->dataPath, "resource_packs"), $this->logger);
 
@@ -1755,7 +1765,7 @@ class Server{
 					$report = false;
 				}
 
-				if(strrpos(VersionInfo::GIT_HASH(), "-dirty") !== false || VersionInfo::GIT_HASH() === str_repeat("00", 20)){
+				if(strrpos(VersionInfo::GIT_HASH(), "-dirty") !== false || VersionInfo::isUnknownGitBuild()){
 					$this->logger->debug("Not sending crashdump due to locally modified");
 					$report = false; //Don't send crashdumps for locally modified builds
 				}
@@ -1840,15 +1850,21 @@ class Server{
 
 		$session = $player->getNetworkSession();
 		$position = $player->getPosition();
-		
-		// Кастомное сообщение для Lunacy
+		$protocol = $session->getProtocolId();
+		$extraData = $player->getPlayerInfo()->getExtraData();
+		$gameVersion = $extraData['GameVersion'] ?? ProtocolVersionMapper::getVersionName($protocol);
+		if(!is_string($gameVersion) || $gameVersion === ""){
+			$gameVersion = ProtocolVersionMapper::getVersionName($protocol);
+		}
+
 		$this->logger->info(
-			"Игрок " . TextFormat::LIGHT_PURPLE . $player->getName() . TextFormat::RESET . 
-			" вошел с id " . TextFormat::GRAY . $player->getId() . TextFormat::RESET . 
-			" на (" . $position->getWorld()->getDisplayName() . ", " . 
-			round($position->x, 4) . ", " . 
-			round($position->y, 4) . ", " . 
-			round($position->z, 4) . ")"
+			TextFormat::WHITE . "Игрок " . TextFormat::RED . $player->getName() . TextFormat::WHITE .
+			" вошел с id: " . TextFormat::GRAY . "«" . $player->getId() . "»" . TextFormat::WHITE .
+			" на (" . $position->getWorld()->getDisplayName() . ", " .
+			round($position->x, 1) . ", " .
+			round($position->y, 0) . ", " .
+			round($position->z, 3) . "). " .
+			TextFormat::WHITE . "Протокол: " . TextFormat::GREEN . $protocol . ", " . $gameVersion . TextFormat::RESET
 		);
 
 		foreach($this->playerList as $p){

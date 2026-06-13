@@ -1,59 +1,67 @@
+# ── Runtime / local server data ──────────────────────────────────────────────
 players/*
 worlds/*
 world_conversion_backups/*
 backups/*
 plugin_data/*
 plugins/*
-bin*/*
 timings/*
 crashdumps/*
-*.log
-*.txt
-*.phar
-server.properties
-/pocketmine.yml
-/plugin_list.yml
 memory_dumps/*
 resource_packs/
-server.lock
-/phpstan.neon
-/docker/test_data/
 
-# Common IDEs
+# Local configs (templates live in resources/)
+server.properties
+/pocketmine.yml
+/lunacy.yml
+/plugin_list.yml
+server.lock
+
+# Logs
+*.log
+
+# Built artifacts
+*.phar
+PocketMine-MP.phar-cache/
+PocketMine-MP.phar-cache/**
+
+# Composer dependencies (commit composer.lock, not vendor/)
+vendor/
+
+# Bundled PHP runtime (optional local copy)
+bin*/*
+
+# ── IDE / OS ─────────────────────────────────────────────────────────────────
 .idea/*
 !.idea/codeStyles/
 !.idea/fileTemplates/
 nbproject/*
-
-# Windows image file caches
-Thumbs.db
-
-# Folder config file
-Desktop.ini
-
-# Mac crap
-.DS_Store
 /nbproject/private/
+Thumbs.db
+Desktop.ini
+.DS_Store
 
-# Sphinx-doc
+# ── Docs / tooling cache ─────────────────────────────────────────────────────
 /docs/build/
 !/docs/requirements.txt
-
-# Composer (never commit vendor/)
-vendor/*
-
-# Travis files
-test_data/*
-
-# Doxygen
 Documentation/*
-
-# PHPUnit
 /.phpunit.result.cache
-
-# php-cs-fixer
 /.php_cs.cache
 /.php-cs-fixer.cache
+/phpstan.neon
+/docker/test_data/
 
-# install-local-protocol.sh
+# ── Reference / local-only trees (not part of Lunacy core) ───────────────────
+/Nukkit-MOT-master/
+/AZVanillaMobs_dev-17/
+/AZVanillaMobs_dev-17.zip
+/uploads/
+/.cursor/
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+test_data/*
 /composer-local-protocol.*
+*.txt
+!README.md
+!CHANGELOG.md
+!docs/requirements.txt

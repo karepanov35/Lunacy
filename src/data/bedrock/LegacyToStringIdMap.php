@@ -37,6 +37,8 @@ abstract class LegacyToStringIdMap{
 	 * @phpstan-var array<int, string>
 	 */
 	private array $legacyToString = [];
+	/** @var array<string, int> */
+	private array $stringToLegacy = [];
 
 	public function __construct(string $file){
 		$stringToLegacyId = json_decode(Filesystem::fileGetContents($file), true);
@@ -48,11 +50,16 @@ abstract class LegacyToStringIdMap{
 				throw new AssumptionFailedError("ID map should have string keys and int values");
 			}
 			$this->legacyToString[$legacyId] = $stringId;
+			$this->stringToLegacy[$stringId] = $legacyId;
 		}
 	}
 
 	public function legacyToString(int $legacy) : ?string{
 		return $this->legacyToString[$legacy] ?? null;
+	}
+
+	public function stringToLegacy(string $string) : ?int{
+		return $this->stringToLegacy[$string] ?? null;
 	}
 
 	/**
