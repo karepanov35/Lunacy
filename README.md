@@ -1,10 +1,9 @@
 <p align="center">
   <img src="assets/IMG_0653.png" width="600" />
+
 <p align="center">
-  <img src="assets/IMG_0653.png" width="600" />
-<p align="center">
-[![release](https://img.shields.io/github/v/release/karepanov35/Lunacy?label=release)](https://github.com/karepanov35/Lunacy/releases)
-[![downloads@latest](https://img.shields.io/github/downloads/karepanov35/Lunacy/latest/total?label=downloads@latest)](https://github.com/karepanov35/Lunacy/releases/latest)
+  <a href="https://github.com/karepanov35/Lunacy/releases"><img src="https://img.shields.io/github/v/release/karepanov35/Lunacy?label=release" alt="release"></a>
+  <a href="https://github.com/karepanov35/Lunacy/releases/latest"><img src="https://img.shields.io/github/downloads/karepanov35/Lunacy/latest/total?label=downloads@latest" alt="downloads@latest"></a>
 </p>
   ____________
   ____________
