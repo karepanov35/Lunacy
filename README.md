@@ -1,6 +1,12 @@
 <p align="center">
   <img src="assets/IMG_0653.png" width="600" />
+<p align="center">
+  <img src="assets/IMG_0653.png" width="600" />
 
+[![release](https://img.shields.io/github/v/release/karepanov35/Lunacy?label=release)](https://github.com/karepanov35/Lunacy/releases)
+[![downloads@latest](https://img.shields.io/github/downloads/karepanov35/Lunacy/latest/total?label=downloads@latest)](https://github.com/karepanov35/Lunacy/releases/latest)
+
+  ____________
   ____________
 
 Lunacy — server software for Minecraft Bedrock Edition, built on top of PocketMine-NetherGames.
