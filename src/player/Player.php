@@ -39,7 +39,7 @@ use pocketmine\entity\animation\MagicHitAnimation;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\effect\VanillaEffects;
 use pocketmine\entity\Entity;
-use pocketmine\entity\Horse;
+use pocketmine\entity\passive\Horse;
 use pocketmine\entity\RideableEntity;
 use pocketmine\entity\Human;
 use pocketmine\entity\Living;
@@ -869,8 +869,10 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		$count = 0;
 		$world = $this->getWorld();
 
-		// Оптимизированный лимит для баланса скорости и производительности
-		$limit = min($this->chunksPerTick * 2, $this->chunksPerTick - count($this->activeChunkGenerationRequests) + $this->chunksPerTick);
+		$limit = ($this->chunksPerTick * 2) - count($this->activeChunkGenerationRequests);
+		if($limit < 1){
+			$limit = 1;
+		}
 		foreach($this->loadQueue as $index => $distance){
 			if($count >= $limit){
 				break;
@@ -919,8 +921,12 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 						(new PlayerPostChunkSendEvent($this, $X, $Z))->call();
 					});
 				},
-				static function() : void{
-					//NOOP: we'll re-request this if it fails anyway
+				function() use ($index, $distance) : void{
+					unset($this->activeChunkGenerationRequests[$index]);
+					if(($this->usedChunks[$index] ?? null) === UsedChunkStatus::REQUESTED_GENERATION){
+						$this->usedChunks[$index] = UsedChunkStatus::NEEDED;
+						$this->loadQueue[$index] = $distance;
+					}
 				}
 			);
 		}
@@ -1566,6 +1572,13 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 			if($this->isUsingItem() && $this->getItemUseDuration() % 4 === 0 && ($item = $this->inventory->getItemInHand()) instanceof ConsumableItem){
 				$this->broadcastAnimation(new ConsumingItemAnimation($this, $item));
 			}
+
+			if($this->isUsingItem()){
+				$item = $this->inventory->getItemInHand();
+				if(!$item->continueUsing($this)){
+					$this->setUsingItem(false);
+				}
+			}
 		}
 
 		$this->timings->stopTiming();
@@ -1738,7 +1751,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		$this->resetItemCooldown($oldItem);
 		$this->returnItemsFromAction($oldItem, $item, $returnedItems);
 
-		$this->setUsingItem($item instanceof Releasable && $item->canStartUsingItem($this));
+		$this->setUsingItem($result !== ItemUseResult::SUCCESS && $item instanceof Releasable && $item->canStartUsingItem($this));
 
 		return true;
 	}

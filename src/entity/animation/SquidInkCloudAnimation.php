@@ -22,7 +22,7 @@
 declare(strict_types=1);
 namespace pocketmine\entity\animation;
 
-use pocketmine\entity\Squid;
+use pocketmine\entity\passive\Squid;
 use pocketmine\network\mcpe\protocol\ActorEventPacket;
 use pocketmine\network\mcpe\protocol\types\ActorEvent;
 

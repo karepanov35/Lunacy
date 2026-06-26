@@ -1,6 +1,8 @@
 <?php
 
+
 /*
+ *
  *
  *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
  *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
@@ -13,6 +15,8 @@
  *
  * @author Karepanov
  * @link https://github.com/karepanov35/Lunacy
+ *
+ *
  */
 
 declare(strict_types=1);
@@ -21,7 +25,7 @@ namespace pocketmine\block\tile;
 
 use pocketmine\block\PistonArmCollision;
 use pocketmine\block\PistonBase;
-use pocketmine\block\tile\MovingBlockTile as MovingTile;
+use pocketmine\block\utils\PistonPushHelper;
 use pocketmine\block\utils\RedstoneUpdater;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\math\Facing;
@@ -59,7 +63,6 @@ class PistonArm extends Spawnable{
 	private bool $movable = true;
 	private int $facing = Facing::DOWN;
 
-	/** @var Vector3[] */
 	private array $attachedBlocks = [];
 
 	public function readSaveData(CompoundTag $nbt) : void{
@@ -96,7 +99,7 @@ class PistonArm extends Spawnable{
 	}
 
 	public function syncFromBlock(PistonBase $block) : void{
-		$this->facing = $block->getFacing();
+		$this->facing = $block->getPushFacing();
 		$this->sticky = $block->isSticky();
 	}
 
@@ -112,9 +115,6 @@ class PistonArm extends Spawnable{
 		$this->powered = $powered;
 	}
 
-	/**
-	 * @param Vector3[] $attachedBlocks
-	 */
 	public function startMove(bool $extending, array $attachedBlocks) : void{
 		$this->extending = $extending;
 		$this->attachedBlocks = $attachedBlocks;
@@ -180,11 +180,12 @@ class PistonArm extends Spawnable{
 	private function finishMove() : void{
 		$world = $this->position->getWorld();
 		$pushDir = $this->extending ? $this->facing : Facing::opposite($this->facing);
+		$attached = PistonPushHelper::sortForPush($this->attachedBlocks, $pushDir);
 
-		foreach($this->attachedBlocks as $pos){
+		foreach($attached as $pos){
 			$movingPos = $pos->getSide($pushDir);
 			$tile = $world->getTile($movingPos);
-			if(!$tile instanceof MovingTile){
+			if(!$tile instanceof MovingBlockTile){
 				continue;
 			}
 
@@ -224,12 +225,10 @@ class PistonArm extends Spawnable{
 
 		$this->attachedBlocks = [];
 		$this->syncToClients();
+		RedstoneUpdater::notifyAround($world->getBlock($this->position));
 		$world->scheduleDelayedBlockUpdate($this->position, 1);
 	}
 
-	/**
-	 * @return Vector3[]
-	 */
 	private static function readAttachedBlocks(?ListTag $list) : array{
 		if($list === null){
 			return [];
@@ -250,9 +249,6 @@ class PistonArm extends Spawnable{
 		return $blocks;
 	}
 
-	/**
-	 * @param Vector3[] $blocks
-	 */
 	private static function writeAttachedBlocks(array $blocks) : ListTag{
 		$list = new ListTag();
 		foreach($blocks as $pos){

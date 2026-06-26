@@ -3,6 +3,8 @@
 #Choose whether players must use your chosen resource packs to join the server.
 #NOTE: This will do nothing if there are no resource packs in the stack below.
 force_resources: false
+#If true, disables the built-in Vibrant Visuals shaders on clients.
+force_disable_vibrant_visuals: false
 resource_stack:
   #Resource packs here are applied from bottom to top. This means that resources in higher packs will override those in lower packs.
   #Entries here must indicate the filename of the resource pack.

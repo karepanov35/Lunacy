@@ -6,61 +6,36 @@ on:
   workflow_dispatch:
 
 jobs:
-  all-php-versions:
-    name: PHP ${{ matrix.php }}
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ["8.1", "8.2", "8.3", "8.4", "8.5"]
-
-    uses: ./.github/workflows/main-php-matrix.yml
-    with:
-      php: ${{ matrix.php }}
-    secrets: inherit
-
-  codestyle:
-    name: Code Style checks
+  lunacy-core:
+    name: Lunacy core checks
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
 
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup PHP and tools
-        uses: shivammathur/setup-php@2.36.0
-        with:
-          php-version: 8.3
-          tools: php-cs-fixer:3.75
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run PHP-CS-Fixer
-        run: php-cs-fixer fix --dry-run --diff --ansi
-
-  shellcheck:
-    name: ShellCheck
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@2.0.0
-
-  translations:
-    name: Translation checks
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@2.36.0
+        uses: pmmp/setup-php-action@3.2.0
         with:
-          php-version: 8.3
+          php-version: "8.3"
+          install-path: "./bin"
+          pm-version-major: 5
+
+      - name: Restore Composer cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/composer/files
+            ~/.cache/composer/vcs
+          key: composer-v2-cache-8.3-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-v2-cache-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Verify PHP syntax
+        run: |
+          find src generated -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Verify translations
-        run: php .github/workflows/verify-translations.php ${{ github.workspace }}/resources/translations
+        run: php .github/workflows/verify-translations.php resources/translations

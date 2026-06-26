@@ -340,7 +340,7 @@ class Server{
 
 	public function getVersion() : string{
 		// Возвращаем диапазон поддерживаемых версий вместо одной версии
-		return "1.20.0 - 1.26.20";
+		return \pocketmine\network\mcpe\ProtocolVersionMapper::getSupportedVersionRange();
 	}
 
 	public function getApiVersion() : string{

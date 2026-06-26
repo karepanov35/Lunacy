@@ -1172,6 +1172,12 @@ final class BlockTypeNames{
 	public const STRIPPED_WARPED_STEM = "minecraft:stripped_warped_stem";
 	public const STRUCTURE_BLOCK = "minecraft:structure_block";
 	public const STRUCTURE_VOID = "minecraft:structure_void";
+	public const SULFUR_BRICKS = "minecraft:sulfur_bricks";
+	public const SULFUR_DOUBLE_SLAB = "minecraft:sulfur_double_slab";
+	public const SULFUR_SLAB = "minecraft:sulfur_slab";
+	public const SULFUR_SPIKE = "minecraft:sulfur_spike";
+	public const SULFUR_STAIRS = "minecraft:sulfur_stairs";
+	public const SULFUR_WALL = "minecraft:sulfur_wall";
 	public const SUNFLOWER = "minecraft:sunflower";
 	public const SUSPICIOUS_GRAVEL = "minecraft:suspicious_gravel";
 	public const SUSPICIOUS_SAND = "minecraft:suspicious_sand";

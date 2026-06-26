@@ -27,6 +27,7 @@ namespace pocketmine {
 	use pocketmine\thread\ThreadManager;
 	use pocketmine\thread\ThreadSafeClassLoader;
 	use pocketmine\utils\Filesystem;
+	use pocketmine\utils\LunacyBanner;
 	use pocketmine\utils\MainLogger;
 	use pocketmine\utils\Process;
 	use pocketmine\utils\ServerKiller;
@@ -248,14 +249,7 @@ namespace pocketmine {
 		$logFile = isset($opts[BootstrapOptions::NO_LOG_FILE]) ? null : Path::join($dataPath, "server.log");
 		$logger = new MainLogger($logFile, Terminal::hasFormattingCodes(), "Server", new \DateTimeZone(Timezone::get()), false, Path::join($dataPath, "log_archive"));
 		
-		echo "
-\033[38;2;255;93;112m██╗     ██╗   ██╗███╗  ██╗ █████╗  █████╗ ██╗   ██╗
-\033[38;2;251;87;102m██║     ██║   ██║████╗ ██║██╔══██╗██╔══██╗╚██╗ ██╔╝
-\033[38;2;248;81;92m██║     ██║   ██║██╔██╗██║███████║██║  ╚═╝ ╚████╔╝
-\033[38;2;244;74;82m██║     ██║   ██║██║╚████║██╔══██║██║  ██╗  ╚██╔╝
-\033[38;2;241;68;72m███████╗╚██████╔╝██║ ╚███║██║  ██║╚█████╔╝   ██║
-\033[38;2;237;62;62m╚══════╝ ╚═════╝ ╚═╝  ╚══╝╚═╝  ╚═╝ ╚════╝    ╚═╝
-\033[0m" . PHP_EOL;
+		LunacyBanner::render();
 		
 		\GlobalLogger::set($logger);
 		emit_performance_warnings($logger);

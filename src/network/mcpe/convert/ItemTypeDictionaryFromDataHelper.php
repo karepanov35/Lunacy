@@ -26,6 +26,7 @@ use pocketmine\data\bedrock\BedrockDataFiles;
 use pocketmine\errorhandler\ErrorToExceptionHandler;
 use pocketmine\nbt\LittleEndianNbtSerializer;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\serializer\ItemTypeDictionary;
 use pocketmine\network\mcpe\protocol\types\CacheableNbt;
@@ -44,6 +45,8 @@ use function str_replace;
 final class ItemTypeDictionaryFromDataHelper{
 
 	private const PATHS = [
+		ProtocolVersionMapper::PROTOCOL_1_26_30 => "",
+		ProtocolInfo::PROTOCOL_1_26_20 => "-1.26.20",
 		ProtocolInfo::CURRENT_PROTOCOL => "",
 		ProtocolInfo::PROTOCOL_1_26_10 => "-1.26.10",
 		ProtocolInfo::PROTOCOL_1_26_0 => "-1.26.0",

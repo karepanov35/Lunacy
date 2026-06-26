@@ -32,6 +32,8 @@ interface BiomeIds{
 	public const JUNGLE = VanillaBiomeIds::JUNGLE;
 	public const JUNGLE_HILLS = VanillaBiomeIds::JUNGLE_HILLS;
 	public const JUNGLE_EDGE = VanillaBiomeIds::JUNGLE_EDGE;
+	public const BAMBOO_JUNGLE = VanillaBiomeIds::BAMBOO_JUNGLE;
+	public const BAMBOO_JUNGLE_HILLS = VanillaBiomeIds::BAMBOO_JUNGLE_HILLS;
 	public const DEEP_OCEAN = VanillaBiomeIds::DEEP_OCEAN;
 	public const STONE_BEACH = VanillaBiomeIds::STONE_BEACH;
 	public const COLD_BEACH = VanillaBiomeIds::COLD_BEACH;

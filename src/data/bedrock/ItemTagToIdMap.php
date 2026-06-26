@@ -22,6 +22,7 @@
 declare(strict_types=1);
 namespace pocketmine\data\bedrock;
 
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Filesystem;
@@ -44,6 +45,8 @@ final class ItemTagToIdMap{
 	use ProtocolSingletonTrait;
 
 	private const PATHS = [
+		ProtocolVersionMapper::PROTOCOL_1_26_30 => "",
+		ProtocolInfo::PROTOCOL_1_26_20 => "",
 		ProtocolInfo::CURRENT_PROTOCOL => "",
 		ProtocolInfo::PROTOCOL_1_26_10 => "",
 		ProtocolInfo::PROTOCOL_1_26_0 => "",

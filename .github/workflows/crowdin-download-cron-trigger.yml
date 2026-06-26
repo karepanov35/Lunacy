@@ -5,9 +5,7 @@
 name: Trigger Crowdin download
 
 on:
-  schedule:
-    - cron: "0 21 * * *"
-  workflow_dispatch: #for testing
+  workflow_dispatch:
 
 jobs:
   trigger:

@@ -118,11 +118,20 @@ final class CreativeInventory{
 		if(!$this->contains(VanillaItems::HOGLIN_SPAWN_EGG())){
 			$this->add(VanillaItems::HOGLIN_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
+		if(!$this->contains(VanillaItems::PIGLIN_SPAWN_EGG())){
+			$this->add(VanillaItems::PIGLIN_SPAWN_EGG(), CreativeCategory::NATURE);
+		}
 		if(!$this->contains(VanillaItems::ZOGLIN_SPAWN_EGG())){
 			$this->add(VanillaItems::ZOGLIN_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
 		if(!$this->contains(VanillaItems::LEAD())){
 			$this->add(VanillaItems::LEAD(), CreativeCategory::EQUIPMENT);
+		}
+		if(!$this->contains(VanillaItems::CROSSBOW())){
+			$this->add(VanillaItems::CROSSBOW(), CreativeCategory::EQUIPMENT);
+		}
+		if(!$this->contains(VanillaItems::ZOMBIE_PIGMAN_SPAWN_EGG())){
+			$this->add(VanillaItems::ZOMBIE_PIGMAN_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
 		// Око края — запасной вариант, если JSON не загрузился
 		if(!$this->contains(VanillaItems::ENDER_EYE())){

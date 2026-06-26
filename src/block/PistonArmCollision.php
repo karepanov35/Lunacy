@@ -1,6 +1,8 @@
 <?php
 
+
 /*
+ *
  *
  *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
  *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
@@ -13,6 +15,8 @@
  *
  * @author Karepanov
  * @link https://github.com/karepanov35/Lunacy
+ *
+ *
  */
 
 declare(strict_types=1);
@@ -40,13 +44,11 @@ class PistonArmCollision extends Transparent implements AnyFacing{
 		return $this->sticky;
 	}
 
-	/** @return $this */
 	public function setSticky(bool $sticky) : self{
 		$this->sticky = $sticky;
 		return $this;
 	}
 
-	/** @return $this */
 	public function setFacing(int $facing) : self{
 		Facing::validate($facing);
 		$this->traitSetFacing($facing);

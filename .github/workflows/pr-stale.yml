@@ -1,7 +1,6 @@
 name: 'Clean up stale PRs'
 on:
-  schedule:
-    - cron: '30 1 * * *'
+  workflow_dispatch:
 
 jobs:
   stale:

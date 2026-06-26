@@ -1,6 +1,8 @@
 <?php
 
+
 /*
+ *
  *
  *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
  *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
@@ -13,6 +15,8 @@
  *
  * @author Karepanov
  * @link https://github.com/karepanov35/Lunacy
+ *
+ *
  */
 
 declare(strict_types=1);

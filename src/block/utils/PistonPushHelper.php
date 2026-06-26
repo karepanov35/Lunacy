@@ -1,6 +1,8 @@
 <?php
 
+
 /*
+ *
  *
  *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
  *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
@@ -13,10 +15,11 @@
  *
  * @author Karepanov
  * @link https://github.com/karepanov35/Lunacy
+ *
+ *
  */
 
 declare(strict_types=1);
-
 namespace pocketmine\block\utils;
 
 use pocketmine\block\Block;
@@ -30,6 +33,7 @@ use pocketmine\block\PistonBase;
 use pocketmine\block\Rail;
 use pocketmine\block\tile\Container;
 use pocketmine\block\tile\Tile;
+use pocketmine\math\Axis;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\world\World;
@@ -40,6 +44,31 @@ final class PistonPushHelper{
 
 	public static function blockKey(Vector3 $pos) : string{
 		return $pos->getFloorX() . ":" . $pos->getFloorY() . ":" . $pos->getFloorZ();
+	}
+
+	public static function sortForPush(array $blocks, int $direction) : array{
+		if(count($blocks) < 2){
+			return $blocks;
+		}
+
+		$axis = Facing::axis($direction);
+		$factor = Facing::isPositive($direction) ? -1 : 1;
+
+		usort($blocks, static function(Vector3 $a, Vector3 $b) use ($axis, $factor) : int{
+			$av = match($axis){
+				Axis::X => $a->x,
+				Axis::Y => $a->y,
+				Axis::Z => $a->z,
+			};
+			$bv = match($axis){
+				Axis::X => $b->x,
+				Axis::Y => $b->y,
+				Axis::Z => $b->z,
+			};
+			return ($av <=> $bv) * $factor;
+		});
+
+		return $blocks;
 	}
 
 	public static function canPushBlock(Block $block, int $moveDirection, bool $destroyBlocks, bool $extending, Vector3 $pistonPos, World $world) : bool{
@@ -161,6 +190,10 @@ final class PistonPushHelper{
 	}
 
 	private static function isImmovable(Block $block) : bool{
+		if($block instanceof PistonBase || $block instanceof PistonArmCollision){
+			return true;
+		}
+
 		return match($block->getTypeId()){
 			BlockTypeIds::OBSIDIAN,
 			BlockTypeIds::CRYING_OBSIDIAN,
@@ -178,13 +211,9 @@ final class PistonPushHelper{
 			BlockTypeIds::RESPAWN_ANCHOR,
 			BlockTypeIds::JUKEBOX,
 			BlockTypeIds::DAYLIGHT_SENSOR,
-			BlockTypeIds::ACTIVATOR_RAIL,
-			BlockTypeIds::DETECTOR_RAIL,
-			BlockTypeIds::POWERED_RAIL,
-			BlockTypeIds::RAIL,
-			BlockTypeIds::REDSTONE_REPEATER,
-			BlockTypeIds::REDSTONE_COMPARATOR,
-			BlockTypeIds::SCULK,
+			BlockTypeIds::ENCHANTING_TABLE,
+			BlockTypeIds::REINFORCED_DEEPSLATE,
+			BlockTypeIds::NETHER_REACTOR_CORE,
 			=> true,
 			default => $block instanceof EndPortalFrame,
 		};

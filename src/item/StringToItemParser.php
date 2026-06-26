@@ -1277,6 +1277,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("book", fn() => Items::BOOK());
 		$result->register("bottle_o_enchanting", fn() => Items::EXPERIENCE_BOTTLE());
 		$result->register("bow", fn() => Items::BOW());
+		$result->register("crossbow", fn() => Items::CROSSBOW());
 		$result->register("bowl", fn() => Items::BOWL());
 		$result->register("bread", fn() => Items::BREAD());
 		$result->register("brick", fn() => Items::BRICK());
@@ -1589,6 +1590,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("skeleton_spawn_egg", fn() => Items::SKELETON_SPAWN_EGG());
 		$result->register("villager_spawn_egg", fn() => Items::VILLAGER_SPAWN_EGG());
 		$result->register("zombie_spawn_egg", fn() => Items::ZOMBIE_SPAWN_EGG());
+		$result->register("zombie_pigman_spawn_egg", fn() => Items::ZOMBIE_PIGMAN_SPAWN_EGG());
 		$result->register("vindicator_spawn_egg", fn() => Items::VINDICATOR_SPAWN_EGG());
 		$result->register("horse_spawn_egg", fn() => Items::HORSE_SPAWN_EGG());
 		$result->register("wither_skeleton_spawn_egg", fn() => Items::WITHER_SKELETON_SPAWN_EGG());
@@ -1597,6 +1599,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("spider_spawn_egg", fn() => Items::SPIDER_SPAWN_EGG());
 		$result->register("wolf_spawn_egg", fn() => Items::WOLF_SPAWN_EGG());
 		$result->register("hoglin_spawn_egg", fn() => Items::HOGLIN_SPAWN_EGG());
+		$result->register("piglin_spawn_egg", fn() => Items::PIGLIN_SPAWN_EGG());
 		$result->register("zoglin_spawn_egg", fn() => Items::ZOGLIN_SPAWN_EGG());
 		$result->register("allay_spawn_egg", fn() => Items::ALLAY_SPAWN_EGG());
 		$result->register("saddle", fn() => Items::SADDLE());
