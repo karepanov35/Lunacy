@@ -1,6 +1,8 @@
 <?php
 
+
 /*
+ *
  *
  *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
  *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
@@ -13,10 +15,11 @@
  *
  * @author Karepanov
  * @link https://github.com/karepanov35/Lunacy
+ *
+ *
  */
 
 declare(strict_types=1);
-
 namespace pocketmine\block;
 
 use pocketmine\block\tile\MovingBlockTile;
@@ -29,6 +32,7 @@ use pocketmine\block\utils\RedstonePowerHelper;
 use pocketmine\block\utils\SupportType;
 use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\item\Item;
+use pocketmine\math\Axis;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
@@ -51,7 +55,12 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 		return $this->facing;
 	}
 
-	/** @return $this */
+	public function getPushFacing() : int{
+		return Facing::axis($this->facing) === Axis::Y
+			? $this->facing
+			: Facing::opposite($this->facing);
+	}
+
 	public function setFacing(int $facing) : self{
 		Facing::validate($facing);
 		$this->traitSetFacing($facing);
@@ -70,7 +79,7 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 		if($player !== null){
 			$this->facing = $this->calculatePlacementFacing($player, $blockReplace);
 		}elseif($face !== Facing::DOWN && $face !== Facing::UP){
-			$this->facing = $face;
+			$this->facing = Facing::opposite($face);
 		}else{
 			$this->facing = Facing::UP;
 		}
@@ -116,16 +125,17 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 	}
 
 	public function isExtended() : bool{
-		$head = $this->position->getWorld()->getBlock($this->position->getSide($this->facing));
-		return $head instanceof PistonArmCollision && $head->getFacing() === $this->facing;
+		$pushFacing = $this->getPushFacing();
+		$head = $this->position->getWorld()->getBlock($this->position->getSide($pushFacing));
+		return $head instanceof PistonArmCollision && $head->getFacing() === $pushFacing;
 	}
 
 	public function onBreak(Item $item, ?Player $player = null, array &$returnedItems = []) : bool{
 		$world = $this->position->getWorld();
 		if($this->isExtended()){
-			$headPos = $this->position->getSide($this->facing);
+			$headPos = $this->position->getSide($this->getPushFacing());
 			$head = $world->getBlock($headPos);
-			if($head instanceof PistonArmCollision && $head->getFacing() === $this->facing){
+			if($head instanceof PistonArmCollision && $head->getFacing() === $this->getPushFacing()){
 				$world->setBlock($headPos, VanillaBlocks::AIR());
 			}
 		}
@@ -199,34 +209,36 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 
 	private function doMove(PistonArm $arm, bool $extending) : bool{
 		$calculator = new PistonBlocksCalculator($this, $extending);
-		if(!$calculator->canMove() && $extending){
+		if($extending && !$calculator->canMove()){
 			return false;
 		}
 
 		$world = $this->position->getWorld();
-		$direction = $this->facing;
+		$pushFacing = $this->getPushFacing();
 		$attached = [];
 
 		if($calculator->canMove() && ($this->isSticky() || $extending)){
+			$attached = $calculator->getBlocksToMove();
+			if($extending && !$this->canPlaceHeadAfterPush($attached)){
+				return false;
+			}
+
 			foreach($calculator->getBlocksToDestroy() as $pos){
 				PistonPushHelper::destroyBlockAt($world, $pos);
 			}
 
-			$attached = $calculator->getBlocksToMove();
 			$this->spawnMovingBlocks(
 				$world,
 				$attached,
-				$extending ? $direction : Facing::opposite($direction)
+				$extending ? $pushFacing : Facing::opposite($pushFacing)
 			);
 		}
 
 		if($extending){
-			$headPos = $this->position->getSide($direction);
-			$target = $world->getBlock($headPos);
-			if(!$target->canBeReplaced() && !$target->canBeFlowedInto()){
-				return false;
-			}
-			$world->setBlock($headPos, $this->createArmCollisionBlock()->setFacing($direction));
+			$world->setBlock(
+				$this->position->getSide($pushFacing),
+				$this->createArmCollisionBlock()->setFacing($pushFacing)
+			);
 		}
 
 		$arm->syncFromBlock($this);
@@ -235,25 +247,55 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 		return true;
 	}
 
-	/**
-	 * @param Vector3[] $blocksToMove
-	 */
+	private function canPlaceHeadAfterPush(array $blocksToMove) : bool{
+		$headPos = $this->position->getSide($this->getPushFacing());
+		if($blocksToMove !== [] && PistonPushHelper::sameBlock($blocksToMove[0], $headPos)){
+			return true;
+		}
+
+		$target = $this->position->getWorld()->getBlock($headPos);
+		return $target->canBeReplaced() || $target->canBeFlowedInto();
+	}
+
 	private function spawnMovingBlocks(World $world, array $blocksToMove, int $side) : void{
+		if($blocksToMove === []){
+			return;
+		}
+
+		$pistonPos = $this->position->asVector3();
+		$blocksToMove = PistonPushHelper::sortForPush($blocksToMove, $side);
 		$movingBlockId = VanillaBlocks::MOVING_BLOCK()->getTypeId();
-		$savedTiles = [];
+		$snapshots = [];
+		$tiles = [];
 
 		foreach($blocksToMove as $pos){
+			if(PistonPushHelper::sameBlock($pos, $pistonPos)){
+				continue;
+			}
+
 			$oldPos = Position::fromObject($pos, $world);
+			$key = PistonPushHelper::blockKey($oldPos);
+			$snapshots[$key] = clone $world->getBlock($oldPos);
+
 			$tile = $world->getTile($oldPos);
 			if($tile !== null){
-				$savedTiles[PistonPushHelper::blockKey($oldPos)] = $tile->saveNBT();
+				$tiles[$key] = $tile->saveNBT();
 				$tile->close();
 			}
 		}
 
 		foreach($blocksToMove as $pos){
+			if(PistonPushHelper::sameBlock($pos, $pistonPos)){
+				continue;
+			}
+
 			$oldPos = Position::fromObject($pos, $world);
 			$newPos = $oldPos->getSide($side);
+			$key = PistonPushHelper::blockKey($oldPos);
+
+			if(!isset($snapshots[$key])){
+				continue;
+			}
 
 			$world->setBlock($newPos, VanillaBlocks::MOVING_BLOCK());
 			$movingTile = $world->getTile($newPos);
@@ -262,11 +304,10 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 				$world->addTile($movingTile);
 			}
 
-			$movingTile->setBlock(clone $world->getBlock($oldPos));
+			$movingTile->setBlock($snapshots[$key]);
 			$movingTile->setPistonPos($this->position);
-			$savedNbt = $savedTiles[PistonPushHelper::blockKey($oldPos)] ?? null;
-			if($savedNbt !== null){
-				$movingTile->setBlockEntityNbt($savedNbt);
+			if(isset($tiles[$key])){
+				$movingTile->setBlockEntityNbt($tiles[$key]);
 			}
 			$movingTile->clearSpawnCompoundCache();
 

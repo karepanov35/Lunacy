@@ -45,7 +45,8 @@ class PlayerResourcePackOfferEvent extends Event{
 		private readonly PlayerInfo $playerInfo,
 		private array $resourcePacks,
 		private array $encryptionKeys,
-		private bool $mustAccept
+		private bool $mustAccept,
+		private bool $forceDisableVibrantVisuals
 	){}
 
 	public function getPlayerInfo() : PlayerInfo{
@@ -101,5 +102,13 @@ class PlayerResourcePackOfferEvent extends Event{
 
 	public function mustAccept() : bool{
 		return $this->mustAccept;
+	}
+
+	public function setForceDisableVibrantVisuals(bool $value) : void{
+		$this->forceDisableVibrantVisuals = $value;
+	}
+
+	public function isForceDisableVibrantVisuals() : bool{
+		return $this->forceDisableVibrantVisuals;
 	}
 }

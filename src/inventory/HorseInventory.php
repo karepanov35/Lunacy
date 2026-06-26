@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 namespace pocketmine\inventory;
 
-use pocketmine\entity\Horse;
+use pocketmine\entity\passive\Horse;
 use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
 

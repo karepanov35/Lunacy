@@ -24,7 +24,7 @@ namespace pocketmine\command\defaults;
 
 use pocketmine\command\CommandSender;
 use pocketmine\lang\KnownTranslationFactory;
-use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\permission\DefaultPermissionNames;
 use pocketmine\plugin\Plugin;
 use pocketmine\utils\TextFormat;
@@ -51,8 +51,8 @@ class VersionCommand extends VanillaCommand{
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
 		if(count($args) === 0){
-			$minecraftVersions = "1.20.0 - 1.26.20";
-			$protocolRange = "589 - 975";
+			$minecraftVersions = ProtocolVersionMapper::getSupportedVersionRange();
+			$protocolRange = ProtocolVersionMapper::getSupportedProtocolRange();
 
 			$gitLabel = VersionInfo::GIT_HASH_SHORT();
 			$sender->sendMessage(TextFormat::WHITE . "This server is running " . TextFormat::RED . "Lunacy v" . VersionInfo::VERSION()->getFullVersion(true) . TextFormat::GRAY . " (git " . $gitLabel . ")" . TextFormat::WHITE . " [PHP " . TextFormat::GREEN . PHP_VERSION . TextFormat::WHITE . "], API version: " . VersionInfo::API_VERSION . ", supported Minecraft Bedrock versions: " . TextFormat::GRAY . $minecraftVersions . TextFormat::WHITE . " (protocol versions: " . $protocolRange . ")");

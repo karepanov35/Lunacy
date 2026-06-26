@@ -24,26 +24,31 @@ namespace pocketmine\item;
 
 use pocketmine\block\utils\RecordType;
 use pocketmine\block\VanillaBlocks as Blocks;
-use pocketmine\entity\Blaze;
-use pocketmine\entity\Chicken;
-use pocketmine\entity\Cow;
-use pocketmine\entity\Creeper;
-use pocketmine\entity\Hoglin;
-use pocketmine\entity\IronGolem;
-use pocketmine\entity\Spider;
-use pocketmine\entity\Witch;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Location;
-use pocketmine\entity\Panda;
-use pocketmine\entity\Pig;
-use pocketmine\entity\Sheep;
-use pocketmine\entity\Skeleton;
-use pocketmine\entity\Villager;
-use pocketmine\entity\WitherSkeleton;
-use pocketmine\entity\Vindicator;
-use pocketmine\entity\Wolf;
-use pocketmine\entity\Zoglin;
-use pocketmine\entity\Zombie;
+use pocketmine\entity\mob\Blaze;
+use pocketmine\entity\mob\Creeper;
+use pocketmine\entity\mob\Enderman;
+use pocketmine\entity\mob\Hoglin;
+use pocketmine\entity\mob\Piglin;
+use pocketmine\entity\mob\Skeleton;
+use pocketmine\entity\mob\Spider;
+use pocketmine\entity\mob\Vindicator;
+use pocketmine\entity\mob\Witch;
+use pocketmine\entity\mob\WitherSkeleton;
+use pocketmine\entity\mob\Wolf;
+use pocketmine\entity\mob\Zoglin;
+use pocketmine\entity\mob\Zombie;
+use pocketmine\entity\mob\ZombifiedPiglin;
+use pocketmine\entity\passive\Allay;
+use pocketmine\entity\passive\Chicken;
+use pocketmine\entity\passive\Cow;
+use pocketmine\entity\passive\Horse;
+use pocketmine\entity\passive\IronGolem;
+use pocketmine\entity\passive\Panda;
+use pocketmine\entity\passive\Pig;
+use pocketmine\entity\passive\Sheep;
+use pocketmine\entity\passive\Villager;
 use pocketmine\inventory\ArmorInventory;
 use pocketmine\item\enchantment\ItemEnchantmentTags as EnchantmentTags;
 use pocketmine\item\ItemIdentifier as IID;
@@ -84,6 +89,7 @@ use function strtolower;
  * @method static Fertilizer BONE_MEAL()
  * @method static Book BOOK()
  * @method static Bow BOW()
+ * @method static Crossbow CROSSBOW()
  * @method static Bowl BOWL()
  * @method static Bread BREAD()
  * @method static Item BRICK()
@@ -351,10 +357,12 @@ use function strtolower;
  * @method static SpawnEgg CREEPER_SPAWN_EGG()
  * @method static SpawnEgg ENDERMAN_SPAWN_EGG()
  * @method static SpawnEgg PIG_SPAWN_EGG()
+ * @method static SpawnEgg PIGLIN_SPAWN_EGG()
  * @method static SpawnEgg SHEEP_SPAWN_EGG()
  * @method static SpawnEgg SKELETON_SPAWN_EGG()
  * @method static SpawnEgg VILLAGER_SPAWN_EGG()
  * @method static SpawnEgg ZOMBIE_SPAWN_EGG()
+ * @method static SpawnEgg ZOMBIE_PIGMAN_SPAWN_EGG()
  * @method static SpawnEgg VINDICATOR_SPAWN_EGG()
  * @method static SpawnEgg WOLF_SPAWN_EGG()
  * @method static SpawnEgg HOGLIN_SPAWN_EGG()
@@ -434,6 +442,7 @@ final class VanillaItems{
 		self::register("bone_meal", fn(IID $id) => new Fertilizer($id, "Bone Meal"));
 		self::register("book", fn(IID $id) => new Book($id, "Book", [EnchantmentTags::ALL]));
 		self::register("bow", fn(IID $id) => new Bow($id, "Bow", [EnchantmentTags::BOW]));
+		self::register("crossbow", fn(IID $id) => new Crossbow($id, "Crossbow", [EnchantmentTags::CROSSBOW]));
 		self::register("bowl", fn(IID $id) => new Bowl($id, "Bowl"));
 		self::register("bread", fn(IID $id) => new Bread($id, "Bread"));
 		self::register("brick", fn(IID $id) => new Item($id, "Brick"));
@@ -634,6 +643,11 @@ final class VanillaItems{
 				return new Zombie(Location::fromObject($pos, $world, $yaw, $pitch));
 			}
 		});
+		self::register("zombie_pigman_spawn_egg", fn(IID $id) => new class($id, "Zombified Piglin Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new ZombifiedPiglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
+			}
+		});
 		self::register("skeleton_spawn_egg", fn(IID $id) => new class($id, "Skeleton Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Skeleton(Location::fromObject($pos, $world, $yaw, $pitch));
@@ -676,7 +690,7 @@ final class VanillaItems{
 		});
 		self::register("enderman_spawn_egg", fn(IID $id) => new class($id, "Enderman Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
-				return new \pocketmine\entity\Enderman(Location::fromObject($pos, $world, $yaw, $pitch));
+				return new Enderman(Location::fromObject($pos, $world, $yaw, $pitch));
 			}
 		});
 		self::register("wither_skeleton_spawn_egg", fn(IID $id) => new class($id, "Wither Skeleton Spawn Egg") extends SpawnEgg{
@@ -701,7 +715,7 @@ final class VanillaItems{
 		});
 		self::register("horse_spawn_egg", fn(IID $id) => new class($id, "Horse Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
-				return new \pocketmine\entity\Horse(Location::fromObject($pos, $world, $yaw, $pitch));
+				return new Horse(Location::fromObject($pos, $world, $yaw, $pitch));
 			}
 		});
 		self::register("vindicator_spawn_egg", fn(IID $id) => new class($id, "Vindicator Spawn Egg") extends SpawnEgg{
@@ -719,6 +733,11 @@ final class VanillaItems{
 				return new Hoglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
 			}
 		});
+		self::register("piglin_spawn_egg", fn(IID $id) => new class($id, "Piglin Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Piglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
+			}
+		});
 		self::register("zoglin_spawn_egg", fn(IID $id) => new class($id, "Zoglin Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Zoglin(Location::fromObject($pos, $world, $yaw, $pitch), null);
@@ -726,7 +745,7 @@ final class VanillaItems{
 		});
 		self::register("allay_spawn_egg", fn(IID $id) => new class($id, "Allay Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
-				return new \pocketmine\entity\Allay(Location::fromObject($pos, $world, $yaw, $pitch));
+				return new Allay(Location::fromObject($pos, $world, $yaw, $pitch));
 			}
 		});
 

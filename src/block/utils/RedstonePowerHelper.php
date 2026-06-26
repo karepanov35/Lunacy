@@ -1,5 +1,24 @@
 <?php
 
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
 declare(strict_types=1);
 
 namespace pocketmine\block\utils;
@@ -22,7 +41,7 @@ final class RedstonePowerHelper{
 	public static function isDirectlyPowered(Block $block) : bool{
 		$pos = $block->getPosition();
 		$world = $pos->getWorld();
-		$excludeFace = $block instanceof PistonBase ? $block->getFacing() : null;
+		$excludeFace = $block instanceof PistonBase ? $block->getPushFacing() : null;
 
 		foreach(Facing::ALL as $face){
 			if($excludeFace !== null && $face === $excludeFace){

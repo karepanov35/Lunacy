@@ -30,9 +30,9 @@ use function str_repeat;
 
 final class VersionInfo{
 	public const NAME = "Lunacy";
-	public const BASE_VERSION = "0.1.4";
+	public const BASE_VERSION = "0.1.5";
 	public const API_VERSION = "5.0.0";
-	public const IS_DEVELOPMENT_BUILD = true;
+	public const IS_DEVELOPMENT_BUILD = false;
 	public const BUILD_CHANNEL = "stable";
 	public const GITHUB_URL = "https://github.com/karepanov35/Lunacy";
 	public const GIT_UNKNOWN = "Dev Build";
@@ -83,11 +83,25 @@ final class VersionInfo{
 		if(\Phar::running(true) === ""){
 			if($short){
 				$hash = Git::getShortRepositoryStatePretty(\pocketmine\PATH);
-				return $hash ?? self::GIT_UNKNOWN;
+				if($hash !== null){
+					return $hash;
+				}
+			}else{
+				$hash = Git::getRepositoryStatePretty(\pocketmine\PATH);
+				if($hash !== str_repeat("00", 20)){
+					return $hash;
+				}
 			}
 
-			$hash = Git::getRepositoryStatePretty(\pocketmine\PATH);
-			return $hash === str_repeat("00", 20) ? self::GIT_UNKNOWN : $hash;
+			$commitFile = \pocketmine\RESOURCE_PATH . "git_commit";
+			if(is_file($commitFile)){
+				$hash = trim((string) file_get_contents($commitFile));
+				if($hash !== "" && $hash !== str_repeat("00", 20)){
+					return $short ? substr($hash, 0, 7) : $hash;
+				}
+			}
+
+			return self::GIT_UNKNOWN;
 		}
 
 		$pharPath = \Phar::running(false);

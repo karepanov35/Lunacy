@@ -31,6 +31,7 @@ use pocketmine\data\bedrock\item\ItemTypeSerializeException;
 use pocketmine\data\bedrock\item\SavedItemData;
 use pocketmine\item\Item;
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\serializer\ItemTypeDictionary;
 use pocketmine\utils\AssumptionFailedError;
@@ -137,6 +138,7 @@ final class ItemTranslator{
 
 	public static function getItemSchemaId(int $protocolId) : int{
 		return match($protocolId){
+			ProtocolVersionMapper::PROTOCOL_1_26_30,
 			ProtocolInfo::PROTOCOL_1_26_20,
 			ProtocolInfo::PROTOCOL_1_26_10,
 			ProtocolInfo::PROTOCOL_1_26_0,

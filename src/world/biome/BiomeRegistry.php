@@ -53,6 +53,14 @@ final class BiomeRegistry{
 
 		$this->register(BiomeIds::EXTREME_HILLS_EDGE, new SmallMountainsBiome());
 
+		$this->register(BiomeIds::JUNGLE, new JungleBiome());
+		$this->register(BiomeIds::JUNGLE_HILLS, new JungleHillsBiome());
+		$this->register(BiomeIds::JUNGLE_EDGE, new JungleEdgeBiome());
+		$this->register(BiomeIds::JUNGLE_MUTATED, new JungleMutatedBiome());
+		$this->register(BiomeIds::JUNGLE_EDGE_MUTATED, new JungleEdgeMutatedBiome());
+		$this->register(BiomeIds::BAMBOO_JUNGLE, new BambooJungleBiome());
+		$this->register(BiomeIds::BAMBOO_JUNGLE_HILLS, new BambooJungleHillsBiome());
+
 		$this->register(BiomeIds::BIRCH_FOREST, new ForestBiome(TreeType::BIRCH));
 		$this->register(BiomeIds::CHERRY_GROVE, new CherryGroveBiome());
 	}

@@ -31,7 +31,45 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
  */
 final class ProtocolVersionMapper{
 
+	public const PROTOCOL_1_26_30 = 1001;
+
+	/**
+	 * @var int[]
+	 * @phpstan-var list<int>
+	 */
+	public const ACCEPTED_PROTOCOLS = [
+		self::PROTOCOL_1_26_30,
+		ProtocolInfo::PROTOCOL_1_26_20,
+		ProtocolInfo::PROTOCOL_1_26_10,
+		ProtocolInfo::PROTOCOL_1_26_0,
+		ProtocolInfo::PROTOCOL_1_21_130,
+		ProtocolInfo::PROTOCOL_1_21_124,
+		ProtocolInfo::PROTOCOL_1_21_120,
+		ProtocolInfo::PROTOCOL_1_21_111,
+		ProtocolInfo::PROTOCOL_1_21_100,
+		ProtocolInfo::PROTOCOL_1_21_93,
+		ProtocolInfo::PROTOCOL_1_21_90,
+		ProtocolInfo::PROTOCOL_1_21_80,
+		ProtocolInfo::PROTOCOL_1_21_70,
+		ProtocolInfo::PROTOCOL_1_21_60,
+		ProtocolInfo::PROTOCOL_1_21_50,
+		ProtocolInfo::PROTOCOL_1_21_40,
+		ProtocolInfo::PROTOCOL_1_21_30,
+		ProtocolInfo::PROTOCOL_1_21_20,
+		ProtocolInfo::PROTOCOL_1_21_2,
+		ProtocolInfo::PROTOCOL_1_21_0,
+		ProtocolInfo::PROTOCOL_1_20_80,
+		ProtocolInfo::PROTOCOL_1_20_70,
+		ProtocolInfo::PROTOCOL_1_20_60,
+		ProtocolInfo::PROTOCOL_1_20_50,
+		ProtocolInfo::PROTOCOL_1_20_40,
+		ProtocolInfo::PROTOCOL_1_20_30,
+		ProtocolInfo::PROTOCOL_1_20_10,
+		ProtocolInfo::PROTOCOL_1_20_0,
+	];
+
 	private const VERSION_NAMES = [
+		self::PROTOCOL_1_26_30 => "1.26.30",
 		ProtocolInfo::PROTOCOL_1_26_20 => "1.26.20",
 		ProtocolInfo::PROTOCOL_1_26_10 => "1.26.10",
 		ProtocolInfo::PROTOCOL_1_26_0 => "1.26.0",
@@ -67,5 +105,25 @@ final class ProtocolVersionMapper{
 
 	public static function getVersionName(int $protocolId) : string{
 		return self::VERSION_NAMES[$protocolId] ?? ("unknown (" . $protocolId . ")");
+	}
+
+	public static function isAcceptedProtocol(int $protocolId) : bool{
+		return in_array($protocolId, self::ACCEPTED_PROTOCOLS, true);
+	}
+
+	public static function getMinProtocol() : int{
+		return ProtocolInfo::PROTOCOL_1_20_0;
+	}
+
+	public static function getMaxProtocol() : int{
+		return self::PROTOCOL_1_26_30;
+	}
+
+	public static function getSupportedVersionRange() : string{
+		return self::getVersionName(self::getMinProtocol()) . " - " . self::getVersionName(self::getMaxProtocol());
+	}
+
+	public static function getSupportedProtocolRange() : string{
+		return self::getMinProtocol() . " - " . self::getMaxProtocol();
 	}
 }

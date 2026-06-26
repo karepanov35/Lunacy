@@ -91,7 +91,13 @@ final class BiomeClimateManager{
 
 		self::register(new BiomeClimate(0.9, 1.0, true), BiomeIds::MUSHROOM_ISLAND, BiomeIds::MUSHROOM_ISLAND_SHORE);
 		self::register(new BiomeClimate(0.05, 0.3, true), BiomeIds::COLD_BEACH);
-		self::register(new BiomeClimate(0.95, 0.9, true), BiomeIds::JUNGLE_HILLS, BiomeIds::JUNGLE_MUTATED);
+		self::register(new BiomeClimate(0.95, 0.9, true),
+			BiomeIds::JUNGLE,
+			BiomeIds::JUNGLE_HILLS,
+			BiomeIds::JUNGLE_MUTATED,
+			BiomeIds::BAMBOO_JUNGLE,
+			BiomeIds::BAMBOO_JUNGLE_HILLS
+		);
 		self::register(new BiomeClimate(0.95, 0.8, true), BiomeIds::JUNGLE_EDGE, BiomeIds::JUNGLE_EDGE_MUTATED);
 		self::register(new BiomeClimate(-0.5, 0.4, true), BiomeIds::COLD_TAIGA, BiomeIds::COLD_TAIGA_HILLS, BiomeIds::COLD_TAIGA_MUTATED);
 		self::register(new BiomeClimate(0.3, 0.8, true), BiomeIds::MEGA_TAIGA, BiomeIds::MEGA_TAIGA_HILLS);

@@ -46,6 +46,7 @@ use const DIRECTORY_SEPARATOR;
 class ResourcePackManager{
 	private string $path;
 	private bool $serverForceResources = false;
+	private bool $forceDisableVibrantVisuals = false;
 
 	/**
 	 * @var ResourcePack[]
@@ -86,6 +87,7 @@ class ResourcePackManager{
 		$resourcePacksConfig = new Config($resourcePacksYml, Config::YAML, []);
 
 		$this->serverForceResources = (bool) $resourcePacksConfig->get("force_resources", false);
+		$this->forceDisableVibrantVisuals = (bool) $resourcePacksConfig->get("force_disable_vibrant_visuals", false);
 
 		$logger->info("Loading resource packs...");
 
@@ -171,6 +173,14 @@ class ResourcePackManager{
 	 */
 	public function setResourcePacksRequired(bool $value) : void{
 		$this->serverForceResources = $value;
+	}
+
+	public function forceDisableVibrantVisuals() : bool{
+		return $this->forceDisableVibrantVisuals;
+	}
+
+	public function setForceDisableVibrantVisuals(bool $value) : void{
+		$this->forceDisableVibrantVisuals = $value;
 	}
 
 	/**

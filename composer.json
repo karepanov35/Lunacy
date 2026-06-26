@@ -1,19 +1,9 @@
 {
-   "name": "pocketmine/pocketmine-mp",
-   "description": "A server software for Minecraft: Bedrock Edition written in PHP",
+   "name": "karepanov/lunacy",
+   "description": "Lunacy — Minecraft Bedrock Edition server core",
    "type": "project",
-   "homepage": "https://pmmp.io",
-   "license": "LGPL-3.0",
-   "repositories": [
-      {
-         "type": "vcs",
-         "url": "https://github.com/NetherGamesMC/BedrockProtocol.git"
-      },
-      {
-         "type": "vcs",
-         "url": "https://github.com/NetherGamesMC/BedrockData.git"
-      }
-   ],
+   "homepage": "https://github.com/karepanov35/Lunacy",
+   "license": "GPL-2.0-or-later",
    "require": {
       "php": "^8.1",
       "php-64bit": "*",
@@ -45,9 +35,9 @@
       "adhocore/json-comment": "~1.2.0",
       "netresearch/jsonmapper": "~v5.0.0",
       "pocketmine/bedrock-block-upgrade-schema": "~5.2.0+bedrock-1.21.110",
-      "nethergamesmc/bedrock-data": "dev-master#f94c3de05acf562ec4ce0a18b65863ec8dab3cf5",
-      "pocketmine/bedrock-item-upgrade-schema": "~1.16.0+bedrock-1.21.110",
-      "nethergamesmc/bedrock-protocol": "dev-master#954023e3f7727eb2621a4cf92cd847539f8fbc77",
+      "nethergamesmc/bedrock-data": "dev-master",
+      "pocketmine/bedrock-item-upgrade-schema": "~1.17.0+bedrock-1.26.20",
+      "nethergamesmc/bedrock-protocol": "dev-master",
       "pocketmine/binaryutils": "^0.2.1",
       "pocketmine/callback-validator": "~1.0.4",
       "pocketmine/color": "^0.3.0",
@@ -62,14 +52,15 @@
       "symfony/filesystem": "~6.4.0"
    },
    "require-dev": {
-      "phpstan/phpstan": "2.1.42",
+      "phpstan/phpstan": "2.1.46",
       "phpstan/phpstan-phpunit": "^2.0.0",
       "phpstan/phpstan-strict-rules": "^2.0.0",
       "phpunit/phpunit": "^10.5.24"
    },
    "replace": {
       "symfony/polyfill-ctype": "*",
-      "symfony/polyfill-mbstring": "*"
+      "symfony/polyfill-mbstring": "*",
+      "pocketmine/pocketmine-mp": "*"
    },
    "autoload": {
       "psr-4": {
@@ -109,5 +100,15 @@
          "@php build/generate-pocketmine-yml-property-consts.php",
          "@php build/generate-registry-annotations.php src"
       ]
-   }
+   },
+   "repositories": [
+      {
+         "type": "vcs",
+         "url": "https://github.com/NetherGamesMC/BedrockProtocol.git"
+      },
+      {
+         "type": "vcs",
+         "url": "https://github.com/NetherGamesMC/BedrockData.git"
+      }
+   ]
 }

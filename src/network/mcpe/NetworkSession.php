@@ -1058,11 +1058,24 @@ class NetworkSession{
 				$keys[$resourcePack->getPackId()] = $key;
 			}
 		}
-		$event = new PlayerResourcePackOfferEvent($this->info, $resourcePacks, $keys, $packManager->resourcePacksRequired());
+		$event = new PlayerResourcePackOfferEvent(
+			$this->info,
+			$resourcePacks,
+			$keys,
+			$packManager->resourcePacksRequired(),
+			$packManager->forceDisableVibrantVisuals()
+		);
 		$event->call();
-		$this->setHandler(new ResourcePacksPacketHandler($this, $event->getResourcePacks(), $event->getEncryptionKeys(), $event->mustAccept(), function() : void{
+		$this->setHandler(new ResourcePacksPacketHandler(
+			$this,
+			$event->getResourcePacks(),
+			$event->getEncryptionKeys(),
+			$event->mustAccept(),
+			$event->isForceDisableVibrantVisuals(),
+			function() : void{
 			$this->createPlayer();
-		}));
+			}
+		));
 	}
 
 	private function beginSpawnSequence() : void{

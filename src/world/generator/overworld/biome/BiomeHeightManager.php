@@ -31,6 +31,7 @@ final class BiomeHeightManager{
 		self::register(new BiomeHeight(0.2, 0.2), BiomeIds::TAIGA, BiomeIds::COLD_TAIGA, BiomeIds::MEGA_TAIGA);
 		self::register(new BiomeHeight(-0.2, 0.1), BiomeIds::SWAMPLAND);
 		self::register(new BiomeHeight(0.2, 0.3), BiomeIds::MUSHROOM_ISLAND);
+		self::register(new BiomeHeight(0.2, 0.4), BiomeIds::JUNGLE, BiomeIds::JUNGLE_EDGE, BiomeIds::BAMBOO_JUNGLE);
 
 		self::register(new BiomeHeight(0.45, 0.3),
 			BiomeIds::ICE_MOUNTAINS,
@@ -39,6 +40,7 @@ final class BiomeHeightManager{
 			BiomeIds::TAIGA_HILLS,
 			BiomeIds::EXTREME_HILLS_EDGE,
 			BiomeIds::JUNGLE_HILLS,
+			BiomeIds::BAMBOO_JUNGLE_HILLS,
 			BiomeIds::BIRCH_FOREST_HILLS,
 			BiomeIds::COLD_TAIGA_HILLS,
 			BiomeIds::MEGA_TAIGA_HILLS,

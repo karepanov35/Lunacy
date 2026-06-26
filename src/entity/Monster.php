@@ -1,16 +1,41 @@
 <?php
 
+
+/*
+ *
+ *
+ *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
+ *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
+ *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GPL-2.0 license as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * @author Karepanov
+ * @link https://github.com/karepanov35/Lunacy
+ *
+ *
+ */
+
 declare(strict_types=1);
 
 namespace pocketmine\entity;
 
 use pocketmine\block\Water;
+use pocketmine\entity\projectile\Arrow as ArrowEntity;
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\event\entity\EntityShootBowEvent;
+use pocketmine\event\entity\ProjectileLaunchEvent;
+use pocketmine\item\Item;
 use pocketmine\math\Vector3;
-use function abs;
 use function atan2;
 use function floor;
+use function max;
 use function min;
+use function mt_rand;
+use function mt_getrandmax;
 use function rad2deg;
 use function sqrt;
 
@@ -37,7 +62,6 @@ abstract class Monster extends Living{
 	public function attack(EntityDamageEvent $source) : void{
 		parent::attack($source);
 		if(!$source->isCancelled() && $this->isAlive()){
-			// Do not instantly override knockback motion with pathing logic.
 			$this->postHitMovementPauseTicks = max($this->postHitMovementPauseTicks, 6);
 		}
 	}
@@ -118,8 +142,7 @@ abstract class Monster extends Living{
 	}
 
 	protected function moveByDirection(float $dirX, float $dirZ, float $speed, bool $smooth = true, bool $avoidDrops = true) : void{
-		$target = $this->location->add($dirX * 4, 0, $dirZ * 4);
-		$this->moveTowardsPoint($target, $speed, $smooth, $avoidDrops);
+		$this->moveTowardsPoint($this->location->add($dirX * 4, 0, $dirZ * 4), $speed, $smooth, $avoidDrops);
 	}
 
 	protected function moveTowardsPoint(Vector3 $target, float $speed = 0.24, bool $smooth = true, bool $avoidDrops = true) : void{
@@ -202,14 +225,70 @@ abstract class Monster extends Living{
 		}
 
 		$obstacleTopY = $blockFoot->getPosition()->y + 1;
-		$obstacleHeight = $obstacleTopY - $this->location->y;
-		if($obstacleHeight <= 1.0){
+		if($obstacleTopY - $this->location->y <= 1.0){
 			return;
 		}
 
 		$this->jump();
 		$this->motion = new Vector3($dirX * $horizontalBoost, $this->getJumpVelocity(), $dirZ * $horizontalBoost);
 		$this->jumpCooldown = 12;
+	}
+
+	protected function shootProjectileAt(Living $target, Item $weapon, float $power, float $inaccuracy = 0.0) : bool{
+		$eyePos = $this->getEyePos();
+		$targetPos = $target->getEyePos();
+
+		$diffX = $targetPos->x - $eyePos->x;
+		$diffY = $targetPos->y - $eyePos->y;
+		$diffZ = $targetPos->z - $eyePos->z;
+
+		if($inaccuracy > 0){
+			$spread = $inaccuracy * 2;
+			$diffX += (mt_rand() / mt_getrandmax() * $spread) - $inaccuracy;
+			$diffY += (mt_rand() / mt_getrandmax() * $spread) - $inaccuracy;
+			$diffZ += (mt_rand() / mt_getrandmax() * $spread) - $inaccuracy;
+		}
+
+		$motion = (new Vector3($diffX, $diffY, $diffZ))->normalize();
+		$horizontal = sqrt($diffX * $diffX + $diffZ * $diffZ);
+		$pitch = -atan2($diffY, max(0.001, $horizontal)) / M_PI * 180;
+		$yaw = atan2($diffZ, $diffX) / M_PI * 180 - 90;
+		if($yaw < 0){
+			$yaw += 360;
+		}
+
+		$spawnPos = $eyePos->add($motion->x * 0.5, $motion->y * 0.5 + 0.1, $motion->z * 0.5);
+		$arrow = new ArrowEntity(
+			Location::fromObject($spawnPos, $this->getWorld(), $yaw, $pitch),
+			$this,
+			true
+		);
+		$arrow->setPickupMode(ArrowEntity::PICKUP_NONE);
+		$arrow->setMotion($motion->multiply($power));
+
+		$ev = new EntityShootBowEvent($this, $weapon, $arrow, $power);
+		$ev->call();
+		if($ev->isCancelled()){
+			$arrow->flagForDespawn();
+			return false;
+		}
+
+		$projectile = $ev->getProjectile();
+		if(!$projectile instanceof ArrowEntity){
+			return false;
+		}
+
+		$projectile->setMotion($motion->multiply($ev->getForce()));
+
+		$launchEv = new ProjectileLaunchEvent($projectile);
+		$launchEv->call();
+		if($launchEv->isCancelled()){
+			$projectile->flagForDespawn();
+			return false;
+		}
+
+		$projectile->spawnToAll();
+		return true;
 	}
 
 	protected function isTouchingWater() : bool{
@@ -298,4 +377,3 @@ abstract class Monster extends Living{
 		return true;
 	}
 }
-

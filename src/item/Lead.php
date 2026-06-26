@@ -23,7 +23,7 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 use pocketmine\entity\Entity;
-use pocketmine\entity\Wolf;
+use pocketmine\entity\mob\Wolf;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
 

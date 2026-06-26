@@ -25,6 +25,7 @@ class BiomeVariationMapLayer extends MapLayer{
 		BiomeIds::PLAINS => [BiomeIds::FOREST, BiomeIds::FOREST, BiomeIds::FOREST_HILLS],
 		BiomeIds::ICE_PLAINS => [BiomeIds::ICE_MOUNTAINS],
 		BiomeIds::JUNGLE => [BiomeIds::JUNGLE_HILLS],
+		BiomeIds::BAMBOO_JUNGLE => [BiomeIds::BAMBOO_JUNGLE_HILLS],
 		BiomeIds::OCEAN => [BiomeIds::DEEP_OCEAN],
 		BiomeIds::EXTREME_HILLS => [BiomeIds::EXTREME_HILLS_PLUS_TREES],
 		BiomeIds::SAVANNA => [BiomeIds::SAVANNA_PLATEAU],

@@ -31,10 +31,33 @@ use pocketmine\data\bedrock\PotionTypeIdMap;
 use pocketmine\data\bedrock\PotionTypeIds;
 use pocketmine\data\SavedDataLoadingException;
 use pocketmine\entity\EntityDataHelper as Helper;
-use pocketmine\entity\Allay;
 use pocketmine\entity\ChestMinecart;
 use pocketmine\entity\HopperMinecart;
 use pocketmine\entity\Minecart;
+use pocketmine\entity\mob\Blaze;
+use pocketmine\entity\mob\Creeper;
+use pocketmine\entity\mob\Enderman;
+use pocketmine\entity\mob\Hoglin;
+use pocketmine\entity\mob\Piglin;
+use pocketmine\entity\mob\Skeleton;
+use pocketmine\entity\mob\Spider;
+use pocketmine\entity\mob\Vindicator;
+use pocketmine\entity\mob\Witch;
+use pocketmine\entity\mob\WitherSkeleton;
+use pocketmine\entity\mob\Wolf;
+use pocketmine\entity\mob\Zoglin;
+use pocketmine\entity\mob\Zombie;
+use pocketmine\entity\mob\ZombifiedPiglin;
+use pocketmine\entity\passive\Allay;
+use pocketmine\entity\passive\Chicken;
+use pocketmine\entity\passive\Cow;
+use pocketmine\entity\passive\Horse;
+use pocketmine\entity\passive\IronGolem;
+use pocketmine\entity\passive\Panda;
+use pocketmine\entity\passive\Pig;
+use pocketmine\entity\passive\Sheep;
+use pocketmine\entity\passive\Squid;
+use pocketmine\entity\passive\Villager;
 use pocketmine\entity\TNTMinecart;
 use pocketmine\entity\object\AreaEffectCloud;
 use pocketmine\entity\object\EndCrystal;
@@ -226,6 +249,10 @@ final class EntityFactory{
 			return new Zombie(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Zombie', 'minecraft:zombie']);
 
+		$this->register(ZombifiedPiglin::class, function(World $world, CompoundTag $nbt) : ZombifiedPiglin{
+			return new ZombifiedPiglin(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['ZombiePigman', 'minecraft:zombie_pigman']);
+
 		$this->register(Vindicator::class, function(World $world, CompoundTag $nbt) : Vindicator{
 			return new Vindicator(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Vindicator', 'minecraft:vindicator']);
@@ -277,6 +304,10 @@ final class EntityFactory{
 		$this->register(Hoglin::class, function(World $world, CompoundTag $nbt) : Hoglin{
 			return new Hoglin(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Hoglin', 'minecraft:hoglin']);
+
+		$this->register(Piglin::class, function(World $world, CompoundTag $nbt) : Piglin{
+			return new Piglin(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Piglin', 'minecraft:piglin']);
 
 		$this->register(Zoglin::class, function(World $world, CompoundTag $nbt) : Zoglin{
 			return new Zoglin(Helper::parseLocation($nbt, $world), $nbt);

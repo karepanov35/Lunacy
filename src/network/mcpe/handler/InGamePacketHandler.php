@@ -104,7 +104,7 @@ use pocketmine\network\mcpe\protocol\types\PlayerAuthInputFlags;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionStopBreak;
 use pocketmine\network\mcpe\protocol\types\PlayerBlockActionWithBlockInfo;
 use pocketmine\network\PacketHandlingException;
-use pocketmine\entity\Horse;
+use pocketmine\entity\passive\Horse;
 use pocketmine\entity\Minecart;
 use pocketmine\entity\RideableEntity;
 use pocketmine\player\Player;
@@ -403,7 +403,7 @@ class InGamePacketHandler extends PacketHandler{
 		if(count($packet->trData->getActions()) > 50){
 			throw new PacketHandlingException("Too many actions in inventory transaction");
 		}
-		if(count($packet->requestChangedSlots) > 10){
+		if($packet->requestChangedSlots !== null && count($packet->requestChangedSlots) > 10){
 			throw new PacketHandlingException("Too many slot sync requests in inventory transaction");
 		}
 
@@ -430,12 +430,14 @@ class InGamePacketHandler extends PacketHandler{
 		//haven't changed. Handling these is necessary to ensure the client inventory stays in sync if the server
 		//rejects the transaction. The most common example of this is equipping armor by right-click, which doesn't send
 		//a legacy prediction action for the destination armor slot.
-		foreach($packet->requestChangedSlots as $containerInfo){
-			foreach($containerInfo->getChangedSlotIndexes() as $netSlot){
-				[$windowId, $slot] = ItemStackContainerIdTranslator::translate($containerInfo->getContainerId(), $this->inventoryManager->getCurrentWindowId(), $netSlot);
-				$inventoryAndSlot = $this->inventoryManager->locateWindowAndSlot($windowId, $slot);
-				if($inventoryAndSlot !== null){ //trigger the normal slot sync logic
-					$this->inventoryManager->onSlotChange($inventoryAndSlot[0], $inventoryAndSlot[1]);
+		if($packet->requestChangedSlots !== null){
+			foreach($packet->requestChangedSlots as $containerInfo){
+				foreach($containerInfo->getChangedSlotIndexes() as $netSlot){
+					[$windowId, $slot] = ItemStackContainerIdTranslator::translate($containerInfo->getContainerId(), $this->inventoryManager->getCurrentWindowId(), $netSlot);
+					$inventoryAndSlot = $this->inventoryManager->locateWindowAndSlot($windowId, $slot);
+					if($inventoryAndSlot !== null){ //trigger the normal slot sync logic
+						$this->inventoryManager->onSlotChange($inventoryAndSlot[0], $inventoryAndSlot[1]);
+					}
 				}
 			}
 		}

@@ -27,6 +27,7 @@ use pocketmine\data\bedrock\block\BlockStateData;
 use pocketmine\data\bedrock\block\BlockStateSerializeException;
 use pocketmine\data\bedrock\block\BlockStateSerializer;
 use pocketmine\data\bedrock\block\BlockTypeNames;
+use pocketmine\network\mcpe\ProtocolVersionMapper;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Filesystem;
@@ -41,6 +42,10 @@ final class BlockTranslator{
 	public const BLOCK_STATE_META_MAP_PATH = 1;
 
 	private const PATHS = [
+		ProtocolVersionMapper::PROTOCOL_1_26_30 => [
+			self::CANONICAL_BLOCK_STATES_PATH => '',
+			self::BLOCK_STATE_META_MAP_PATH => '',
+		],
 		ProtocolInfo::CURRENT_PROTOCOL => [
 			self::CANONICAL_BLOCK_STATES_PATH => '',
 			self::BLOCK_STATE_META_MAP_PATH => '',
@@ -52,6 +57,10 @@ final class BlockTranslator{
 		ProtocolInfo::PROTOCOL_1_26_10 => [
 			self::CANONICAL_BLOCK_STATES_PATH => '-1.26.10',
 			self::BLOCK_STATE_META_MAP_PATH => '-1.26.10',
+		],
+		ProtocolInfo::PROTOCOL_1_26_20 => [
+			self::CANONICAL_BLOCK_STATES_PATH => '-1.26.20',
+			self::BLOCK_STATE_META_MAP_PATH => '-1.26.20',
 		],
 		ProtocolInfo::PROTOCOL_1_21_130 => [
 			self::CANONICAL_BLOCK_STATES_PATH => '-1.26.0',

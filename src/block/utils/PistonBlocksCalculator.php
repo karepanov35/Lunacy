@@ -1,6 +1,8 @@
 <?php
 
+
 /*
+ *
  *
  *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
  *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
@@ -13,6 +15,8 @@
  *
  * @author Karepanov
  * @link https://github.com/karepanov35/Lunacy
+ *
+ *
  */
 
 declare(strict_types=1);
@@ -28,9 +32,7 @@ use pocketmine\world\World;
 
 final class PistonBlocksCalculator{
 
-	/** @var Vector3[] */
 	private array $toMove = [];
-	/** @var Vector3[] */
 	private array $toDestroy = [];
 
 	private Position $pistonPos;
@@ -47,7 +49,7 @@ final class PistonBlocksCalculator{
 		$this->world = $this->pistonPos->getWorld();
 		$this->extending = $extending;
 
-		$facing = $piston->getFacing();
+		$facing = $piston->getPushFacing();
 		if(!$extending){
 			$this->armPos = $this->pistonPos->getSide($facing);
 		}
@@ -93,22 +95,16 @@ final class PistonBlocksCalculator{
 		return true;
 	}
 
-	/**
-	 * @return Vector3[]
-	 */
 	public function getBlocksToMove() : array{
 		return $this->toMove;
 	}
 
-	/**
-	 * @return Vector3[]
-	 */
 	public function getBlocksToDestroy() : array{
 		return $this->toDestroy;
 	}
 
 	private function getBlockToMove() : ?Position{
-		$facing = $this->piston->getFacing();
+		$facing = $this->piston->getPushFacing();
 		if($this->extending){
 			return $this->pistonPos->getSide($facing);
 		}
@@ -125,7 +121,7 @@ final class PistonBlocksCalculator{
 		}
 
 		if(!PistonPushHelper::canPushBlock($block, $this->moveDirection, false, $this->extending, $this->pistonPos, $this->world)){
-			return true;
+			return false;
 		}
 
 		if(PistonPushHelper::sameBlock($origin, $this->pistonPos) || $this->containsMove($origin)){
