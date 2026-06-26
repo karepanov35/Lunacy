@@ -6,7 +6,6 @@
   <a href="https://github.com/karepanov35/Lunacy/releases/latest"><img src="https://img.shields.io/github/downloads/karepanov35/Lunacy/latest/total?label=downloads@latest" alt="downloads@latest"></a>
 </p>
   ____________
-  ____________
 
 Lunacy — server software for Minecraft Bedrock Edition, built on top of PocketMine-NetherGames.
 Our modification runs on PHP language, version 8.1+, and also supports all new versions of Minecraft Bedrock from 1.20.0 up to 1.26.
