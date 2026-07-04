@@ -26,17 +26,22 @@ namespace pocketmine\block;
 use pocketmine\block\utils\SupportType;
 use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\entity\Entity;
+use pocketmine\entity\mob\EnderDragon;
 use pocketmine\entity\Living;
 use pocketmine\item\Item;
+use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\cache\ChunkCache;
 use pocketmine\network\mcpe\protocol\types\DimensionIds;
 use pocketmine\world\format\Chunk;
 use pocketmine\world\generator\end\TheEndGenerator;
 use pocketmine\world\generator\overworld\OverworldGenerator;
+use pocketmine\world\particle\PortalParticle;
+use pocketmine\world\sound\EndPortalFrameFillSound;
+use pocketmine\world\sound\EndPortalSpawnSound;
+use pocketmine\world\sound\PortalTravelSound;
 use pocketmine\world\World;
 use pocketmine\world\WorldCreationOptions;
-use pocketmine\world\sound\EndermanTeleportSound;
 
 class EndPortal extends Transparent{
 
@@ -45,6 +50,9 @@ class EndPortal extends Transparent{
 
 	/** @var array<int, int> */
 	private static array $crossDimensionPortalImmuneUntil = [];
+	private static ?EndPortalFrameFillSound $frameFillSound = null;
+	private static ?EndPortalSpawnSound $spawnSound = null;
+	private static ?PortalTravelSound $travelSound = null;
 
 	private const TELEPORT_COOLDOWN_TICKS = 100;
 	private const CROSS_DIMENSION_PORTAL_IMMUNITY_TICKS = 400;
@@ -79,6 +87,10 @@ class EndPortal extends Transparent{
 	}
 
 	public function onEntityInside(Entity $entity) : bool{
+		if($entity instanceof EnderDragon){
+			return true;
+		}
+
 		if(!($entity instanceof Living)){
 			return true;
 		}
@@ -98,6 +110,10 @@ class EndPortal extends Transparent{
 		self::$teleportCooldown[$entityId] = $currentTick + self::TELEPORT_COOLDOWN_TICKS;
 
 		$sourceDim = ChunkCache::getDimensionIdForWorld($world);
+		if($sourceDim === DimensionIds::THE_END && EnderDragon::isAliveInWorld($world)){
+			return true;
+		}
+
 		$destWorldName = $sourceDim === DimensionIds::THE_END ? self::OVERWORLD_WORLD_NAME : self::THE_END_WORLD_NAME;
 
 		$worldManager = $server->getWorldManager();
@@ -147,6 +163,14 @@ class EndPortal extends Transparent{
 					return;
 				}
 
+				if(ChunkCache::getDimensionIdForWorld($destWorld) === DimensionIds::THE_END){
+					$destWorld->loadChunk(0, 0);
+					TheEndGenerator::ensureExitPortal($destWorld);
+					TheEndGenerator::ensureObsidianPillars($destWorld);
+					TheEndGenerator::ensureEndCrystals($destWorld);
+					TheEndGenerator::ensureEnderDragon($destWorld);
+				}
+
 				$targetPos = $destWorld->getSpawnLocation();
 				try{
 					$targetPos = $destWorld->getSafeSpawn($targetPos);
@@ -157,7 +181,8 @@ class EndPortal extends Transparent{
 					self::$crossDimensionPortalImmuneUntil[$entityId] = $server->getTick() + self::CROSS_DIMENSION_PORTAL_IMMUNITY_TICKS;
 				}
 
-				$world->addSound($pos, new EndermanTeleportSound());
+				$world->addSound($pos, self::$travelSound ??= new PortalTravelSound());
+				$destWorld->addSound($targetPos, self::$travelSound ??= new PortalTravelSound());
 				$entity->teleport($targetPos);
 			},
 			static function() : void{
@@ -165,6 +190,10 @@ class EndPortal extends Transparent{
 		);
 
 		return true;
+	}
+
+	public static function playFrameFillSound(World $world, Vector3 $framePos) : void{
+		$world->addSound($framePos->add(0.5, 0.5, 0.5), self::$frameFillSound ??= new EndPortalFrameFillSound());
 	}
 
 	public static function tryActivateFromFrame(World $world, Vector3 $clickedFrame) : void{
@@ -197,6 +226,9 @@ class EndPortal extends Transparent{
 			if(!$b instanceof EndPortalFrame || !$b->hasEye()){
 				return false;
 			}
+			if(!self::isFrameFacingInward($b, $Ox, $Oz)){
+				return false;
+			}
 		}
 
 		$corners = [[0, 0], [0, 4], [4, 0], [4, 4]];
@@ -207,12 +239,14 @@ class EndPortal extends Transparent{
 		}
 
 		$portal = VanillaBlocks::END_PORTAL();
+		$alreadyActive = true;
 		for($lx = 1; $lx <= 3; ++$lx){
 			for($lz = 1; $lz <= 3; ++$lz){
 				$b = $world->getBlockAt($Ox + $lx, $Oy, $Oz + $lz);
 				if($b instanceof EndPortal){
 					continue;
 				}
+				$alreadyActive = false;
 				if(!self::isReplaceableForPortalInterior($b)){
 					return false;
 				}
@@ -225,9 +259,36 @@ class EndPortal extends Transparent{
 			}
 		}
 
-		$world->addSound(new Vector3($Ox + 2.5, $Oy + 0.5, $Oz + 2.5), new EndermanTeleportSound());
+		if(!$alreadyActive){
+			for($lx = 1; $lx <= 3; ++$lx){
+				for($lz = 1; $lz <= 3; ++$lz){
+					$pos = new Vector3($Ox + $lx, $Oy, $Oz + $lz);
+					for($i = 0; $i < 4; ++$i){
+						$world->addParticle($pos->add(0.5, 0.5, 0.5), new PortalParticle());
+					}
+				}
+			}
+
+			$world->addSound(new Vector3($Ox + 2.5, $Oy + 0.5, $Oz + 2.5), self::$spawnSound ??= new EndPortalSpawnSound());
+		}
 
 		return true;
+	}
+
+	private static function isFrameFacingInward(EndPortalFrame $frame, int $originX, int $originZ) : bool{
+		$pos = $frame->getPosition();
+		$localX = $pos->getFloorX() - $originX;
+		$localZ = $pos->getFloorZ() - $originZ;
+
+		$expectedFacing = match(true){
+			$localX === 0 => Facing::EAST,
+			$localX === 4 => Facing::WEST,
+			$localZ === 0 => Facing::SOUTH,
+			$localZ === 4 => Facing::NORTH,
+			default => null
+		};
+
+		return $expectedFacing !== null && $frame->getFacing() === $expectedFacing;
 	}
 
 	private static function isReplaceableForPortalInterior(Block $b) : bool{

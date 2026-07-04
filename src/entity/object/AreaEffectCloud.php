@@ -22,6 +22,7 @@
 declare(strict_types=1);
 namespace pocketmine\entity\object;
 
+use pocketmine\color\Color;
 use pocketmine\data\bedrock\EffectIdMap;
 use pocketmine\data\bedrock\PotionTypeIds;
 use pocketmine\entity\effect\EffectCollection;
@@ -90,6 +91,8 @@ class AreaEffectCloud extends Entity{
 	protected float $radius = self::DEFAULT_RADIUS;
 	protected float $radiusChangeOnUse = self::DEFAULT_RADIUS_CHANGE_ON_USE;
 	protected float $radiusChangePerTick = self::DEFAULT_RADIUS_CHANGE_PER_TICK;
+
+	private bool $dragonBreath = false;
 
 	public function __construct(
 		Location $location,
@@ -192,6 +195,30 @@ class AreaEffectCloud extends Entity{
 
 	public function getEffects() : EffectCollection{
 		return $this->effectCollection;
+	}
+
+	public function isDragonBreath() : bool{
+		return $this->dragonBreath;
+	}
+
+	public function configureAsDragonBreath(float $radius = 3.0, int $maxAge = 100) : void{
+		$this->dragonBreath = true;
+		$this->initialRadius = $radius;
+		$this->setRadius($radius);
+		$this->maxAge = $maxAge;
+		$this->radiusChangeOnPickup = -0.5;
+		$this->radiusChangeOnUse = -0.5;
+		$this->radiusChangePerTick = -($radius / max(1, $maxAge));
+		$this->networkPropertiesDirty = true;
+	}
+
+	public function collectDragonBreath() : void{
+		$newRadius = $this->radius + $this->radiusChangeOnPickup;
+		if($newRadius <= 0.5){
+			$this->flagForDespawn();
+			return;
+		}
+		$this->setRadius($newRadius);
 	}
 
 	/**
@@ -404,9 +431,10 @@ class AreaEffectCloud extends Entity{
 
 		//visual properties
 		$properties->setFloat(EntityMetadataProperties::AREA_EFFECT_CLOUD_RADIUS, $this->radius);
-		$properties->setInt(EntityMetadataProperties::POTION_COLOR, Binary::signInt((
-			count($this->effectCollection->all()) === 0 ? PotionSplashParticle::DEFAULT_COLOR() : $this->effectCollection->getBubbleColor()
-		)->toARGB()));
+		$potionColor = $this->dragonBreath
+			? new Color(0xE1, 0x00, 0xFF)
+			: (count($this->effectCollection->all()) === 0 ? PotionSplashParticle::DEFAULT_COLOR() : $this->effectCollection->getBubbleColor());
+		$properties->setInt(EntityMetadataProperties::POTION_COLOR, Binary::signInt($potionColor->toARGB()));
 
 		//these are properties the client expects, and are used for client-sided logic, which we don't want
 		$properties->setByte(EntityMetadataProperties::POTION_AMBIENT, 0);

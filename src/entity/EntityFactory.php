@@ -33,9 +33,11 @@ use pocketmine\data\SavedDataLoadingException;
 use pocketmine\entity\EntityDataHelper as Helper;
 use pocketmine\entity\ChestMinecart;
 use pocketmine\entity\HopperMinecart;
+use pocketmine\entity\MagmaCube;
 use pocketmine\entity\Minecart;
 use pocketmine\entity\mob\Blaze;
 use pocketmine\entity\mob\Creeper;
+use pocketmine\entity\mob\EnderDragon;
 use pocketmine\entity\mob\Enderman;
 use pocketmine\entity\mob\Hoglin;
 use pocketmine\entity\mob\Piglin;
@@ -265,6 +267,10 @@ final class EntityFactory{
 			return new Enderman(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Enderman', 'minecraft:enderman']);
 
+		$this->register(EnderDragon::class, function(World $world, CompoundTag $nbt) : EnderDragon{
+			return new EnderDragon(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['EnderDragon', 'minecraft:ender_dragon']);
+
 		$this->register(Cow::class, function(World $world, CompoundTag $nbt) : Cow{
 			return new Cow(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Cow', 'minecraft:cow']);
@@ -352,6 +358,10 @@ final class EntityFactory{
 		$this->register(TNTMinecart::class, function(World $world, CompoundTag $nbt) : TNTMinecart{
 			return new TNTMinecart(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['MinecartTnt', 'minecraft:tnt_minecart']);
+
+		$this->register(MagmaCube::class, function(World $world, CompoundTag $nbt) : MagmaCube{
+			return new MagmaCube(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['MagmaCube', 'minecraft:magma_cube']);
 	}
 
 	/**

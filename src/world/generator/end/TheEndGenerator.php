@@ -24,17 +24,32 @@ declare(strict_types=1);
 namespace pocketmine\world\generator\end;
 
 use pocketmine\block\Block;
+use pocketmine\block\BlockTypeIds;
+use pocketmine\block\tile\EndGateway as TileEndGateway;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\data\bedrock\BiomeIds;
+use pocketmine\entity\Location;
+use pocketmine\entity\mob\EnderDragon;
+use pocketmine\entity\object\EndCrystal;
+use pocketmine\math\AxisAlignedBB;
+use pocketmine\math\Vector3;
+use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
 use pocketmine\world\format\PalettedBlockArray;
 use pocketmine\world\format\SubChunk;
 use pocketmine\world\generator\Generator;
-use pocketmine\world\generator\noise\Simplex;
+use pocketmine\world\generator\end\populator\ChorusTreeGenerator;
+use pocketmine\world\generator\end\populator\EndExitPortalStructure;
+use pocketmine\world\generator\end\populator\EndGatewayStructure;
+use pocketmine\world\World;
+use function array_keys;
 use function abs;
+use function count;
 use function cos;
+use function fmod;
+use function ksort;
 use function max;
 use function min;
 use function sin;
@@ -59,7 +74,7 @@ class TheEndGenerator extends Generator{
 	private NoiseGeneratorOctavesD $roughnessNoiseOctaves;
 	private NoiseGeneratorOctavesD $roughnessNoiseOctaves2;
 	private NoiseGeneratorOctavesD $detailNoiseOctaves;
-	private Simplex $islandNoise;
+	private EndIslandNoise $islandNoise;
 
 	private int $localSeed1;
 	private int $localSeed2;
@@ -67,19 +82,34 @@ class TheEndGenerator extends Generator{
 	/** @var array<int, array{centerX: int, centerZ: int, radius: int, height: int, guarded: bool}> */
 	private array $obsidianPillars;
 
+	private readonly ChorusTreeGenerator $chorusTreeGenerator;
+	private readonly EndGatewayStructure $endGatewayStructure;
+	private readonly EndExitPortalStructure $endExitPortalStructure;
+
+	private const EXIT_PORTAL_CENTER_X = 0;
+	private const EXIT_PORTAL_CENTER_Z = 0;
+
 	public function __construct(int $seed, string $preset){
 		parent::__construct($seed, $preset);
-		$r = new Random($seed ^ 0x454E4453);
+		$r = new Random($seed);
 		$this->localSeed1 = $r->nextInt();
 		$this->localSeed2 = $r->nextInt();
-
-		$noiseSeed = new Random($seed ^ 0x4E4F4953);
-		$this->roughnessNoiseOctaves = new NoiseGeneratorOctavesD($noiseSeed, 16);
-		$this->roughnessNoiseOctaves2 = new NoiseGeneratorOctavesD(new Random($seed ^ 0x5231), 16);
-		$this->detailNoiseOctaves = new NoiseGeneratorOctavesD(new Random($seed ^ 0x4431), 8);
-		$this->islandNoise = new Simplex(new Random($seed ^ 0x53494D50), 4, 0.5, 1.0);
+		$this->roughnessNoiseOctaves = new NoiseGeneratorOctavesD($r, 16);
+		$this->roughnessNoiseOctaves2 = new NoiseGeneratorOctavesD($r, 16);
+		$this->detailNoiseOctaves = new NoiseGeneratorOctavesD($r, 8);
+		$this->islandNoise = new EndIslandNoise($r);
 
 		$this->obsidianPillars = self::computeObsidianPillars($seed);
+		$this->chorusTreeGenerator = new ChorusTreeGenerator();
+		$this->endGatewayStructure = new EndGatewayStructure();
+		$this->endExitPortalStructure = new EndExitPortalStructure();
+	}
+
+	/**
+	 * @return array<int, array{centerX: int, centerZ: int, radius: int, height: int, guarded: bool}>
+	 */
+	public static function getObsidianPillars(int $worldSeed) : array{
+		return self::computeObsidianPillars($worldSeed);
 	}
 
 	/**
@@ -223,8 +253,286 @@ class TheEndGenerator extends Generator{
 		$this->random->setSeed(0xdeadbeef ^ (($chunkX << 8) ^ $chunkZ ^ $this->seed));
 
 		$this->placeEndPlatform($world, $chunkX, $chunkZ);
+		$this->placeExitPortal($world, $chunkX, $chunkZ);
 		$this->placeEndIslands($world, $chunkX, $chunkZ);
 		$this->placeObsidianPillars($world, $chunkX, $chunkZ);
+		$this->placeChorusTrees($world, $chunkX, $chunkZ);
+		$this->placeEndGateways($world, $chunkX, $chunkZ);
+	}
+
+	public static function finalizeChunkPopulation(World $world, int $chunkX, int $chunkZ) : void{
+		if($chunkX === 0 && $chunkZ === 0){
+			self::ensureExitPortal($world);
+			self::ensureEnderDragon($world);
+		}
+		self::spawnEndCrystals($world, $chunkX, $chunkZ, $world->getSeed());
+		self::spawnEndGatewayTiles($world, $chunkX, $chunkZ);
+	}
+
+	public static function ensureExitPortal(World $world) : void{
+		$chunk = $world->getChunk(0, 0);
+		if($chunk === null){
+			$world->loadChunk(0, 0);
+			$chunk = $world->getChunk(0, 0);
+		}
+		if($chunk === null){
+			return;
+		}
+
+		$portalLevels = self::findExitPortalLevels($world);
+		if(count($portalLevels) > 0){
+			$baseY = $portalLevels[0];
+			if(count($portalLevels) > 1){
+				self::clearStackedExitPortalArtifacts($world, $baseY + 1);
+			}
+			(new EndExitPortalStructure())->generate($world, self::EXIT_PORTAL_CENTER_X, $baseY, self::EXIT_PORTAL_CENTER_Z);
+		}else{
+			$portalY = self::findExitPortalY($world);
+			if($portalY === null){
+				return;
+			}
+			(new EndExitPortalStructure())->generate($world, self::EXIT_PORTAL_CENTER_X, $portalY, self::EXIT_PORTAL_CENTER_Z);
+		}
+	}
+
+	public static function ensureEnderDragon(World $world) : void{
+		$searchBox = new AxisAlignedBB(-128, 0, -128, 128, 256, 128);
+		foreach($world->getNearbyEntities($searchBox) as $entity){
+			if($entity instanceof EnderDragon){
+				return;
+			}
+		}
+
+		$world->loadChunk(0, 0);
+		$dragon = new EnderDragon(
+			new Location(0.5, 128, 0.5, $world, 0, 0),
+			CompoundTag::create()
+		);
+		$dragon->spawnToAll();
+	}
+
+	public static function ensureEndCrystals(World $world) : void{
+		$chunks = [];
+		foreach(self::computeObsidianPillars($world->getSeed()) as $pillar){
+			$chunkX = $pillar["centerX"] >> Chunk::COORD_BIT_SIZE;
+			$chunkZ = $pillar["centerZ"] >> Chunk::COORD_BIT_SIZE;
+			$chunks[World::chunkHash($chunkX, $chunkZ)] = [$chunkX, $chunkZ];
+		}
+
+		foreach($chunks as [$chunkX, $chunkZ]){
+			if(!$world->isChunkGenerated($chunkX, $chunkZ)){
+				$world->orderChunkPopulation($chunkX, $chunkZ, null)->onCompletion(
+					static function() use ($world, $chunkX, $chunkZ) : void{
+						self::spawnEndCrystals($world, $chunkX, $chunkZ, $world->getSeed());
+					},
+					static function() : void{}
+				);
+				continue;
+			}
+			$world->loadChunk($chunkX, $chunkZ);
+			self::spawnEndCrystals($world, $chunkX, $chunkZ, $world->getSeed());
+		}
+	}
+
+	private static function findExitPortalLevels(ChunkManager $world) : array{
+		$portalType = VanillaBlocks::END_PORTAL()->getTypeId();
+		$levels = [];
+		for($y = $world->getMinY(); $y < $world->getMaxY(); ++$y){
+			for($dx = -1; $dx <= 1; ++$dx){
+				for($dz = -1; $dz <= 1; ++$dz){
+					if($world->getBlockAt(self::EXIT_PORTAL_CENTER_X + $dx, $y, self::EXIT_PORTAL_CENTER_Z + $dz)->getTypeId() === $portalType){
+						$levels[$y] = true;
+						continue 3;
+					}
+				}
+			}
+		}
+		ksort($levels);
+		return array_keys($levels);
+	}
+
+	private static function findExitPortalY(World $world) : ?int{
+		$chunk = $world->getChunk(0, 0);
+		if($chunk === null){
+			$world->loadChunk(0, 0);
+			$chunk = $world->getChunk(0, 0);
+		}
+		if($chunk === null){
+			return null;
+		}
+
+		$y = $chunk->getHighestBlockAt(0, 0);
+		if($y === null || $y < $world->getMinY()){
+			$y = 60;
+		}
+
+		return $y;
+	}
+
+	private static function clearStackedExitPortalArtifacts(World $world, int $startY) : void{
+		$air = VanillaBlocks::AIR();
+		$removableIds = [
+			VanillaBlocks::END_PORTAL()->getTypeId() => true,
+			VanillaBlocks::BEDROCK()->getTypeId() => true,
+			VanillaBlocks::END_STONE()->getTypeId() => true,
+			VanillaBlocks::TORCH()->getTypeId() => true,
+		];
+
+		for($y = $startY; $y < $world->getMaxY(); ++$y){
+			for($dx = -3; $dx <= 3; ++$dx){
+				for($dz = -3; $dz <= 3; ++$dz){
+					$x = self::EXIT_PORTAL_CENTER_X + $dx;
+					$z = self::EXIT_PORTAL_CENTER_Z + $dz;
+					$typeId = $world->getBlockAt($x, $y, $z)->getTypeId();
+					if(isset($removableIds[$typeId])){
+						$world->setBlockAt($x, $y, $z, $air);
+					}
+				}
+			}
+		}
+	}
+
+	private function placeExitPortal(ChunkManager $world, int $chunkX, int $chunkZ) : void{
+		if($chunkX !== 0 || $chunkZ !== 0){
+			return;
+		}
+
+		$existingPortalLevels = self::findExitPortalLevels($world);
+		$y = count($existingPortalLevels) > 0 ? $existingPortalLevels[0] : $world->getChunk(0, 0)?->getHighestBlockAt(0, 0);
+		if($y === null || $y < $world->getMinY()){
+			$y = 60;
+		}
+
+		$this->endExitPortalStructure->generate($world, self::EXIT_PORTAL_CENTER_X, $y, self::EXIT_PORTAL_CENTER_Z);
+	}
+
+	private function placeChorusTrees(ChunkManager $world, int $chunkX, int $chunkZ) : void{
+		if(($chunkX * $chunkX + $chunkZ * $chunkZ) <= 4096){
+			return;
+		}
+
+		if($this->getIslandHeight($chunkX, $chunkZ, 1, 1) <= 40.0){
+			return;
+		}
+
+		$chunk = $world->getChunk($chunkX, $chunkZ);
+		if($chunk === null){
+			return;
+		}
+
+		$endStone = VanillaBlocks::END_STONE();
+		for($i = 0, $count = $this->random->nextBoundedInt(5); $i < $count; ++$i){
+			$x = ($chunkX << Chunk::COORD_BIT_SIZE) + $this->random->nextBoundedInt(Chunk::EDGE_LENGTH);
+			$z = ($chunkZ << Chunk::COORD_BIT_SIZE) + $this->random->nextBoundedInt(Chunk::EDGE_LENGTH);
+			$y = $chunk->getHighestBlockAt($x & Chunk::COORD_MASK, $z & Chunk::COORD_MASK);
+			if($y === null || $y <= 0){
+				continue;
+			}
+			if(
+				$world->getBlockAt($x, $y + 1, $z)->getTypeId() === BlockTypeIds::AIR &&
+				$world->getBlockAt($x, $y, $z)->hasSameTypeId($endStone)
+			){
+				$this->chorusTreeGenerator->generate($world, $this->random, new Vector3($x, $y + 1, $z));
+			}
+		}
+	}
+
+	private function placeEndGateways(ChunkManager $world, int $chunkX, int $chunkZ) : void{
+		if(($chunkX * $chunkX + $chunkZ * $chunkZ) <= 4096){
+			return;
+		}
+
+		if($this->getIslandHeight($chunkX, $chunkZ, 1, 1) <= 40.0){
+			return;
+		}
+
+		if($this->random->nextBoundedInt(700) !== 0){
+			return;
+		}
+
+		$chunk = $world->getChunk($chunkX, $chunkZ);
+		if($chunk === null){
+			return;
+		}
+
+		$x = ($chunkX << Chunk::COORD_BIT_SIZE) + $this->random->nextBoundedInt(Chunk::EDGE_LENGTH);
+		$z = ($chunkZ << Chunk::COORD_BIT_SIZE) + $this->random->nextBoundedInt(Chunk::EDGE_LENGTH);
+		$highest = $chunk->getHighestBlockAt($x & Chunk::COORD_MASK, $z & Chunk::COORD_MASK);
+		if($highest === null){
+			return;
+		}
+
+		$y = $highest + $this->random->nextBoundedInt(7) + 3;
+		if($y <= 1 || $y >= 254){
+			return;
+		}
+
+		$this->endGatewayStructure->generate($world, $this->random, new Vector3($x, $y, $z));
+	}
+
+	private static function spawnEndCrystals(World $world, int $chunkX, int $chunkZ, int $seed) : void{
+		$bedrock = VanillaBlocks::BEDROCK();
+		foreach(self::computeObsidianPillars($seed) as $pillar){
+			$x = $pillar["centerX"];
+			$z = $pillar["centerZ"];
+			if(($x >> Chunk::COORD_BIT_SIZE) !== $chunkX || ($z >> Chunk::COORD_BIT_SIZE) !== $chunkZ){
+				continue;
+			}
+
+			$height = $pillar["height"];
+			if(!$world->getBlockAt($x, $height, $z)->hasSameTypeId($bedrock)){
+				continue;
+			}
+
+			$crystalY = $height + 1;
+			$bb = new AxisAlignedBB($x, $crystalY, $z, $x + 1, $crystalY + 2, $z + 1);
+			foreach($world->getNearbyEntities($bb) as $entity){
+				if($entity instanceof EndCrystal){
+					continue 2;
+				}
+			}
+
+			$crystal = new EndCrystal(new Location($x + 0.5, $crystalY, $z + 0.5, $world, 0, 0), CompoundTag::create());
+			$crystal->setShowBase(true);
+			$crystal->spawnToAll();
+		}
+	}
+
+	private static function spawnEndGatewayTiles(World $world, int $chunkX, int $chunkZ) : void{
+		$chunk = $world->getChunk($chunkX, $chunkZ);
+		if($chunk === null){
+			return;
+		}
+
+		$gatewayType = VanillaBlocks::END_GATEWAY()->getTypeId();
+		$spawn = $world->getSpawnLocation();
+		$exitPortal = new Vector3($spawn->getFloorX(), $spawn->getFloorY(), $spawn->getFloorZ());
+
+		$baseX = $chunkX << Chunk::COORD_BIT_SIZE;
+		$baseZ = $chunkZ << Chunk::COORD_BIT_SIZE;
+		for($lx = 0; $lx < Chunk::EDGE_LENGTH; ++$lx){
+			for($lz = 0; $lz < Chunk::EDGE_LENGTH; ++$lz){
+				$highest = $chunk->getHighestBlockAt($lx, $lz);
+				if($highest === null){
+					continue;
+				}
+				$wx = $baseX + $lx;
+				$wz = $baseZ + $lz;
+				$maxY = min($world->getMaxY() - 1, $highest + 10);
+				for($y = max($world->getMinY(), $highest); $y <= $maxY; ++$y){
+					if($world->getBlockAt($wx, $y, $wz)->getTypeId() !== $gatewayType){
+						continue;
+					}
+					$pos = new Vector3($wx, $y, $wz);
+					if($world->getTileAt($wx, $y, $wz) !== null){
+						continue;
+					}
+					$tile = new TileEndGateway($world, $pos);
+					$tile->setExitPortal($exitPortal);
+					$world->addTile($tile);
+				}
+			}
+		}
 	}
 
 	private function placeEndPlatform(ChunkManager $world, int $chunkX, int $chunkZ) : void{
@@ -283,48 +591,111 @@ class TheEndGenerator extends Generator{
 	}
 
 	private function placeObsidianPillars(ChunkManager $world, int $chunkX, int $chunkZ) : void{
+		foreach($this->obsidianPillars as $pillar){
+			if(($pillar["centerX"] >> Chunk::COORD_BIT_SIZE) !== $chunkX || ($pillar["centerZ"] >> Chunk::COORD_BIT_SIZE) !== $chunkZ){
+				continue;
+			}
+			self::generateObsidianPillar($world, $pillar);
+		}
+	}
+
+	public static function ensureObsidianPillars(World $world) : void{
+		foreach(self::computeObsidianPillars($world->getSeed()) as $pillar){
+			$chunkX = $pillar["centerX"] >> Chunk::COORD_BIT_SIZE;
+			$chunkZ = $pillar["centerZ"] >> Chunk::COORD_BIT_SIZE;
+			if(!$world->isChunkGenerated($chunkX, $chunkZ)){
+				$world->orderChunkPopulation($chunkX, $chunkZ, null)->onCompletion(
+					static function() use ($world, $pillar) : void{
+						self::generateObsidianPillar($world, $pillar);
+					},
+					static function() : void{}
+				);
+				continue;
+			}
+			$world->loadChunk($chunkX, $chunkZ);
+			self::generateObsidianPillar($world, $pillar);
+		}
+	}
+
+	private static function setBlockIfChunkReady(ChunkManager $world, int $x, int $y, int $z, Block $block) : void{
+		if(!$world->isInWorld($x, $y, $z)){
+			return;
+		}
+		if($world instanceof World){
+			$chunkX = $x >> Chunk::COORD_BIT_SIZE;
+			$chunkZ = $z >> Chunk::COORD_BIT_SIZE;
+			if(!$world->isChunkGenerated($chunkX, $chunkZ)){
+				return;
+			}
+		}
+		$world->setBlockAt($x, $y, $z, $block);
+	}
+
+	private static function getBlockIfChunkReady(ChunkManager $world, int $x, int $y, int $z) : ?Block{
+		if(!$world->isInWorld($x, $y, $z)){
+			return null;
+		}
+		if($world instanceof World){
+			$chunkX = $x >> Chunk::COORD_BIT_SIZE;
+			$chunkZ = $z >> Chunk::COORD_BIT_SIZE;
+			if(!$world->isChunkGenerated($chunkX, $chunkZ)){
+				return null;
+			}
+		}
+		return $world->getBlockAt($x, $y, $z);
+	}
+
+	private static function generateObsidianPillar(ChunkManager $world, array $pillar) : void{
 		$obsidian = VanillaBlocks::OBSIDIAN();
 		$bedrock = VanillaBlocks::BEDROCK();
 		$fire = VanillaBlocks::FIRE();
 		$ironBars = VanillaBlocks::IRON_BARS();
 
-		foreach($this->obsidianPillars as $pillar){
-			$x = $pillar["centerX"];
-			$z = $pillar["centerZ"];
-			if(($x >> Chunk::COORD_BIT_SIZE) !== $chunkX || ($z >> Chunk::COORD_BIT_SIZE) !== $chunkZ){
+		$x = $pillar["centerX"];
+		$z = $pillar["centerZ"];
+		$topY = $pillar["height"];
+		$radius = $pillar["radius"];
+		$guarded = $pillar["guarded"];
+
+		for($y = 0; $y < $topY; ++$y){
+			for($j = -$radius; $j <= $radius; ++$j){
+				for($k = -$radius; $k <= $radius; ++$k){
+					if($j * $j + $k * $k <= $radius * $radius + 1){
+						self::setBlockIfChunkReady($world, $x + $j, $y, $z + $k, $obsidian);
+					}
+				}
+			}
+		}
+
+		if($guarded){
+			for($i = -2; $i <= 2; ++$i){
+				for($j = -2; $j <= 2; ++$j){
+					if(abs($i) === 2 || abs($j) === 2){
+						for($k = 0; $k < 3; ++$k){
+							self::setBlockIfChunkReady($world, $x + $i, $topY + $k, $z + $j, $ironBars);
+						}
+					}
+					self::setBlockIfChunkReady($world, $x + $i, $topY + 3, $z + $j, $ironBars);
+				}
+			}
+		}
+
+		self::setBlockIfChunkReady($world, $x, $topY, $z, $bedrock);
+		self::setBlockIfChunkReady($world, $x, $topY + 1, $z, $fire);
+	}
+
+	private static function findEndStoneSurfaceY(ChunkManager $world, int $x, int $z) : ?int{
+		$endStone = VanillaBlocks::END_STONE()->getTypeId();
+		for($y = min(90, $world->getMaxY() - 1); $y >= $world->getMinY(); --$y){
+			$block = self::getBlockIfChunkReady($world, $x, $y, $z);
+			if($block === null){
 				continue;
 			}
-
-			$height = $pillar["height"];
-			$radius = $pillar["radius"];
-			$guarded = $pillar["guarded"];
-
-			for($i = 0; $i < $height; ++$i){
-				for($j = -$radius; $j <= $radius; ++$j){
-					for($k = -$radius; $k <= $radius; ++$k){
-						if($j * $j + $k * $k <= $radius * $radius + 1){
-							$world->setBlockAt($x + $j, $i, $z + $k, $obsidian);
-						}
-					}
-				}
+			if($block->getTypeId() === $endStone){
+				return $y;
 			}
-
-			if($guarded){
-				for($i = -2; $i <= 2; ++$i){
-					for($j = -2; $j <= 2; ++$j){
-						if(abs($i) === 2 || abs($j) === 2){
-							for($k = 0; $k < 3; ++$k){
-								$world->setBlockAt($x + $i, $height + $k, $z + $j, $ironBars);
-							}
-						}
-						$world->setBlockAt($x + $i, $height + 3, $z + $j, $ironBars);
-					}
-				}
-			}
-
-			$world->setBlockAt($x, $height, $z, $bedrock);
-			$world->setBlockAt($x, $height + 1, $z, $fire);
 		}
+		return null;
 	}
 
 	public function getIslandHeight(int $chunkX, int $chunkZ, int $x, int $z) : float{
@@ -337,11 +708,11 @@ class TheEndGenerator extends Generator{
 				$x2 = $chunkX + $i;
 				$z2 = $chunkZ + $j;
 				if(($x2 * $x2 + $z2 * $z2) > 4096
-					&& $this->islandNoise->noise2D((float) $x2, (float) $z2, true) < -0.9){
+					&& $this->islandNoise->getValue((float) $x2, (float) $z2) < -0.9){
 					$x1 = (float) ($x - $i * 2);
 					$z1 = (float) ($z - $j * 2);
 					$islandHeight2 = 100.0 - sqrt(($x1 * $x1) + ($z1 * $z1))
-						* ((abs((float) $x2) * 3439.0 + abs((float) $z2) * 147.0) % 13.0 + 9.0);
+						* (fmod(abs((float) $x2) * 3439.0 + abs((float) $z2) * 147.0, 13.0) + 9.0);
 					$islandHeight2 = self::clampFloat($islandHeight2, -100.0, 80.0);
 					$islandHeight1 = max($islandHeight1, $islandHeight2);
 				}
