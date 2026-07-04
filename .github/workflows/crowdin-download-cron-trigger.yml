@@ -11,9 +11,23 @@ jobs:
   trigger:
     name: Trigger Crowdin download RestrictedActions workflow
     runs-on: ubuntu-22.04
+    env:
+      RESTRICTED_ACTIONS_DISPATCH_ID: ${{ vars.RESTRICTED_ACTIONS_DISPATCH_ID }}
+      RESTRICTED_ACTIONS_DISPATCH_KEY: ${{ secrets.RESTRICTED_ACTIONS_DISPATCH_KEY }}
 
     steps:
+      - name: Check restricted-actions config
+        id: restricted-actions-config
+        shell: bash
+        run: |
+          if [ -n "${RESTRICTED_ACTIONS_DISPATCH_ID}" ] && [ -n "${RESTRICTED_ACTIONS_DISPATCH_KEY}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate access token
+        if: steps.restricted-actions-config.outputs.configured == 'true'
         id: generate-token
         uses: actions/create-github-app-token@v2
         with:
@@ -23,8 +37,13 @@ jobs:
           repositories: RestrictedActions
 
       - name: Dispatch branch sync restricted action
+        if: steps.restricted-actions-config.outputs.configured == 'true'
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ steps.generate-token.outputs.token }}
           repository: ${{ github.repository_owner }}/RestrictedActions
           event-type: pocketmine_mp_crowdin_download
+
+      - name: Skip restricted action dispatch
+        if: steps.restricted-actions-config.outputs.configured != 'true'
+        run: echo "RestrictedActions dispatch is not configured for this repository, skipping."
