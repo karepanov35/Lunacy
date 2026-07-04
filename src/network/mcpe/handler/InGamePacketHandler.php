@@ -26,7 +26,8 @@ use pocketmine\block\BaseSign;
 use pocketmine\block\Lectern;
 use pocketmine\block\tile\Sign;
 use pocketmine\block\utils\SignText;
-use pocketmine\entity\Attribute;
+use pocketmine\entity\BossBarEntity;
+use pocketmine\entity\mob\EnderDragon;
 use pocketmine\entity\InvalidSkinException;
 use pocketmine\event\player\PlayerEditBookEvent;
 use pocketmine\inventory\transaction\action\DropItemAction;
@@ -960,7 +961,25 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handleBossEvent(BossEventPacket $packet) : bool{
-		return false; //TODO
+		if($packet->eventType === BossEventPacket::TYPE_QUERY || $packet->eventType === BossEventPacket::TYPE_REGISTER_PLAYER){
+			$entity = $packet->bossActorUniqueId !== 0
+				? $this->player->getWorld()->getEntity($packet->bossActorUniqueId)
+				: null;
+			if($entity instanceof BossBarEntity && $entity->isAlive()){
+				$entity->sendBossBarTo($this->player);
+				return true;
+			}
+			foreach($this->player->getWorld()->getEntities() as $worldEntity){
+				if($worldEntity instanceof EnderDragon && $worldEntity->isAlive()){
+					$worldEntity->sendBossBarTo($this->player);
+					return true;
+				}
+			}
+		}
+		if($packet->eventType === BossEventPacket::TYPE_UNREGISTER_PLAYER){
+			return true;
+		}
+		return false;
 	}
 
 	public function handleShowCredits(ShowCreditsPacket $packet) : bool{

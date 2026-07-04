@@ -24,10 +24,11 @@ namespace pocketmine\world\particle;
 
 use pocketmine\block\Block;
 use pocketmine\network\mcpe\convert\BlockTranslator;
+use pocketmine\network\mcpe\convert\TypeConverter;
 
 abstract class BlockParticle implements Particle{
 
-	private BlockTranslator $blockTranslator;
+	private ?BlockTranslator $blockTranslator = null;
 
 	public function __construct(protected Block $b){}
 
@@ -35,6 +36,7 @@ abstract class BlockParticle implements Particle{
 		$this->blockTranslator = $blockTranslator;
 	}
 	public function toRuntimeId() : int{
-		return $this->blockTranslator->internalIdToNetworkId($this->b->getStateId());
+		return ($this->blockTranslator ??= TypeConverter::getInstance()->getBlockTranslator())
+			->internalIdToNetworkId($this->b->getStateId());
 	}
 }

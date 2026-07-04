@@ -22,9 +22,11 @@
 declare(strict_types=1);
 namespace pocketmine\world\particle;
 
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
+
 abstract class ProtocolParticle implements Particle{
 
-	protected int $protocolId;
+	protected int $protocolId = ProtocolInfo::CURRENT_PROTOCOL;
 
 	public function setProtocolId(int $protocolId) : void{
 		$this->protocolId = $protocolId;

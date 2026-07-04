@@ -1212,7 +1212,15 @@ class World implements ChunkManager{
 	 * @return ClientboundPacket[]
 	 * @phpstan-return list<ClientboundPacket>
 	 */
-	public function createBlockUpdatePackets(TypeConverter $typeConverter, array $blocks) : array{
+	public function createBlockUpdatePackets(TypeConverter|array $typeConverterOrBlocks, ?array $blocks = null) : array{
+		if($typeConverterOrBlocks instanceof TypeConverter){
+			$typeConverter = $typeConverterOrBlocks;
+			$blocks ??= [];
+		}else{
+			$typeConverter = TypeConverter::getInstance();
+			$blocks = $typeConverterOrBlocks;
+		}
+
 		$packets = [];
 
 		$blockTranslator = $typeConverter->getBlockTranslator();

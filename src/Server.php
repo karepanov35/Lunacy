@@ -1303,6 +1303,14 @@ class Server{
 					$this->worldManager->generateWorld($endWorldName, $endOpts, true);
 				}
 			}
+			$endWorld = $this->worldManager->getWorldByName($endWorldName);
+			if($endWorld !== null){
+				$endWorld->loadChunk(0, 0);
+				TheEndGenerator::ensureExitPortal($endWorld);
+				TheEndGenerator::ensureObsidianPillars($endWorld);
+				TheEndGenerator::ensureEndCrystals($endWorld);
+				TheEndGenerator::ensureEnderDragon($endWorld);
+			}
 		}
 
 		return !$anyWorldFailedToLoad;
@@ -1969,6 +1977,11 @@ class Server{
 		Timings::$connection->startTiming();
 		$this->network->tick();
 		Timings::$connection->stopTiming();
+
+		//Process async chunk IO / compression completions in the same tick they were submitted.
+		Timings::$schedulerAsync->startTiming();
+		$this->asyncPool->collectTasks();
+		Timings::$schedulerAsync->stopTiming();
 
 		if(($this->tickCounter % self::TARGET_TICKS_PER_SECOND) === 0){
 			if($this->doTitleTick){

@@ -24,10 +24,11 @@ namespace pocketmine\world\sound;
 
 use pocketmine\block\Block;
 use pocketmine\network\mcpe\convert\BlockTranslator;
+use pocketmine\network\mcpe\convert\TypeConverter;
 
 abstract class BlockSound implements Sound{
 
-	private BlockTranslator $blockTranslator;
+	private ?BlockTranslator $blockTranslator = null;
 
 	public function __construct(private Block $block){}
 
@@ -36,6 +37,7 @@ abstract class BlockSound implements Sound{
 	}
 
 	public function toRuntimeId() : int{
-		return $this->blockTranslator->internalIdToNetworkId($this->block->getStateId());
+		return ($this->blockTranslator ??= TypeConverter::getInstance()->getBlockTranslator())
+			->internalIdToNetworkId($this->block->getStateId());
 	}
 }
