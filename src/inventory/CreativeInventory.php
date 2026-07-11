@@ -83,7 +83,6 @@ final class CreativeInventory{
 			}
 		}
 
-		// Доп. предметы креатива из ядра (resources/creative/*.json) — не зависят от vendor bedrock-data
 		$lunacyCreative = Path::join(RESOURCE_PATH, 'creative', 'items.json');
 		if(is_file($lunacyCreative)){
 			$extraGroups = CraftingManagerFromDataHelper::loadJsonArrayOfObjectsFile(
@@ -105,7 +104,6 @@ final class CreativeInventory{
 			}
 		}
 
-		// Яйцо и яйцо призыва курицы (часто отсутствуют в bedrock-data creative JSON для форков)
 		if(!$this->contains(VanillaItems::EGG())){
 			$this->add(VanillaItems::EGG(), CreativeCategory::ITEMS);
 		}
@@ -114,6 +112,9 @@ final class CreativeInventory{
 		}
 		if(!$this->contains(VanillaItems::WOLF_SPAWN_EGG())){
 			$this->add(VanillaItems::WOLF_SPAWN_EGG(), CreativeCategory::NATURE);
+		}
+		if(!$this->contains(VanillaItems::FOX_SPAWN_EGG())){
+			$this->add(VanillaItems::FOX_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
 		if(!$this->contains(VanillaItems::HOGLIN_SPAWN_EGG())){
 			$this->add(VanillaItems::HOGLIN_SPAWN_EGG(), CreativeCategory::NATURE);
@@ -133,10 +134,11 @@ final class CreativeInventory{
 		if(!$this->contains(VanillaItems::ZOMBIE_PIGMAN_SPAWN_EGG())){
 			$this->add(VanillaItems::ZOMBIE_PIGMAN_SPAWN_EGG(), CreativeCategory::NATURE);
 		}
-		// Око края — запасной вариант, если JSON не загрузился
 		if(!$this->contains(VanillaItems::ENDER_EYE())){
 			$this->add(VanillaItems::ENDER_EYE(), CreativeCategory::ITEMS);
 		}
+		$this->remove(VanillaItems::ARMOR_STAND());
+		$this->add(VanillaItems::ARMOR_STAND(), CreativeCategory::EQUIPMENT);
 		if(!$this->contains(VanillaBlocks::PISTON()->asItem())){
 			$this->add(VanillaBlocks::PISTON()->asItem(), CreativeCategory::CONSTRUCTION);
 		}
@@ -207,6 +209,7 @@ final class CreativeInventory{
 		$index = $this->getItemIndex($item);
 		if($index !== -1){
 			unset($this->creative[$index]);
+			$this->creative = array_values($this->creative);
 			$this->onContentChange();
 		}
 	}

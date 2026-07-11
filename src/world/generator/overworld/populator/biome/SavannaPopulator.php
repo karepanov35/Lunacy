@@ -39,7 +39,7 @@ class SavannaPopulator extends BiomePopulator{
 		$this->tree_decorator->setAmount(1);
 		$this->tree_decorator->setTrees(...self::$TREES);
 		$this->flower_decorator->setAmount(4);
-		$this->tall_grass_decorator->setAmount(20);
+		$this->tall_grass_decorator->setAmount(10);
 	}
 
 	public function getBiomes() : ?array{

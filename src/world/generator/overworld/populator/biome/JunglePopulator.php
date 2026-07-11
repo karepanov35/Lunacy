@@ -44,7 +44,7 @@ class JunglePopulator extends BiomePopulator{
 		$this->tree_decorator->setTrees(...self::$TREES);
 		$this->flower_decorator->setAmount(4);
 		$this->flower_decorator->setFlowers(...self::$FLOWERS);
-		$this->tall_grass_decorator->setAmount(25);
+		$this->tall_grass_decorator->setAmount(12);
 		$this->tall_grass_decorator->setFernDensity(0.25);
 	}
 

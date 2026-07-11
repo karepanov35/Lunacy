@@ -24,8 +24,13 @@ namespace pocketmine\item;
 
 use pocketmine\block\Liquid;
 use pocketmine\entity\Living;
+use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Vector3;
-use pocketmine\world\sound\EndermanTeleportSound;
+use pocketmine\world\sound\ChorusFruitTeleportSound;
+use pocketmine\world\World;
+use function floor;
+use function lcg_value;
+use function max;
 use function min;
 use function mt_rand;
 
@@ -45,43 +50,115 @@ class ChorusFruit extends Food{
 
 	public function onConsume(Living $consumer) : void{
 		$world = $consumer->getWorld();
-
 		$origin = $consumer->getPosition();
-		$minX = $origin->getFloorX() - 8;
-		$minY = min($origin->getFloorY(), $consumer->getWorld()->getMaxY()) - 8;
-		$minZ = $origin->getFloorZ() - 8;
 
-		$maxX = $minX + 16;
-		$maxY = $minY + 16;
-		$maxZ = $minZ + 16;
-
-		$worldMinY = $world->getMinY();
+		$minY = $world->getMinY();
+		$maxY = $world->getMaxY() - 1;
 
 		for($attempts = 0; $attempts < 16; ++$attempts){
-			$x = mt_rand($minX, $maxX);
-			$y = mt_rand($minY, $maxY);
-			$z = mt_rand($minZ, $maxZ);
+			$targetX = $origin->x + (lcg_value() - 0.5) * 16.0;
+			$targetZ = $origin->z + (lcg_value() - 0.5) * 16.0;
 
-			while($y >= $worldMinY && !$world->getBlockAt($x, $y, $z)->isSolid()){
-				$y--;
+			if($consumer->isGliding()){
+				$targetY = $this->findSurfaceY($world, $targetX, $targetZ);
+			}else{
+				$randomY = max($minY, min($maxY, $origin->y + mt_rand(0, 15) - 8));
+				$targetY = $this->findTeleportY($world, $targetX, $randomY, $targetZ);
 			}
-			if($y < $worldMinY){
+
+			if($targetY === null){
 				continue;
 			}
 
-			$blockUp = $world->getBlockAt($x, $y + 1, $z);
-			$blockUp2 = $world->getBlockAt($x, $y + 2, $z);
-			if($blockUp->isSolid() || $blockUp instanceof Liquid || $blockUp2->isSolid() || $blockUp2 instanceof Liquid){
+			$target = new Vector3($targetX, $targetY, $targetZ);
+			if(!$this->canFitAt($consumer, $target)){
 				continue;
 			}
 
-			//Sounds are broadcasted at both source and destination
-			$world->addSound($origin, new EndermanTeleportSound());
-			$consumer->teleport($target = new Vector3($x + 0.5, $y + 1, $z + 0.5));
-			$world->addSound($target, new EndermanTeleportSound());
+			if($consumer->teleport($target)){
+				$world->addSound($origin, new ChorusFruitTeleportSound());
+			}
 
 			break;
 		}
+	}
+
+	private function findTeleportY(World $world, float $x, float $y, float $z) : ?float{
+		$minY = $world->getMinY();
+		$blockY = (int) floor($y);
+
+		while($blockY > $minY){
+			$below = $world->getBlockAt((int) floor($x), $blockY - 1, (int) floor($z));
+			if($below->isSolid()){
+				return (float) $blockY;
+			}
+			$blockY--;
+		}
+
+		$below = $world->getBlockAt((int) floor($x), $minY, (int) floor($z));
+		if($below->isSolid()){
+			return (float) ($minY + 1);
+		}
+
+		return null;
+	}
+
+	private function findSurfaceY(World $world, float $x, float $z) : ?float{
+		$blockX = (int) floor($x);
+		$blockZ = (int) floor($z);
+
+		$highestBlock = $world->getChunk($blockX >> 4, $blockZ >> 4)?->getHighestBlockAt($blockX & 0x0f, $blockZ & 0x0f);
+		if($highestBlock === null){
+			return null;
+		}
+
+		for($y = $highestBlock; $y >= $world->getMinY(); --$y){
+			$block = $world->getBlockAt($blockX, $y, $blockZ);
+			if($block->isSolid()){
+				return (float) ($y + 1);
+			}
+		}
+
+		return null;
+	}
+
+	private function canFitAt(Living $entity, Vector3 $pos) : bool{
+		$world = $entity->getWorld();
+		$halfWidth = $entity->getSize()->getWidth() / 2;
+		$height = $entity->getSize()->getHeight();
+
+		$bb = new AxisAlignedBB(
+			$pos->x - $halfWidth,
+			$pos->y,
+			$pos->z - $halfWidth,
+			$pos->x + $halfWidth,
+			$pos->y + $height,
+			$pos->z + $halfWidth
+		);
+
+		if(count($world->getBlockCollisionBoxes($bb)) > 0){
+			return false;
+		}
+
+		$minBlockX = (int) floor($bb->minX);
+		$maxBlockX = (int) floor($bb->maxX);
+		$minBlockY = (int) floor($bb->minY);
+		$maxBlockY = (int) floor($bb->maxY);
+		$minBlockZ = (int) floor($bb->minZ);
+		$maxBlockZ = (int) floor($bb->maxZ);
+
+		for($x = $minBlockX; $x <= $maxBlockX; ++$x){
+			for($y = $minBlockY; $y <= $maxBlockY; ++$y){
+				for($z = $minBlockZ; $z <= $maxBlockZ; ++$z){
+					$block = $world->getBlockAt($x, $y, $z);
+					if($block instanceof Liquid){
+						return false;
+					}
+				}
+			}
+		}
+
+		return true;
 	}
 
 	public function getCooldownTicks() : int{

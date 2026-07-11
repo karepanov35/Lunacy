@@ -29,6 +29,6 @@ use function array_filter;
 class StonePressurePlate extends SimplePressurePlate{
 
 	protected function filterIrrelevantEntities(array $entities) : array{
-		return array_filter($entities, fn(Entity $e) => $e instanceof Living); //TODO: armor stands should activate stone plates too
+		return array_filter($entities, fn(Entity $e) => $e instanceof Living);
 	}
 }

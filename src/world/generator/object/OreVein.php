@@ -8,6 +8,8 @@ use pocketmine\block\Block;
 use pocketmine\block\BlockTypeIds;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
+use function cos;
+use function sin;
 
 class OreVein extends TerrainObject{
 
@@ -15,11 +17,6 @@ class OreVein extends TerrainObject{
 	 * The square of the percentage of the radius that is the distance between the given block's
 	 * center and the center of an orthogonal ellipsoid. A block's center is inside the ellipsoid
 	 * if and only if its normalizedSquaredCoordinate values add up to less than 1.
-	 *
-	 * @param float $origin the center of the spheroid
-	 * @param float $radius the spheroid's radius on this axis
-	 * @param int $x the raw coordinate
-	 * @return float the square of the normalized coordinate
 	 */
 	protected static function normalizedSquaredCoordinate(float $origin, float $radius, int $x) : float{
 		$squared_normalized_x = ($x + 0.5 - $origin) / $radius;
@@ -31,11 +28,6 @@ class OreVein extends TerrainObject{
 	private int $amount;
 	private int $target_type;
 
-	/**
-	 * Creates the instance for a given ore type.
-	 *
-	 * @param OreType $oreType the ore type
-	 */
 	public function __construct(OreType $oreType){
 		$this->type = $oreType->type;
 		$this->amount = $oreType->amount;
@@ -51,6 +43,10 @@ class OreVein extends TerrainObject{
 		$dy1 = $source_y + $random->nextBoundedInt(3) - 2;
 		$dy2 = $source_y + $random->nextBoundedInt(3) - 2;
 		$succeeded = false;
+		$lavaId = BlockTypeIds::LAVA;
+		$minY = $world->getMinY() + 1;
+		$maxY = $world->getMaxY() - 1;
+
 		for($i = 0; $i < $this->amount; ++$i){
 			$origin_x = $dx1 + ($dx2 - $dx1) * $i / $this->amount;
 			$origin_y = $dy1 + ($dy2 - $dy1) * $i / $this->amount;
@@ -61,20 +57,20 @@ class OreVein extends TerrainObject{
 
 			$min_x = (int) ($origin_x - $radius_h);
 			$max_x = (int) ($origin_x + $radius_h);
-
 			$min_y = (int) ($origin_y - $radius_v);
 			$max_y = (int) ($origin_y + $radius_v);
-
 			$min_z = (int) ($origin_z - $radius_h);
 			$max_z = (int) ($origin_z + $radius_h);
 
 			for($x = $min_x; $x <= $max_x; ++$x){
-				// scale the center of x to the range [-1, 1] within the circle
 				$squared_normalized_x = self::normalizedSquaredCoordinate($origin_x, $radius_h, $x);
 				if($squared_normalized_x >= 1){
 					continue;
 				}
 				for($y = $min_y; $y <= $max_y; ++$y){
+					if($y < $minY || $y > $maxY){
+						continue;
+					}
 					$squared_normalized_y = self::normalizedSquaredCoordinate($origin_y, $radius_v, $y);
 					if($squared_normalized_x + $squared_normalized_y >= 1){
 						continue;
@@ -85,29 +81,10 @@ class OreVein extends TerrainObject{
 							continue;
 						}
 						$blockHere = $world->getBlockAt($x, $y, $z);
-						$blockBelow = $world->getBlockAt($x, $y - 1, $z);
-						$blockAbove = $world->getBlockAt($x, $y + 1, $z);
 						if($blockHere->getTypeId() !== $this->target_type){
 							continue;
 						}
-						if(!$blockBelow->isSolid() || !$blockAbove->isSolid()){
-							continue;
-						}
-						$h1 = $world->getBlockAt($x - 1, $y, $z)->getTypeId() === $this->target_type ? 1 : 0;
-						$h2 = $world->getBlockAt($x + 1, $y, $z)->getTypeId() === $this->target_type ? 1 : 0;
-						$h3 = $world->getBlockAt($x, $y, $z - 1)->getTypeId() === $this->target_type ? 1 : 0;
-						$h4 = $world->getBlockAt($x, $y, $z + 1)->getTypeId() === $this->target_type ? 1 : 0;
-						if(($h1 + $h2 + $h3 + $h4) < 2){
-							continue;
-						}
-						$lavaId = BlockTypeIds::LAVA;
-						if($blockHere->getTypeId() === $lavaId || $blockBelow->getTypeId() === $lavaId || $blockAbove->getTypeId() === $lavaId){
-							continue;
-						}
-						if($world->getBlockAt($x - 1, $y, $z)->getTypeId() === $lavaId
-							|| $world->getBlockAt($x + 1, $y, $z)->getTypeId() === $lavaId
-							|| $world->getBlockAt($x, $y, $z - 1)->getTypeId() === $lavaId
-							|| $world->getBlockAt($x, $y, $z + 1)->getTypeId() === $lavaId){
+						if(!$this->isEmbeddedInTerrain($world, $x, $y, $z, $lavaId)){
 							continue;
 						}
 						$world->setBlockAt($x, $y, $z, $this->type);
@@ -118,5 +95,31 @@ class OreVein extends TerrainObject{
 		}
 
 		return $succeeded;
+	}
+
+	/**
+	 * Ore must sit inside solid stone (may expose 1–2 faces on cave walls, never float in air).
+	 */
+	private function isEmbeddedInTerrain(ChunkManager $world, int $x, int $y, int $z, int $lavaId) : bool{
+		$solid = 0;
+		$neighbors = [
+			[$x - 1, $y, $z],
+			[$x + 1, $y, $z],
+			[$x, $y - 1, $z],
+			[$x, $y + 1, $z],
+			[$x, $y, $z - 1],
+			[$x, $y, $z + 1],
+		];
+		foreach($neighbors as [$nx, $ny, $nz]){
+			$neighbor = $world->getBlockAt($nx, $ny, $nz);
+			if($neighbor->getTypeId() === $lavaId){
+				return false;
+			}
+			if($neighbor->isSolid()){
+				++$solid;
+			}
+		}
+
+		return $solid >= 4;
 	}
 }

@@ -3090,6 +3090,19 @@ class World implements ChunkManager{
 	}
 
 	/**
+	 * Requests loading of a chunk from disk using the world's already-open provider.
+	 * LevelDB cannot be opened from async workers while the main thread holds the database lock,
+	 * so this uses synchronous I/O on the main thread and resolves immediately.
+	 *
+	 * @phpstan-return Promise<?Chunk>
+	 */
+	public function requestChunkLoad(int $chunkX, int $chunkZ) : Promise{
+		$resolver = new PromiseResolver();
+		$resolver->resolve($this->loadChunk($chunkX, $chunkZ));
+		return $resolver->getPromise();
+	}
+
+	/**
 	 * Attempts to load a chunk from the world provider (if not already loaded). If the chunk is already loaded, it is
 	 * returned directly.
 	 *

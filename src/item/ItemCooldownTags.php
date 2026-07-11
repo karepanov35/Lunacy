@@ -38,6 +38,7 @@ final class ItemCooldownTags{
 	}
 
 	public const CHORUS_FRUIT = "chorus_fruit";
+	public const ENDER_EYE = "ender_eye";
 	public const ENDER_PEARL = "ender_pearl";
 	public const SHIELD = "shield";
 	public const GOAT_HORN = "goat_horn";

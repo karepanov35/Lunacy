@@ -64,6 +64,7 @@ use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Utils;
 use function array_key_first;
 use function count;
+use function min;
 use function spl_object_id;
 
 class ItemStackRequestExecutor{
@@ -158,7 +159,7 @@ class ItemStackRequestExecutor{
 	 */
 	protected function transferItems(ItemStackRequestSlotInfo $source, ItemStackRequestSlotInfo $destination, int $count) : void{
 		$removed = $this->removeItemFromSlot($source, $count);
-		$this->addItemToSlot($destination, $removed, $count);
+		$this->addItemToSlot($destination, $removed, $removed->getCount());
 	}
 
 	/**
@@ -370,11 +371,11 @@ class ItemStackRequestExecutor{
 			throw new ItemStackRequestProcessException("No created item is waiting to be taken");
 		}
 
-		if(!$this->createdItemFromCreativeInventory){
+		if($this->createdItemFromCreativeInventory){
+			$count = min($count, $createdItem->getMaxStackSize());
+		}elseif($count > ($createdItem->getCount() - $this->createdItemsTakenCount)){
 			$availableCount = $createdItem->getCount() - $this->createdItemsTakenCount;
-			if($count > $availableCount){
-				throw new ItemStackRequestProcessException("Not enough created items available to be taken (have $availableCount, tried to take $count)");
-			}
+			throw new ItemStackRequestProcessException("Not enough created items available to be taken (have $availableCount, tried to take $count)");
 		}
 
 		$this->createdItemsTakenCount += $count;
@@ -433,7 +434,8 @@ class ItemStackRequestExecutor{
 			if($item === null){
 				throw new ItemStackRequestProcessException("No such creative item index: " . $action->getCreativeItemId());
 			}
-
+			$item = clone $item;
+			$item->setCount($item->getMaxStackSize());
 			$this->setNextCreatedItem($item, true);
 		}elseif($action instanceof CraftRecipeStackRequestAction){
 			$window = $this->player->getCurrentWindow();

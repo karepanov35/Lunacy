@@ -1865,15 +1865,15 @@ class Server{
 			$gameVersion = ProtocolVersionMapper::getVersionName($protocol);
 		}
 
-		$this->logger->info(
-			TextFormat::WHITE . "Игрок " . TextFormat::RED . $player->getName() . TextFormat::WHITE .
-			" вошел с id: " . TextFormat::GRAY . "«" . $player->getId() . "»" . TextFormat::WHITE .
-			" на (" . $position->getWorld()->getDisplayName() . ", " .
-			round($position->x, 1) . ", " .
-			round($position->y, 0) . ", " .
-			round($position->z, 3) . "). " .
-			TextFormat::WHITE . "Протокол: " . TextFormat::GREEN . $protocol . ", " . $gameVersion . TextFormat::RESET
-		);
+		$this->logger->info($this->language->translate(KnownTranslationFactory::pocketmine_player_joinLog(
+			$player->getName(),
+			strval($player->getId()),
+			$position->getWorld()->getDisplayName(),
+			strval(round($position->x, 1)),
+			strval(round($position->y, 0)),
+			strval(round($position->z, 3)),
+			$protocol . ", " . $gameVersion
+		)));
 
 		foreach($this->playerList as $p){
 			$p->getNetworkSession()->onPlayerAdded($player);

@@ -2173,6 +2173,14 @@ final class KnownTranslationFactory{
 		return new Translatable(KnownTranslationKeys::POCKETMINE_DISCONNECT_WHITELISTED, []);
 	}
 
+	public static function pocketmine_disconnect_worldLoading() : Translatable{
+		return new Translatable(KnownTranslationKeys::POCKETMINE_DISCONNECT_WORLDLOADING, []);
+	}
+
+	public static function pocketmine_disconnect_worldLoading_screen() : Translatable{
+		return new Translatable(KnownTranslationKeys::POCKETMINE_DISCONNECT_WORLDLOADING_SCREEN, []);
+	}
+
 	public static function pocketmine_disconnect_xblImpersonation() : Translatable{
 		return new Translatable(KnownTranslationKeys::POCKETMINE_DISCONNECT_XBLIMPERSONATION, []);
 	}
@@ -2252,6 +2260,17 @@ final class KnownTranslationFactory{
 			"total" => $total,
 			"percentageDone" => $percentageDone,
 		]);
+	}
+
+	public static function pocketmine_level_worldLoader_progress(Translatable|string $percentage, Translatable|string $details) : Translatable{
+		return new Translatable(KnownTranslationKeys::POCKETMINE_LEVEL_WORLDLOADER_PROGRESS, [
+			"percentage" => $percentage,
+			"details" => $details,
+		]);
+	}
+
+	public static function pocketmine_level_worldLoader_success() : Translatable{
+		return new Translatable(KnownTranslationKeys::POCKETMINE_LEVEL_WORLDLOADER_SUCCESS, []);
 	}
 
 	public static function pocketmine_level_unknownFormat() : Translatable{
@@ -2550,6 +2569,18 @@ final class KnownTranslationFactory{
 
 	public static function pocketmine_permission_group_user() : Translatable{
 		return new Translatable(KnownTranslationKeys::POCKETMINE_PERMISSION_GROUP_USER, []);
+	}
+
+	public static function pocketmine_player_joinLog(Translatable|string $player, Translatable|string $id, Translatable|string $world, Translatable|string $x, Translatable|string $y, Translatable|string $z, Translatable|string $protocol) : Translatable{
+		return new Translatable(KnownTranslationKeys::POCKETMINE_PLAYER_JOINLOG, [
+			"player" => $player,
+			"id" => $id,
+			"world" => $world,
+			"x" => $x,
+			"y" => $y,
+			"z" => $z,
+			"protocol" => $protocol,
+		]);
 	}
 
 	public static function pocketmine_player_logIn(Translatable|string $param0, Translatable|string $param1, Translatable|string $param2, Translatable|string $param3, Translatable|string $param4, Translatable|string $param5, Translatable|string $param6, Translatable|string $param7) : Translatable{

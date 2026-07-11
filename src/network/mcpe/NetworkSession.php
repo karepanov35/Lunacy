@@ -1340,6 +1340,17 @@ class NetworkSession{
 	}
 
 	/**
+	 * @phpstan-param \Closure() : void $onCompletion
+	 */
+	public function prefetchChunk(int $chunkX, int $chunkZ) : void{
+		if($this->player === null){
+			return;
+		}
+		$world = $this->player->getLocation()->getWorld();
+		ChunkCache::getInstance($world, $this->compressor)->prefetch($chunkX, $chunkZ, $this->getTypeConverter());
+	}
+
+	/**
 	 * Instructs the networksession to start using the chunk at the given coordinates. This may occur asynchronously.
 	 * @param \Closure $onCompletion To be called when chunk sending has completed.
 	 * @phpstan-param \Closure() : void $onCompletion

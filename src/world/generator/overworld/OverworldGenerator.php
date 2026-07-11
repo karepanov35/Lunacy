@@ -126,7 +126,7 @@ class OverworldGenerator extends VanillaGenerator{
 			$preset
 		);
 		$this->ground_gen = new GroundGenerator();
-		$this->addPopulators(new CavePopulator(), new OverworldPopulator(), new SnowPopulator());
+		$this->addPopulators(new CavePopulator($seed), new OverworldPopulator(), new SnowPopulator());
 	}
 
 	public function getGroundGenerator() : GroundGenerator{

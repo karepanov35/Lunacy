@@ -27,6 +27,7 @@ use pocketmine\thread\log\AttachableThreadSafeLogger;
 use pocketmine\thread\log\ThreadSafeLoggerAttachment;
 use pocketmine\thread\Thread;
 use pocketmine\thread\Worker;
+use pocketmine\world\WorldManager;
 use function implode;
 use function sprintf;
 use const PHP_EOL;
@@ -176,7 +177,9 @@ protected function send(string $message, string $level, string $prefix, string $
 		}
 
 		$this->synchronized(function() use ($message, $level, $time) : void{
+			WorldManager::notifyBeforeConsoleLog();
 			Terminal::writeLine($message);
+			WorldManager::notifyAfterConsoleLog();
 			if($this->logWriterThread !== null){
 				$this->logWriterThread->write($time->format("Y-m-d") . " " . TextFormat::clean($message) . PHP_EOL);
 			}

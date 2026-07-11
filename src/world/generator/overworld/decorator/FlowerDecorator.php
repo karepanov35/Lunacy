@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace pocketmine\world\generator\overworld\decorator;
 
-use pocketmine\world\generator\Decorator;
-use pocketmine\world\generator\object\Flower;
-use pocketmine\world\generator\overworld\decorator\types\FlowerDecoration;
 use pocketmine\block\Block;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
+use pocketmine\world\generator\Decorator;
+use pocketmine\world\generator\object\Flower;
+use pocketmine\world\generator\overworld\decorator\types\FlowerDecoration;
+use pocketmine\world\generator\utils\SurfacePlacementUtils;
 
 class FlowerDecorator extends Decorator{
 
 	/**
-	 * @param Random $random
 	 * @param FlowerDecoration[] $decorations
-	 * @return Block|null
 	 */
 	private static function getRandomFlower(Random $random, array $decorations) : ?Block{
 		$total_weight = 0;
@@ -48,12 +48,16 @@ class FlowerDecorator extends Decorator{
 	public function decorate(ChunkManager $world, Random $random, int $chunk_x, int $chunk_z, Chunk $chunk) : void{
 		$x = $random->nextBoundedInt(16);
 		$z = $random->nextBoundedInt(16);
-		$source_y = $random->nextBoundedInt($chunk->getHighestBlockAt($x & Chunk::COORD_MASK, $z & Chunk::COORD_MASK) + 32);
+		$worldX = ($chunk_x << Chunk::COORD_BIT_SIZE) + $x;
+		$worldZ = ($chunk_z << Chunk::COORD_BIT_SIZE) + $z;
+		$source_y = SurfacePlacementUtils::getSurfaceYForSoil($world, $worldX, $worldZ, BlockTypeIds::GRASS);
+		if($source_y === null){
+			return;
+		}
 
-		// the flower can change on each decoration pass
 		$flower = self::getRandomFlower($random, $this->flowers);
 		if($flower !== null){
-			(new Flower($flower))->generate($world, $random, ($chunk_x << Chunk::COORD_BIT_SIZE) + $x, $source_y, ($chunk_z << Chunk::COORD_BIT_SIZE) + $z);
+			(new Flower($flower))->generate($world, $random, $worldX, $source_y, $worldZ);
 		}
 	}
 }

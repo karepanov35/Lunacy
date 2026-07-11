@@ -29,6 +29,8 @@ use pocketmine\event\world\WorldUnloadEvent;
 use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\player\ChunkSelector;
 use pocketmine\Server;
+use pocketmine\utils\Terminal;
+use pocketmine\utils\TextFormat;
 use pocketmine\world\format\Chunk;
 use pocketmine\world\format\io\exception\CorruptedWorldException;
 use pocketmine\world\format\io\exception\UnsupportedWorldFormatException;
@@ -44,11 +46,12 @@ use function assert;
 use function count;
 use function floor;
 use function implode;
-use function intdiv;
 use function iterator_to_array;
+use function max;
 use function microtime;
 use function round;
 use function sprintf;
+use function strlen;
 use function strval;
 use function trim;
 
@@ -65,6 +68,17 @@ class WorldManager{
 	private bool $autoSave = true;
 	private int $autoSaveTicks = self::TICKS_PER_AUTOSAVE;
 	private int $autoSaveTicker = 0;
+
+	/** @var array<string, array{done: int, total: int}> */
+	private array $spawnGenerationWorldProgress = [];
+	private int $spawnGenerationTotal = 0;
+	private int $spawnGenerationDone = 0;
+	private int $spawnGenerationLastProgress = -1;
+	private bool $spawnGenerationInProgress = false;
+	private bool $spawnGenerationFinished = false;
+	private bool $progressLineVisible = false;
+
+	private static ?self $consoleProgressOwner = null;
 
 	public function __construct(
 		private Server $server,
@@ -291,8 +305,6 @@ class WorldManager{
 		(new WorldLoadEvent($world))->call();
 
 		if($backgroundGeneration){
-			$this->server->getLogger()->notice($this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_backgroundGeneration($name)));
-
 			$spawnLocation = $world->getSpawnLocation();
 			$centerX = $spawnLocation->getFloorX() >> Chunk::COORD_BIT_SIZE;
 			$centerZ = $spawnLocation->getFloorZ() >> Chunk::COORD_BIT_SIZE;
@@ -300,18 +312,21 @@ class WorldManager{
 			$selected = iterator_to_array((new ChunkSelector())->selectChunks(8, $centerX, $centerZ), preserve_keys: false);
 			$done = 0;
 			$total = count($selected);
+
+			$this->spawnGenerationWorldProgress[$name] = ['done' => 0, 'total' => $total];
+			$this->spawnGenerationTotal += $total;
+			$this->spawnGenerationInProgress = true;
+			$this->spawnGenerationFinished = false;
+			self::$consoleProgressOwner = $this;
+
 			foreach($selected as $index){
 				World::getXZ($index, $chunkX, $chunkZ);
 				$world->orderChunkPopulation($chunkX, $chunkZ, null)->onCompletion(
-					static function() use ($world, &$done, $total) : void{
-						$oldProgress = (int) floor(($done / $total) * 100);
-						$newProgress = (int) floor((++$done / $total) * 100);
-						if(intdiv($oldProgress, 10) !== intdiv($newProgress, 10) || $done === $total || $done === 1){
-							$world->getLogger()->info($world->getServer()->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_spawnTerrainGenerationProgress(strval($done), strval($total), strval($newProgress))));
-						}
+					static function() use ($world, $name, &$done, $total) : void{
+						$world->getServer()->getWorldManager()->onSpawnChunkGenerated($name, ++$done, $total);
 					},
-					static function() : void{
-						//NOOP: we don't care if the world was unloaded
+					static function() use ($world, $name, &$done, $total) : void{
+						$world->getServer()->getWorldManager()->onSpawnChunkGenerated($name, ++$done, $total);
 					});
 			}
 		}
@@ -409,6 +424,133 @@ class WorldManager{
 				}
 			}
 			$world->save(false);
+		}
+	}
+
+	public function isSpawnGenerationInProgress() : bool{
+		return $this->spawnGenerationInProgress;
+	}
+
+	public function onSpawnChunkGenerated(string $worldName, int $done, int $total) : void{
+		$this->spawnGenerationWorldProgress[$worldName] = ['done' => $done, 'total' => $total];
+		$this->spawnGenerationDone++;
+
+		$progress = $this->spawnGenerationTotal > 0
+			? (int) floor(($this->spawnGenerationDone / $this->spawnGenerationTotal) * 100)
+			: 0;
+
+		if($progress !== $this->spawnGenerationLastProgress){
+			$this->spawnGenerationLastProgress = $progress;
+			$this->printSpawnGenerationProgress();
+		}
+
+		if($this->spawnGenerationDone >= $this->spawnGenerationTotal && $this->spawnGenerationTotal > 0 && !$this->spawnGenerationFinished){
+			$this->finishSpawnGeneration();
+		}
+	}
+
+	private function printSpawnGenerationProgress() : void{
+		$progress = $this->spawnGenerationTotal > 0
+			? (int) floor(($this->spawnGenerationDone / $this->spawnGenerationTotal) * 100)
+			: 0;
+
+		$details = [];
+		foreach($this->spawnGenerationWorldProgress as $name => $data){
+			$details[] = $name . ": " . $data['done'] . "/" . $data['total'];
+		}
+
+		$message = $this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_worldLoader_progress(
+			strval($progress),
+			implode(" | ", $details)
+		));
+
+		Terminal::write("\r" . $this->formatWorldLoaderLine($message) . "\033[K");
+		$this->progressLineVisible = true;
+	}
+
+	private function formatWorldLoaderLine(string $message) : string{
+		$time = (new \DateTime('now'))->format("H:i:s");
+		$timeGradient = $this->applyAnsiGradient($time, [
+			[32, 228, 243],
+			[42, 219, 242],
+			[52, 210, 240],
+			[62, 201, 239],
+			[73, 191, 238],
+			[83, 182, 237],
+			[93, 173, 235],
+			[103, 164, 234],
+		]);
+
+		$worldLoader = $this->applyAnsiGradient("WorldLoader", [
+			[255, 242, 250],
+			[245, 228, 246],
+			[235, 213, 241],
+			[225, 199, 237],
+			[215, 184, 233],
+			[205, 170, 229],
+			[194, 155, 224],
+			[184, 141, 220],
+			[174, 126, 216],
+			[164, 112, 211],
+			[154, 97, 207],
+		]);
+
+		return TextFormat::GRAY . "(" . $timeGradient . TextFormat::GRAY . ") [" .
+			$worldLoader . TextFormat::GRAY . "] " . TextFormat::WHITE . $message . TextFormat::RESET;
+	}
+
+	/**
+	 * @param list<array{0: int, 1: int, 2: int}> $colors
+	 */
+	private function applyAnsiGradient(string $text, array $colors) : string{
+		$result = "";
+		$length = strlen($text);
+		$colorCount = count($colors);
+
+		for($i = 0; $i < $length; $i++){
+			$colorIndex = $colorCount === 1 ? 0 : (int) round($i / max(1, $length - 1) * ($colorCount - 1));
+			[$r, $g, $b] = $colors[$colorIndex];
+			$result .= "\x1b[38;2;{$r};{$g};{$b}m" . $text[$i];
+		}
+
+		return $result . "\x1b[0m";
+	}
+
+	private function finishSpawnGeneration() : void{
+		$this->spawnGenerationInProgress = false;
+		$this->spawnGenerationFinished = true;
+
+		if($this->progressLineVisible){
+			Terminal::write("\r\033[K");
+			$this->progressLineVisible = false;
+		}
+
+		$success = $this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_worldLoader_success());
+		Terminal::writeLine($this->formatWorldLoaderLine($success));
+
+		if(self::$consoleProgressOwner === $this){
+			self::$consoleProgressOwner = null;
+		}
+	}
+
+	/**
+	 * Called by MainLogger before writing to the console.
+	 */
+	public static function notifyBeforeConsoleLog() : void{
+		$owner = self::$consoleProgressOwner;
+		if($owner !== null && $owner->progressLineVisible){
+			Terminal::write("\r\033[K");
+			$owner->progressLineVisible = false;
+		}
+	}
+
+	/**
+	 * Called by MainLogger after writing to the console.
+	 */
+	public static function notifyAfterConsoleLog() : void{
+		$owner = self::$consoleProgressOwner;
+		if($owner !== null && $owner->spawnGenerationInProgress && !$owner->spawnGenerationFinished){
+			$owner->printSpawnGenerationProgress();
 		}
 	}
 }

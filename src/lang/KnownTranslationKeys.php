@@ -473,6 +473,8 @@ final class KnownTranslationKeys{
 	public const POCKETMINE_DISCONNECT_KICK_NOREASON = "pocketmine.disconnect.kick.noReason";
 	public const POCKETMINE_DISCONNECT_TRANSFER = "pocketmine.disconnect.transfer";
 	public const POCKETMINE_DISCONNECT_WHITELISTED = "pocketmine.disconnect.whitelisted";
+	public const POCKETMINE_DISCONNECT_WORLDLOADING = "pocketmine.disconnect.worldLoading";
+	public const POCKETMINE_DISCONNECT_WORLDLOADING_SCREEN = "pocketmine.disconnect.worldLoading.screen";
 	public const POCKETMINE_DISCONNECT_XBLIMPERSONATION = "pocketmine.disconnect.xblImpersonation";
 	public const POCKETMINE_LEVEL_AMBIGUOUSFORMAT = "pocketmine.level.ambiguousFormat";
 	public const POCKETMINE_LEVEL_BACKGROUNDGENERATION = "pocketmine.level.backgroundGeneration";
@@ -490,6 +492,8 @@ final class KnownTranslationKeys{
 	public const POCKETMINE_LEVEL_UNKNOWNGENERATOR = "pocketmine.level.unknownGenerator";
 	public const POCKETMINE_LEVEL_UNLOADING = "pocketmine.level.unloading";
 	public const POCKETMINE_LEVEL_UNSUPPORTEDFORMAT = "pocketmine.level.unsupportedFormat";
+	public const POCKETMINE_LEVEL_WORLDLOADER_PROGRESS = "pocketmine.level.worldLoader.progress";
+	public const POCKETMINE_LEVEL_WORLDLOADER_SUCCESS = "pocketmine.level.worldLoader.success";
 	public const POCKETMINE_NETWORK_SESSION_CLOSE = "pocketmine.network.session.close";
 	public const POCKETMINE_NETWORK_SESSION_OPEN = "pocketmine.network.session.open";
 	public const POCKETMINE_NETWORK_SESSION_PLAYERNAME = "pocketmine.network.session.playerName";
@@ -558,6 +562,7 @@ final class KnownTranslationKeys{
 	public const POCKETMINE_PERMISSION_GROUP_CONSOLE = "pocketmine.permission.group.console";
 	public const POCKETMINE_PERMISSION_GROUP_OPERATOR = "pocketmine.permission.group.operator";
 	public const POCKETMINE_PERMISSION_GROUP_USER = "pocketmine.permission.group.user";
+	public const POCKETMINE_PLAYER_JOINLOG = "pocketmine.player.joinLog";
 	public const POCKETMINE_PLAYER_LOGIN = "pocketmine.player.logIn";
 	public const POCKETMINE_PLUGIN_ALIASERROR = "pocketmine.plugin.aliasError";
 	public const POCKETMINE_PLUGIN_AMBIGUOUSMINAPI = "pocketmine.plugin.ambiguousMinAPI";

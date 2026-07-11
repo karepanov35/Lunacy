@@ -388,6 +388,14 @@ class LoginPacketHandler extends PacketHandler{
 		}
 		($this->playerInfoConsumer)($playerInfo);
 
+		if($this->server->getWorldManager()->isSpawnGenerationInProgress()){
+			$this->session->disconnect(
+				KnownTranslationFactory::pocketmine_disconnect_worldLoading(),
+				KnownTranslationFactory::pocketmine_disconnect_worldLoading_screen()
+			);
+			return null;
+		}
+
 		$ev = new PlayerPreLoginEvent(
 			$playerInfo,
 			$this->session,
