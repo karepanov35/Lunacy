@@ -254,11 +254,11 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	 */
 	private array $activeChunkGenerationRequests = [];
 	/**
-	 * @var true[] chunkHash => dummy
-	 * @phpstan-var array<int, true>
+	 * @var int[] chunkHash => ring radius
+	 * @phpstan-var array<int, int>
 	 */
 	protected array $loadQueue = [];
-	protected int $nextChunkOrderRun = 5;
+	protected int $nextChunkOrderRun = 3;
 
 	/** @var true[] */
 	private array $tickingChunks = [];
@@ -266,7 +266,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	protected int $viewDistance = -1;
 	protected int $spawnThreshold;
 	protected int $spawnChunkLoadCount = 0;
-	protected int $chunksPerTick;
+	protected ChunkSendRateController $chunkSendRateController;
 	protected ChunkSelector $chunkSelector;
 	protected ChunkLoader $chunkLoader;
 	protected ChunkTicker $chunkTicker;
@@ -342,8 +342,13 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 			$rootPermissions[DefaultPermissions::ROOT_OPERATOR] = true;
 		}
 		$this->perm = new PermissibleBase($rootPermissions);
-		$this->chunksPerTick = $this->server->getConfigGroup()->getPropertyInt(YmlServerProperties::CHUNK_SENDING_PER_TICK, 32); // Оптимальное значение для баланса
-		$this->spawnThreshold = (int) (($this->server->getConfigGroup()->getPropertyInt(YmlServerProperties::CHUNK_SENDING_SPAWN_RADIUS, 4) ** 2) * M_PI); // Оптимальный радиус спавна
+		$config = $this->server->getConfigGroup();
+		$this->chunkSendRateController = new ChunkSendRateController(
+			$config->getPropertyInt(YmlServerProperties::CHUNK_SENDING_PER_TICK, 8),
+			$config->getPropertyInt(YmlServerProperties::CHUNK_SENDING_BURST_PER_TICK, 16),
+			(bool) $config->getProperty(YmlServerProperties::CHUNK_SENDING_ADAPTIVE, true)
+		);
+		$this->spawnThreshold = (int) (($config->getPropertyInt(YmlServerProperties::CHUNK_SENDING_SPAWN_RADIUS, 4) ** 2) * M_PI);
 		$this->chunkSelector = new ChunkSelector();
 
 		$this->chunkLoader = new class implements ChunkLoader{};
@@ -866,72 +871,126 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 
 		Timings::$playerChunkSend->startTiming();
 
-		$count = 0;
 		$world = $this->getWorld();
+		$activeGen = count($this->activeChunkGenerationRequests);
+		$burstLimit = $this->chunkSendRateController->getBurstLimit($this->server);
+		$genLimit = $this->chunkSendRateController->getGenerationLimit($this->server, $activeGen);
 
-		$limit = ($this->chunksPerTick * 2) - count($this->activeChunkGenerationRequests);
-		if($limit < 1){
-			$limit = 1;
-		}
+		$burstCount = 0;
+		$genCount = 0;
+
 		foreach($this->loadQueue as $index => $distance){
-			if($count >= $limit){
-				break;
-			}
-
 			$X = null;
 			$Z = null;
 			World::getXZ($index, $X, $Z);
 
-			++$count;
-
-			$this->usedChunks[$index] = UsedChunkStatus::REQUESTED_GENERATION;
-			$this->activeChunkGenerationRequests[$index] = true;
-			unset($this->loadQueue[$index]);
-			$world->registerChunkLoader($this->chunkLoader, $X, $Z, true);
-			$world->registerChunkListener($this, $X, $Z);
-			if(isset($this->tickingChunks[$index])){
-				$world->registerTickingChunk($this->chunkTicker, $X, $Z);
+			$chunk = $world->getChunk($X, $Z);
+			if($chunk !== null && $chunk->isPopulated()){
+				if($burstCount >= $burstLimit){
+					continue;
+				}
+				++$burstCount;
+				$this->sendReadyChunk($world, $X, $Z, $index);
+				continue;
 			}
 
-			$world->requestChunkPopulation($X, $Z, $this->chunkLoader)->onCompletion(
-				function() use ($X, $Z, $index, $world) : void{
-					if(!$this->isConnected() || !isset($this->usedChunks[$index]) || $world !== $this->getWorld()){
-						return;
-					}
-					if($this->usedChunks[$index] !== UsedChunkStatus::REQUESTED_GENERATION){
-						//We may have previously requested this, decided we didn't want it, and then decided we did want
-						//it again, all before the generation request got executed. In that case, the promise would have
-						//multiple callbacks for this player. In that case, only the first one matters.
-						return;
-					}
-					unset($this->activeChunkGenerationRequests[$index]);
-					$this->usedChunks[$index] = UsedChunkStatus::REQUESTED_SENDING;
-
-					$this->getNetworkSession()->startUsingChunk($X, $Z, function() use ($X, $Z, $index) : void{
-						$this->usedChunks[$index] = UsedChunkStatus::SENT;
-						if($this->spawnChunkLoadCount === -1){
-							$this->spawnEntitiesOnChunk($X, $Z);
-						}elseif($this->spawnChunkLoadCount++ === $this->spawnThreshold){
-							$this->spawnChunkLoadCount = -1;
-
-							$this->spawnEntitiesOnAllChunks();
-
-							$this->getNetworkSession()->notifyTerrainReady();
-						}
-						(new PlayerPostChunkSendEvent($this, $X, $Z))->call();
-					});
-				},
-				function() use ($index, $distance) : void{
-					unset($this->activeChunkGenerationRequests[$index]);
-					if(($this->usedChunks[$index] ?? null) === UsedChunkStatus::REQUESTED_GENERATION){
-						$this->usedChunks[$index] = UsedChunkStatus::NEEDED;
-						$this->loadQueue[$index] = $distance;
-					}
-				}
-			);
+			if($genCount >= $genLimit){
+				break;
+			}
+			++$genCount;
+			$this->requestChunkGeneration($world, $X, $Z, $index, $distance);
 		}
 
 		Timings::$playerChunkSend->stopTiming();
+	}
+
+	private function sendReadyChunk(World $world, int $X, int $Z, int $index) : void{
+		unset($this->loadQueue[$index]);
+		$this->usedChunks[$index] = UsedChunkStatus::REQUESTED_SENDING;
+		$world->registerChunkLoader($this->chunkLoader, $X, $Z, false);
+		$world->registerChunkListener($this, $X, $Z);
+		if(isset($this->tickingChunks[$index])){
+			$world->registerTickingChunk($this->chunkTicker, $X, $Z);
+		}
+		$this->deliverChunkToClient($X, $Z, $index);
+	}
+
+	private function requestChunkGeneration(World $world, int $X, int $Z, int $index, int $distance) : void{
+		unset($this->loadQueue[$index]);
+		$this->usedChunks[$index] = UsedChunkStatus::REQUESTED_GENERATION;
+		$this->activeChunkGenerationRequests[$index] = true;
+		$world->registerChunkLoader($this->chunkLoader, $X, $Z, false);
+		$world->registerChunkListener($this, $X, $Z);
+		if(isset($this->tickingChunks[$index])){
+			$world->registerTickingChunk($this->chunkTicker, $X, $Z);
+		}
+
+		$afterPopulation = function() use ($X, $Z, $index, $world) : void{
+			if(!$this->isConnected() || !isset($this->usedChunks[$index]) || $world !== $this->getWorld()){
+				return;
+			}
+			if($this->usedChunks[$index] !== UsedChunkStatus::REQUESTED_GENERATION){
+				return;
+			}
+			unset($this->activeChunkGenerationRequests[$index]);
+			$this->usedChunks[$index] = UsedChunkStatus::REQUESTED_SENDING;
+			$this->deliverChunkToClient($X, $Z, $index);
+		};
+
+		$onPopulationFailure = function() use ($index, $distance) : void{
+			unset($this->activeChunkGenerationRequests[$index]);
+			if(($this->usedChunks[$index] ?? null) === UsedChunkStatus::REQUESTED_GENERATION){
+				$this->usedChunks[$index] = UsedChunkStatus::NEEDED;
+				$this->loadQueue[$index] = $distance;
+			}
+		};
+
+		$startPopulation = function() use ($world, $X, $Z, $afterPopulation, $onPopulationFailure) : void{
+			$world->requestChunkPopulation($X, $Z, $this->chunkLoader)->onCompletion(
+				$afterPopulation,
+				$onPopulationFailure
+			);
+		};
+
+		if($world->isChunkLoaded($X, $Z)){
+			$startPopulation();
+			return;
+		}
+
+		$world->requestChunkLoad($X, $Z)->onCompletion(
+			function(?Chunk $_chunk) use ($world, $X, $Z, $index, $startPopulation, $afterPopulation) : void{
+				if(!$this->isConnected() || !isset($this->usedChunks[$index]) || $world !== $this->getWorld()){
+					unset($this->activeChunkGenerationRequests[$index]);
+					return;
+				}
+				if($this->usedChunks[$index] !== UsedChunkStatus::REQUESTED_GENERATION){
+					return;
+				}
+				$chunk = $world->getChunk($X, $Z);
+				if($chunk !== null && $chunk->isPopulated()){
+					unset($this->activeChunkGenerationRequests[$index]);
+					$this->usedChunks[$index] = UsedChunkStatus::REQUESTED_SENDING;
+					$this->deliverChunkToClient($X, $Z, $index);
+					return;
+				}
+				$startPopulation();
+			},
+			$onPopulationFailure
+		);
+	}
+
+	private function deliverChunkToClient(int $X, int $Z, int $index) : void{
+		$this->getNetworkSession()->startUsingChunk($X, $Z, function() use ($X, $Z, $index) : void{
+			$this->usedChunks[$index] = UsedChunkStatus::SENT;
+			if($this->spawnChunkLoadCount === -1){
+				$this->spawnEntitiesOnChunk($X, $Z);
+			}elseif($this->spawnChunkLoadCount++ === $this->spawnThreshold){
+				$this->spawnChunkLoadCount = -1;
+				$this->spawnEntitiesOnAllChunks();
+				$this->getNetworkSession()->notifyTerrainReady();
+			}
+			(new PlayerPostChunkSendEvent($this, $X, $Z))->call();
+		});
 	}
 
 	private function recheckBroadcastPermissions() : void{
@@ -1030,7 +1089,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 			$this->location->getFloorZ() >> Chunk::COORD_BIT_SIZE
 		) as $radius => $hash){
 			if(!isset($this->usedChunks[$hash]) || $this->usedChunks[$hash] === UsedChunkStatus::NEEDED){
-				$newOrder[$hash] = true;
+				$newOrder[$hash] = $radius;
 			}
 			if($radius < $tickingChunkRadius){
 				$tickingChunks[$hash] = true;
@@ -1047,6 +1106,20 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 
 		$this->updateTickingChunkRegistrations($this->tickingChunks, $tickingChunks);
 		$this->tickingChunks = $tickingChunks;
+
+		$prefetched = 0;
+		$prefetchLimit = min(12, $this->chunkSendRateController->getBurstLimit($this->server));
+		foreach($this->loadQueue as $hash => $_){
+			if($prefetched >= $prefetchLimit){
+				break;
+			}
+			World::getXZ($hash, $prefetchX, $prefetchZ);
+			$chunk = $world->getChunk($prefetchX, $prefetchZ);
+			if($chunk !== null && $chunk->isPopulated()){
+				$this->getNetworkSession()->prefetchChunk($prefetchX, $prefetchZ);
+				++$prefetched;
+			}
+		}
 
 		if(count($this->loadQueue) > 0 || count($unloadChunks) > 0){
 			$this->getNetworkSession()->syncViewAreaCenterPoint($this->location, $this->viewDistance);
@@ -1090,6 +1163,10 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	 * Ticks the chunk-requesting mechanism.
 	 */
 	public function doChunkRequests() : void{
+		if(count($this->loadQueue) > 48 && $this->nextChunkOrderRun > 1){
+			$this->nextChunkOrderRun = 1;
+		}
+
 		if($this->nextChunkOrderRun !== PHP_INT_MAX && $this->nextChunkOrderRun-- <= 0){
 			$this->nextChunkOrderRun = PHP_INT_MAX;
 			$this->orderChunks();
@@ -1474,8 +1551,8 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 					$this->hungerManager->exhaust(0.0, PlayerExhaustEvent::CAUSE_WALKING);
 				}
 
-				if($this->nextChunkOrderRun > 20){
-					$this->nextChunkOrderRun = 20;
+				if($this->nextChunkOrderRun > 10){
+					$this->nextChunkOrderRun = 10;
 				}
 			}
 		}
@@ -1569,12 +1646,11 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 				$this->blockBreakHandler = null;
 			}
 
-			if($this->isUsingItem() && $this->getItemUseDuration() % 4 === 0 && ($item = $this->inventory->getItemInHand()) instanceof ConsumableItem){
-				$this->broadcastAnimation(new ConsumingItemAnimation($this, $item));
-			}
-
 			if($this->isUsingItem()){
 				$item = $this->inventory->getItemInHand();
+				if($this->getItemUseDuration() % 4 === 0 && $item instanceof ConsumableItem){
+					$this->broadcastAnimation(new ConsumingItemAnimation($this, $item));
+				}
 				if(!$item->continueUsing($this)){
 					$this->setUsingItem(false);
 				}

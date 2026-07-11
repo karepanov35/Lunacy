@@ -31,6 +31,7 @@ use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
+use pocketmine\world\sound\EndPortalFrameFillSound;
 
 class EndPortalFrame extends Opaque implements HorizontalFacing{
 	use FacesOppositePlacingPlayerTrait;
@@ -71,6 +72,7 @@ class EndPortalFrame extends Opaque implements HorizontalFacing{
 		}
 		$world = $this->position->getWorld();
 		$world->setBlock($this->position, $this->setEye(true));
+		$world->addSound($this->position->add(0.5, 0.5, 0.5), new EndPortalFrameFillSound());
 		EndPortal::tryActivateFromFrame($world, $this->position);
 
 		return true;

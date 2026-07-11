@@ -43,6 +43,7 @@ use pocketmine\entity\mob\ZombifiedPiglin;
 use pocketmine\entity\passive\Allay;
 use pocketmine\entity\passive\Chicken;
 use pocketmine\entity\passive\Cow;
+use pocketmine\entity\passive\Fox;
 use pocketmine\entity\passive\Horse;
 use pocketmine\entity\passive\IronGolem;
 use pocketmine\entity\passive\Panda;
@@ -71,6 +72,7 @@ use function strtolower;
  * @method static ItemBlockWallOrFloor ACACIA_SIGN()
  * @method static ItemBlock AIR()
  * @method static Item AMETHYST_SHARD()
+ * @method static ArmorStand ARMOR_STAND()
  * @method static Apple APPLE()
  * @method static Arrow ARROW()
  * @method static BakedPotato BAKED_POTATO()
@@ -368,6 +370,8 @@ use function strtolower;
  * @method static SpawnEgg HOGLIN_SPAWN_EGG()
  * @method static SpawnEgg ZOGLIN_SPAWN_EGG()
  * @method static SpawnEgg ALLAY_SPAWN_EGG()
+ * @method static SpawnEgg FOX_SPAWN_EGG()
+ * @method static SpawnEgg PANDA_SPAWN_EGG()
  */
 final class VanillaItems{
 	use CloningRegistryTrait;
@@ -425,6 +429,7 @@ final class VanillaItems{
 		self::register("acacia_sign", fn(IID $id) => new ItemBlockWallOrFloor($id, Blocks::ACACIA_SIGN(), Blocks::ACACIA_WALL_SIGN()));
 		self::register("acacia_hanging_sign", fn(IID $id) => new HangingSign($id, "Acacia Hanging Sign", Blocks::ACACIA_CEILING_CENTER_HANGING_SIGN(), Blocks::ACACIA_CEILING_EDGES_HANGING_SIGN(), Blocks::ACACIA_WALL_HANGING_SIGN()));
 		self::register("amethyst_shard", fn(IID $id) => new Item($id, "Amethyst Shard"));
+		self::register("armor_stand", fn(IID $id) => new ArmorStand($id, "Armor Stand"));
 		self::register("apple", fn(IID $id) => new Apple($id, "Apple"));
 		self::register("arrow", fn(IID $id) => new Arrow($id, "Arrow"));
 		self::register("baked_potato", fn(IID $id) => new BakedPotato($id, "Baked Potato"));
@@ -752,6 +757,11 @@ final class VanillaItems{
 		self::register("panda_spawn_egg", fn(IID $id) => new class($id, "Panda Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
 				return new Panda(Location::fromObject($pos, $world, $yaw, $pitch), null);
+			}
+		});
+		self::register("fox_spawn_egg", fn(IID $id) => new class($id, "Fox Spawn Egg") extends SpawnEgg{
+			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
+				return new Fox(Location::fromObject($pos, $world, $yaw, $pitch), null);
 			}
 		});
 	}

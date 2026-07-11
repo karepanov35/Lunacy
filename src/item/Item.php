@@ -626,7 +626,7 @@ class Item implements \JsonSerializable{
 	 * Return true to continue using the item, false to stop.
 	 */
 	public function continueUsing(Player $player) : bool{
-		return false;
+		return $this instanceof Releasable && $this->canStartUsingItem($player);
 	}
 
 	/**

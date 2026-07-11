@@ -44,6 +44,9 @@ class ChunkCache implements ChunkListener{
 	/** @var self[][] */
 	private static array $instances = [];
 
+	private static int $inflightPrepares = 0;
+	private static int $maxInflightPrepares = 48;
+
 	/**
 	 * Fetches the ChunkCache instance for the given world. This lazily creates cache systems as needed.
 	 */
@@ -174,6 +177,30 @@ class ChunkCache implements ChunkListener{
 		}
 
 		return $this->prepareChunkAsync($chunkX, $chunkZ, $chunkHash, $typeConverter);
+	}
+
+	public function prefetch(int $chunkX, int $chunkZ, TypeConverter $typeConverter) : void{
+		if(self::$inflightPrepares >= self::$maxInflightPrepares){
+			return;
+		}
+		$chunkHash = World::chunkHash($chunkX, $chunkZ);
+		$protocolId = $typeConverter->getProtocolId();
+		if(isset($this->caches[$chunkHash][$protocolId])){
+			return;
+		}
+		if($this->world->getChunk($chunkX, $chunkZ) === null){
+			return;
+		}
+		++self::$inflightPrepares;
+		$this->prepareChunkAsync($chunkX, $chunkZ, $chunkHash, $typeConverter)->onResolve(
+			static function() : void{
+				self::$inflightPrepares = max(0, self::$inflightPrepares - 1);
+			}
+		);
+	}
+
+	public static function setMaxInflightPrepares(int $max) : void{
+		self::$maxInflightPrepares = max(1, $max);
 	}
 
 	private function destroy(int $chunkX, int $chunkZ, ?int $protocolId = null) : bool{

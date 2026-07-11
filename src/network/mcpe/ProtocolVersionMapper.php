@@ -31,14 +31,17 @@ use pocketmine\network\mcpe\protocol\ProtocolInfo;
  */
 final class ProtocolVersionMapper{
 
-	public const PROTOCOL_1_26_30 = 1001;
+	public const PROTOCOL_1_26_33 = 1001;
+
+	/** @deprecated Use PROTOCOL_1_26_33 */
+	public const PROTOCOL_1_26_30 = self::PROTOCOL_1_26_33;
 
 	/**
 	 * @var int[]
 	 * @phpstan-var list<int>
 	 */
 	public const ACCEPTED_PROTOCOLS = [
-		self::PROTOCOL_1_26_30,
+		self::PROTOCOL_1_26_33,
 		ProtocolInfo::PROTOCOL_1_26_20,
 		ProtocolInfo::PROTOCOL_1_26_10,
 		ProtocolInfo::PROTOCOL_1_26_0,
@@ -69,7 +72,7 @@ final class ProtocolVersionMapper{
 	];
 
 	private const VERSION_NAMES = [
-		self::PROTOCOL_1_26_30 => "1.26.30",
+		self::PROTOCOL_1_26_33 => "1.26.33",
 		ProtocolInfo::PROTOCOL_1_26_20 => "1.26.20",
 		ProtocolInfo::PROTOCOL_1_26_10 => "1.26.10",
 		ProtocolInfo::PROTOCOL_1_26_0 => "1.26.0",
@@ -116,7 +119,7 @@ final class ProtocolVersionMapper{
 	}
 
 	public static function getMaxProtocol() : int{
-		return self::PROTOCOL_1_26_30;
+		return self::PROTOCOL_1_26_33;
 	}
 
 	public static function getSupportedVersionRange() : string{

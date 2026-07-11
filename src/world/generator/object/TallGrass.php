@@ -9,32 +9,36 @@ use pocketmine\block\BlockTypeIds;
 use pocketmine\block\Leaves;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
+use pocketmine\world\generator\utils\SurfacePlacementUtils;
 
 class TallGrass extends TerrainObject{
+
+	private const ATTEMPTS = 8;
 
 	public function __construct(
 		private Block $grass_type
 	){}
 
 	public function generate(ChunkManager $world, Random $random, int $source_x, int $source_y, int $source_z) : bool{
-		do{
-			$this_block = $world->getBlockAt($source_x, $source_y, $source_z);
-			--$source_y;
-		}while(($this_block->getTypeId() === BlockTypeIds::AIR || $this_block instanceof Leaves) && $source_y > 0);
-		++$source_y;
 		$succeeded = false;
-		$height = $world->getMaxY();
-		for($i = 0; $i < 128; ++$i){
+		for($i = 0; $i < self::ATTEMPTS; ++$i){
 			$x = $source_x + $random->nextBoundedInt(8) - $random->nextBoundedInt(8);
 			$z = $source_z + $random->nextBoundedInt(8) - $random->nextBoundedInt(8);
-			$y = $source_y + $random->nextBoundedInt(4) - $random->nextBoundedInt(4);
-
-			$block_type = $world->getBlockAt($x, $y, $z)->getTypeId();
-			$block_type_below = $world->getBlockAt($x, $y - 1, $z)->getTypeId();
-			if($y < $height && $block_type === BlockTypeIds::AIR && ($block_type_below === BlockTypeIds::GRASS || $block_type_below === BlockTypeIds::DIRT)){
-				$world->setBlockAt($x, $y, $z, $this->grass_type);
-				$succeeded = true;
+			$y = SurfacePlacementUtils::getSurfaceYForSoil($world, $x, $z, BlockTypeIds::GRASS, BlockTypeIds::DIRT);
+			if($y === null){
+				continue;
 			}
+			if(!$world->getBlockAt($x, $y - 2, $z)->isSolid()){
+				continue;
+			}
+			$above = $world->getBlockAt($x, $y, $z);
+			if($above->getTypeId() !== BlockTypeIds::AIR && $above->getTypeId() !== BlockTypeIds::SNOW_LAYER && !($above instanceof Leaves)){
+				if($above->isSolid() || !$above->canBeReplaced()){
+					continue;
+				}
+			}
+			$world->setBlockAt($x, $y, $z, $this->grass_type);
+			$succeeded = true;
 		}
 		return $succeeded;
 	}

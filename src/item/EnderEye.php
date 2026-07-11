@@ -43,10 +43,10 @@ class EnderEye extends ProjectileItem{
 	}
 
 	public function getCooldownTicks() : int{
-		return 0;
+		return 20;
 	}
 
 	public function getCooldownTag() : ?string{
-		return null;
+		return ItemCooldownTags::ENDER_EYE;
 	}
 }

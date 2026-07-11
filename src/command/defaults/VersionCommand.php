@@ -55,7 +55,16 @@ class VersionCommand extends VanillaCommand{
 			$protocolRange = ProtocolVersionMapper::getSupportedProtocolRange();
 
 			$gitLabel = VersionInfo::GIT_HASH_SHORT();
-			$sender->sendMessage(TextFormat::WHITE . "This server is running " . TextFormat::RED . "Lunacy v" . VersionInfo::VERSION()->getFullVersion(true) . TextFormat::GRAY . " (git " . $gitLabel . ")" . TextFormat::WHITE . " [PHP " . TextFormat::GREEN . PHP_VERSION . TextFormat::WHITE . "], API version: " . VersionInfo::API_VERSION . ", supported Minecraft Bedrock versions: " . TextFormat::GRAY . $minecraftVersions . TextFormat::WHITE . " (protocol versions: " . $protocolRange . ")");
+			$channel = VersionInfo::BUILD_CHANNEL;
+			$sender->sendMessage(
+				TextFormat::WHITE . "This server is running " .
+				TextFormat::RED . "Lunacy v" . VersionInfo::VERSION()->getFullVersion(true) . " " . $channel .
+				TextFormat::GRAY . " (git " . $gitLabel . ")" .
+				TextFormat::WHITE . " [PHP " . TextFormat::GREEN . PHP_VERSION . TextFormat::WHITE . "], API version: " .
+				VersionInfo::API_VERSION .
+				", supported Minecraft Bedrock versions: " . TextFormat::GRAY . $minecraftVersions .
+				TextFormat::WHITE . " (protocol versions: " . $protocolRange . ")"
+			);
 		}else{
 			$pluginName = implode(" ", $args);
 			$exactPlugin = $sender->getServer()->getPluginManager()->getPlugin($pluginName);

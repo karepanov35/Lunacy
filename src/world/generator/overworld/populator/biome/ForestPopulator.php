@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace pocketmine\world\generator\overworld\populator\biome;
 
-use pocketmine\world\generator\object\DoubleTallPlant;
-use pocketmine\world\generator\object\tree\BirchTree;
-use pocketmine\world\generator\object\tree\GenericTree;
-use pocketmine\world\generator\overworld\biome\BiomeIds;
-use pocketmine\world\generator\overworld\decorator\types\TreeDecoration;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\block\DoublePlant;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
+use pocketmine\world\generator\object\DoubleTallPlant;
+use pocketmine\world\generator\object\tree\BirchTree;
+use pocketmine\world\generator\object\tree\GenericTree;
+use pocketmine\world\generator\overworld\biome\BiomeIds;
+use pocketmine\world\generator\overworld\decorator\types\TreeDecoration;
+use pocketmine\world\generator\utils\SurfacePlacementUtils;
+use function count;
 
 class ForestPopulator extends BiomePopulator{
 
@@ -61,11 +64,14 @@ class ForestPopulator extends BiomePopulator{
 		$i = 0;
 		while($i < $amount){
 			for($j = 0; $j < 5; ++$j, ++$i){
-				$x = $random->nextBoundedInt(16);
-				$z = $random->nextBoundedInt(16);
-				$y = $random->nextBoundedInt($chunk->getHighestBlockAt($x, $z) + 32);
+				$x = $source_x + $random->nextBoundedInt(16);
+				$z = $source_z + $random->nextBoundedInt(16);
+				$y = SurfacePlacementUtils::getSurfaceYForSoil($world, $x, $z, BlockTypeIds::GRASS);
+				if($y === null){
+					continue;
+				}
 				$species = self::$DOUBLE_PLANTS[$random->nextBoundedInt(count(self::$DOUBLE_PLANTS))];
-				if((new DoubleTallPlant($species))->generate($world, $random, $source_x + $x, $y, $source_z + $z)){
+				if((new DoubleTallPlant($species))->generate($world, $random, $x, $y, $z)){
 					++$i;
 					break;
 				}

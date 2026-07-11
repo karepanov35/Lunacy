@@ -33,5 +33,5 @@ jobs:
               }
             }
             const [owner, repo] = context.payload.repository.full_name.split('/');
-            removeLabel(owner, repo, context.payload.number, "Status: Waiting on Author");
-            removeLabel(owner, repo, context.payload.number, "Stale");
+            await removeLabel(owner, repo, context.payload.number, "Status: Waiting on Author");
+            await removeLabel(owner, repo, context.payload.number, "Stale");

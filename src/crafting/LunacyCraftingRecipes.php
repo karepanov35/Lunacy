@@ -32,5 +32,14 @@ final class LunacyCraftingRecipes{
 			[VanillaBlocks::STICKY_PISTON()->asItem()],
 			ShapelessRecipeType::CRAFTING
 		));
+
+		$manager->registerShapedRecipe(new ShapedRecipe(
+			["AAA", " A ", "ABA"],
+			[
+				"A" => new ExactRecipeIngredient(VanillaItems::STICK()),
+				"B" => new ExactRecipeIngredient(VanillaBlocks::SMOOTH_STONE_SLAB()->asItem()),
+			],
+			[VanillaItems::ARMOR_STAND()]
+		));
 	}
 }

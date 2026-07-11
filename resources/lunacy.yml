@@ -94,6 +94,7 @@ network:
   # [RU] Частые значения / [EN] Common values:
   #   589  → 1.20.0    | 712 → 1.21.20  | 859 → 1.21.120 | 924 → 1.26.0
   #   766  → 1.21.50   | 827 → 1.21.100 | 898 → 1.21.130 | 975 → 1.26.20
+  #  1001  → 1.26.33
   #
   min-protocol: 0
 
@@ -134,12 +135,29 @@ level-settings:
   #Default PM sets this as -80 but NetherGames makes this configurable and the default is 0
   min-y: 0
 
+entity:
+  #Max non-player entities updated per world per tick (round-robin). Players always tick.
+  #Lower values reduce lag with many mobs/items. 0 = unlimited (tick all every tick).
+  max-ticked-per-tick: 200
+
 chunk-sending:
   #To change server normal render distance, change view-distance in server.properties.
-  #Amount of chunks sent to players per tick
-  per-tick: 4
+  #Chunks started for generation per tick (adaptive throttling when TPS drops)
+  per-tick: 8
+  #Ready chunks (already loaded) sent per tick — higher burst for fast terrain without extra gen load
+  burst-per-tick: 16
+  #Reduce send/gen rates automatically when server TPS falls below 19.5
+  adaptive: true
   #Radius of chunks that need to be sent before spawning the player
   spawn-radius: 4
+
+chunk-unloading:
+  #Seconds an unused chunk remains cached in memory before unloading
+  delay-seconds: 15
+  #Maximum chunks unloaded and saved during one tick
+  per-tick: 8
+  #Reduce unloading work when TPS drops and accelerate large backlogs when TPS is stable
+  adaptive: true
 
 chunk-ticking:
   #Radius of chunks around a player to tick

@@ -53,6 +53,7 @@ use pocketmine\entity\mob\ZombifiedPiglin;
 use pocketmine\entity\passive\Allay;
 use pocketmine\entity\passive\Chicken;
 use pocketmine\entity\passive\Cow;
+use pocketmine\entity\passive\Fox;
 use pocketmine\entity\passive\Horse;
 use pocketmine\entity\passive\IronGolem;
 use pocketmine\entity\passive\Panda;
@@ -62,6 +63,7 @@ use pocketmine\entity\passive\Squid;
 use pocketmine\entity\passive\Villager;
 use pocketmine\entity\TNTMinecart;
 use pocketmine\entity\object\AreaEffectCloud;
+use pocketmine\entity\object\ArmorStand;
 use pocketmine\entity\object\EndCrystal;
 use pocketmine\entity\object\ExperienceOrb;
 use pocketmine\entity\object\FallingBlock;
@@ -135,6 +137,10 @@ final class EntityFactory{
 		$this->register(EndCrystal::class, function(World $world, CompoundTag $nbt) : EndCrystal{
 			return new EndCrystal(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['EnderCrystal', 'minecraft:ender_crystal']);
+
+		$this->register(ArmorStand::class, function(World $world, CompoundTag $nbt) : ArmorStand{
+			return new ArmorStand(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['ArmorStand', 'minecraft:armor_stand']);
 
 		$this->register(EnderPearl::class, function(World $world, CompoundTag $nbt) : EnderPearl{
 			return new EnderPearl(Helper::parseLocation($nbt, $world), null, $nbt);
@@ -290,6 +296,10 @@ final class EntityFactory{
 		$this->register(Panda::class, function(World $world, CompoundTag $nbt) : Panda{
 			return new Panda(Helper::parseLocation($nbt, $world), $nbt);
 		}, ['Panda', 'minecraft:panda']);
+
+		$this->register(Fox::class, function(World $world, CompoundTag $nbt) : Fox{
+			return new Fox(Helper::parseLocation($nbt, $world), $nbt);
+		}, ['Fox', 'minecraft:fox']);
 
 		$this->register(Horse::class, function(World $world, CompoundTag $nbt) : Horse{
 			return new Horse(Helper::parseLocation($nbt, $world), $nbt);

@@ -54,6 +54,7 @@ class ItemEntity extends Entity{
 	public static function getNetworkTypeId() : string{ return EntityIds::ITEM; }
 
 	public const MERGE_CHECK_PERIOD = 2; //0.1 seconds
+	public const MERGE_RADIUS = 1.0;
 	public const DEFAULT_DESPAWN_DELAY = 6000; //5 minutes
 	public const NEVER_DESPAWN = -1;
 	public const MAX_DESPAWN_DELAY = 32767 + self::DEFAULT_DESPAWN_DELAY; //max value storable by mojang NBT :(
@@ -98,6 +99,7 @@ class ItemEntity extends Entity{
 	protected function onFirstUpdate(int $currentTick) : void{
 		(new ItemSpawnEvent($this))->call(); //this must be called before EntitySpawnEvent, to maintain backwards compatibility
 		parent::onFirstUpdate($currentTick);
+		$this->tryMergeNearby();
 	}
 
 	protected function entityBaseTick(int $tickDiff = 1) : bool{
@@ -122,26 +124,9 @@ class ItemEntity extends Entity{
 				}
 			}
 
-			if($this->hasMovementUpdate() && $this->isMergeCandidate() && $this->despawnDelay % self::MERGE_CHECK_PERIOD === 0){
-				$mergeable = [$this]; //in case the merge target ends up not being this
-				$mergeTarget = $this;
-				foreach($this->getWorld()->getNearbyEntities($this->boundingBox->expandedCopy(0.5, 0.5, 0.5), $this) as $entity){
-					if(!$entity instanceof ItemEntity || $entity->isFlaggedForDespawn()){
-						continue;
-					}
-
-					if($entity->isMergeable($this)){
-						$mergeable[] = $entity;
-						if($entity->item->getCount() > $mergeTarget->item->getCount()){
-							$mergeTarget = $entity;
-						}
-					}
-				}
-				foreach($mergeable as $itemEntity){
-					if($itemEntity !== $mergeTarget){
-						$itemEntity->tryMergeInto($mergeTarget);
-					}
-				}
+			if($this->isMergeCandidate() && $this->despawnDelay % self::MERGE_CHECK_PERIOD === 0){
+				$this->tryMergeNearby();
+				$hasUpdate = true;
 			}
 
 			if(!$this->isFlaggedForDespawn() && $this->despawnDelay !== self::NEVER_DESPAWN){
@@ -161,6 +146,34 @@ class ItemEntity extends Entity{
 			return $hasUpdate;
 		}finally{
 			Timings::$itemEntityBaseTick->stopTiming();
+		}
+	}
+
+	public function tryMergeNearby() : void{
+		if($this->closed || $this->isFlaggedForDespawn() || !$this->isMergeCandidate()){
+			return;
+		}
+
+		$mergeable = [$this];
+		$mergeTarget = $this;
+		$radius = self::MERGE_RADIUS;
+		foreach($this->getWorld()->getNearbyEntities($this->boundingBox->expandedCopy($radius, $radius, $radius), $this) as $entity){
+			if(!$entity instanceof ItemEntity || $entity->isFlaggedForDespawn() || $entity->isClosed()){
+				continue;
+			}
+
+			if($this->isMergeable($entity)){
+				$mergeable[] = $entity;
+				if($entity->item->getCount() > $mergeTarget->item->getCount()){
+					$mergeTarget = $entity;
+				}
+			}
+		}
+
+		foreach($mergeable as $itemEntity){
+			if($itemEntity !== $mergeTarget && !$itemEntity->isClosed() && !$itemEntity->isFlaggedForDespawn()){
+				$itemEntity->tryMergeInto($mergeTarget);
+			}
 		}
 	}
 

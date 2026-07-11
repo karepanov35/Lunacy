@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace pocketmine\world\generator\overworld\populator\biome;
 
+use pocketmine\block\Block;
+use pocketmine\block\BlockTypeIds;
+use pocketmine\block\VanillaBlocks;
+use pocketmine\utils\Random;
+use pocketmine\world\ChunkManager;
+use pocketmine\world\format\Chunk;
 use pocketmine\world\generator\noise\bukkit\OctaveGenerator;
 use pocketmine\world\generator\noise\glowstone\SimplexOctaveGenerator;
 use pocketmine\world\generator\object\DoubleTallPlant;
 use pocketmine\world\generator\object\Flower;
 use pocketmine\world\generator\object\TallGrass;
 use pocketmine\world\generator\overworld\biome\BiomeIds;
-use pocketmine\block\Block;
-use pocketmine\block\VanillaBlocks;
-use pocketmine\utils\Random;
-use pocketmine\world\ChunkManager;
-use pocketmine\world\format\Chunk;
+use pocketmine\world\generator\utils\SurfacePlacementUtils;
+use function count;
 
 class PlainsPopulator extends BiomePopulator{
 
@@ -62,16 +65,18 @@ class PlainsPopulator extends BiomePopulator{
 		$source_x = $chunk_x << Chunk::COORD_BIT_SIZE;
 		$source_z = $chunk_z << Chunk::COORD_BIT_SIZE;
 
-		$flower_amount = 15;
-		$tall_grass_amount = 5;
+		$flower_amount = 4;
+		$tall_grass_amount = 2;
 		if($this->noise_gen->noise($source_x + 8, $source_z + 8, 0, 0.5, 2.0, false) >= -0.8){
-			$flower_amount = 4;
-			$tall_grass_amount = 10;
-			for($i = 0; $i < 7; ++$i){
-				$x = $random->nextBoundedInt(16);
-				$z = $random->nextBoundedInt(16);
-				$y = $random->nextBoundedInt($chunk->getHighestBlockAt($x, $z) + 32);
-				(new DoubleTallPlant(VanillaBlocks::DOUBLE_TALLGRASS()))->generate($world, $random, $source_x + $x, $y, $source_z + $z);
+			$flower_amount = 2;
+			$tall_grass_amount = 4;
+			for($i = 0; $i < 3; ++$i){
+				$x = $source_x + $random->nextBoundedInt(16);
+				$z = $source_z + $random->nextBoundedInt(16);
+				$y = SurfacePlacementUtils::getSurfaceYForSoil($world, $x, $z, BlockTypeIds::GRASS);
+				if($y !== null){
+					(new DoubleTallPlant(VanillaBlocks::DOUBLE_TALLGRASS()))->generate($world, $random, $x, $y, $z);
+				}
 			}
 		}
 
@@ -82,17 +87,21 @@ class PlainsPopulator extends BiomePopulator{
 		};
 
 		for($i = 0; $i < $flower_amount; ++$i){
-			$x = $random->nextBoundedInt(16);
-			$z = $random->nextBoundedInt(16);
-			$y = $random->nextBoundedInt($chunk->getHighestBlockAt($x, $z) + 32);
-			(new Flower($flower))->generate($world, $random, $source_x + $x, $y, $source_z + $z);
+			$x = $source_x + $random->nextBoundedInt(16);
+			$z = $source_z + $random->nextBoundedInt(16);
+			$y = SurfacePlacementUtils::getSurfaceYForSoil($world, $x, $z, BlockTypeIds::GRASS);
+			if($y !== null){
+				(new Flower($flower))->generate($world, $random, $x, $y, $z);
+			}
 		}
 
 		for($i = 0; $i < $tall_grass_amount; ++$i){
-			$x = $random->nextBoundedInt(16);
-			$z = $random->nextBoundedInt(16);
-			$y = $random->nextBoundedInt($chunk->getHighestBlockAt($x, $z) << 1);
-			(new TallGrass(VanillaBlocks::TALL_GRASS()))->generate($world, $random, $source_x + $x, $y, $source_z + $z);
+			$x = $source_x + $random->nextBoundedInt(16);
+			$z = $source_z + $random->nextBoundedInt(16);
+			$y = SurfacePlacementUtils::getSurfaceYForSoil($world, $x, $z, BlockTypeIds::GRASS, BlockTypeIds::DIRT);
+			if($y !== null){
+				(new TallGrass(VanillaBlocks::TALL_GRASS()))->generate($world, $random, $x, $y, $z);
+			}
 		}
 
 		parent::populateOnGround($world, $random, $chunk_x, $chunk_z, $chunk);

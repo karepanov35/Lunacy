@@ -45,7 +45,7 @@ use function str_replace;
 final class ItemTypeDictionaryFromDataHelper{
 
 	private const PATHS = [
-		ProtocolVersionMapper::PROTOCOL_1_26_30 => "",
+		ProtocolVersionMapper::PROTOCOL_1_26_33 => "",
 		ProtocolInfo::PROTOCOL_1_26_20 => "-1.26.20",
 		ProtocolInfo::CURRENT_PROTOCOL => "",
 		ProtocolInfo::PROTOCOL_1_26_10 => "-1.26.10",
@@ -89,13 +89,44 @@ final class ItemTypeDictionaryFromDataHelper{
 		$emptyNBT = new CacheableNbt(new CompoundTag());
 		$nbtSerializer = new LittleEndianNbtSerializer();
 
+		/** @var array<string, int> $maxStackOverrides */
+		$maxStackOverrides = [
+			"minecraft:armor_stand" => 16,
+		];
+
 		$params = [];
 		foreach(Utils::promoteKeys($table) as $name => $entry){
 			if(!is_array($entry) || !is_string($name) || !isset($entry["component_based"], $entry["runtime_id"]) || !is_bool($entry["component_based"]) || !is_int($entry["runtime_id"]) || !is_int($entry["version"] ?? 0) || !(is_string($componentNbt = $entry["component_nbt"] ?? null) || $componentNbt === null)){
 				throw new AssumptionFailedError("Invalid item list format");
 			}
-			$params[] = new ItemTypeEntry($name, $entry["runtime_id"], $entry["component_based"], $entry["version"] ?? 2, $componentNbt === null ? $emptyNBT : new CacheableNbt($nbtSerializer->read(ErrorToExceptionHandler::trapAndRemoveFalse(fn() => base64_decode($componentNbt, true)))->mustGetCompoundTag()));
+			$nbt = $componentNbt === null ? $emptyNBT : new CacheableNbt($nbtSerializer->read(ErrorToExceptionHandler::trapAndRemoveFalse(fn() => base64_decode($componentNbt, true)))->mustGetCompoundTag());
+			$componentBased = $entry["component_based"];
+			if(isset($maxStackOverrides[$name])){
+				$nbt = self::buildMaxStackComponentNbt($maxStackOverrides[$name], $name);
+				$componentBased = true;
+			}
+			$params[] = new ItemTypeEntry($name, $entry["runtime_id"], $componentBased, $entry["version"] ?? 2, $nbt);
 		}
 		return new ItemTypeDictionary($params);
+	}
+
+	private static function buildMaxStackComponentNbt(int $maxStack, string $textureName) : CacheableNbt{
+		$shortName = str_replace("minecraft:", "", $textureName);
+		$nbt = CompoundTag::create()
+			->setTag("components", CompoundTag::create()
+				->setTag("item_properties", CompoundTag::create()
+					->setInt("max_stack_size", $maxStack)
+					->setByte("allow_off_hand", 0)
+					->setByte("can_destroy_in_creative", 1)
+					->setInt("creative_category", 3)
+					->setTag("minecraft:icon", CompoundTag::create()
+						->setTag("textures", CompoundTag::create()
+							->setString("default", $shortName)
+						)
+					)
+				)
+				->setInt("minecraft:max_stack_size", $maxStack)
+			);
+		return new CacheableNbt($nbt);
 	}
 }

@@ -1254,6 +1254,7 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("acacia_boat", fn() => Items::ACACIA_BOAT());
 		$result->register("acacia_hanging_sign", fn() => Items::ACACIA_HANGING_SIGN());
 		$result->register("amethyst_shard", fn() => Items::AMETHYST_SHARD());
+		$result->register("armor_stand", fn() => Items::ARMOR_STAND());
 		$result->register("antidote", fn() => Items::MEDICINE()->setType(MedicineType::ANTIDOTE));
 		$result->register("apple", fn() => Items::APPLE());
 		$result->register("apple_enchanted", fn() => Items::ENCHANTED_GOLDEN_APPLE());
@@ -1602,6 +1603,8 @@ final class StringToItemParser extends StringToTParser{
 		$result->register("piglin_spawn_egg", fn() => Items::PIGLIN_SPAWN_EGG());
 		$result->register("zoglin_spawn_egg", fn() => Items::ZOGLIN_SPAWN_EGG());
 		$result->register("allay_spawn_egg", fn() => Items::ALLAY_SPAWN_EGG());
+		$result->register("fox_spawn_egg", fn() => Items::FOX_SPAWN_EGG());
+		$result->register("panda_spawn_egg", fn() => Items::PANDA_SPAWN_EGG());
 		$result->register("saddle", fn() => Items::SADDLE());
 		$result->register("leather_horse_armor", fn() => Items::LEATHER_HORSE_ARMOR());
 		$result->register("iron_horse_armor", fn() => Items::IRON_HORSE_ARMOR());

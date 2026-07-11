@@ -4,25 +4,28 @@ declare(strict_types=1);
 
 namespace pocketmine\world\generator\overworld\decorator;
 
-use pocketmine\world\generator\Decorator;
-use pocketmine\world\generator\object\DoubleTallPlant;
-use pocketmine\world\generator\overworld\decorator\types\DoublePlantDecoration;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\block\DoublePlant;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
+use pocketmine\world\generator\Decorator;
+use pocketmine\world\generator\object\DoubleTallPlant;
+use pocketmine\world\generator\overworld\decorator\types\DoublePlantDecoration;
+use pocketmine\world\generator\utils\SurfacePlacementUtils;
 
 class DoublePlantDecorator extends Decorator{
 
 	/**
-	 * @param Random $random
 	 * @param DoublePlantDecoration[] $decorations
-	 * @return DoublePlant|null
 	 */
 	private static function getRandomDoublePlant(Random $random, array $decorations) : ?DoublePlant{
 		$totalWeight = 0;
 		foreach($decorations as $decoration){
 			$totalWeight += $decoration->weight;
+		}
+		if($totalWeight <= 0){
+			return null;
 		}
 		$weight = $random->nextBoundedInt($totalWeight);
 		foreach($decorations as $decoration){
@@ -44,9 +47,17 @@ class DoublePlantDecorator extends Decorator{
 	public function decorate(ChunkManager $world, Random $random, int $chunk_x, int $chunk_z, Chunk $chunk) : void{
 		$x = $random->nextBoundedInt(16);
 		$z = $random->nextBoundedInt(16);
-		$source_y = $random->nextBoundedInt($chunk->getHighestBlockAt($x, $z) + 32);
+		$worldX = ($chunk_x << Chunk::COORD_BIT_SIZE) + $x;
+		$worldZ = ($chunk_z << Chunk::COORD_BIT_SIZE) + $z;
+		$source_y = SurfacePlacementUtils::getSurfaceYForSoil($world, $worldX, $worldZ, BlockTypeIds::GRASS);
+		if($source_y === null){
+			return;
+		}
 
 		$species = self::getRandomDoublePlant($random, $this->doublePlants);
-		(new DoubleTallPlant($species))->generate($world, $random, ($chunk_x << Chunk::COORD_BIT_SIZE) + $x, $source_y, ($chunk_z << Chunk::COORD_BIT_SIZE) + $z);
+		if($species === null){
+			return;
+		}
+		(new DoubleTallPlant($species))->generate($world, $random, $worldX, $source_y, $worldZ);
 	}
 }

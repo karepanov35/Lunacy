@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace pocketmine\world\generator\overworld\populator\biome;
 
-use pocketmine\world\generator\noise\bukkit\OctaveGenerator;
-use pocketmine\world\generator\noise\glowstone\SimplexOctaveGenerator;
-use pocketmine\world\generator\object\Flower;
-use pocketmine\world\generator\overworld\biome\BiomeIds;
 use pocketmine\block\Block;
+use pocketmine\block\BlockTypeIds;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
+use pocketmine\world\generator\noise\bukkit\OctaveGenerator;
+use pocketmine\world\generator\noise\glowstone\SimplexOctaveGenerator;
+use pocketmine\world\generator\object\Flower;
+use pocketmine\world\generator\overworld\biome\BiomeIds;
+use pocketmine\world\generator\utils\SurfacePlacementUtils;
+use function count;
 
 class FlowerForestPopulator extends ForestPopulator{
 
@@ -55,14 +58,17 @@ class FlowerForestPopulator extends ForestPopulator{
 		$source_x = $chunk_x << Chunk::COORD_BIT_SIZE;
 		$source_z = $chunk_z << Chunk::COORD_BIT_SIZE;
 
-		for($i = 0; $i < 100; ++$i){
-			$x = $random->nextBoundedInt(16);
-			$z = $random->nextBoundedInt(16);
-			$y = $random->nextBoundedInt($chunk->getHighestBlockAt($x, $z) + 32);
+		for($i = 0; $i < 20; ++$i){
+			$x = $source_x + $random->nextBoundedInt(16);
+			$z = $source_z + $random->nextBoundedInt(16);
+			$y = SurfacePlacementUtils::getSurfaceYForSoil($world, $x, $z, BlockTypeIds::GRASS);
+			if($y === null){
+				continue;
+			}
 			$noise = ($this->noise_gen->noise($x, $z, 0.5, 0, 2.0, false) + 1.0) / 2.0;
 			$noise = $noise < 0 ? 0 : ($noise > 0.9999 ? 0.9999 : $noise);
 			$flower = self::$FOREST_FLOWERS[(int) ($noise * count(self::$FOREST_FLOWERS))];
-			(new Flower($flower))->generate($world, $random, $source_x + $x, $y, $source_z + $z);
+			(new Flower($flower))->generate($world, $random, $x, $y, $z);
 		}
 	}
 }
