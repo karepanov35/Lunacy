@@ -26,6 +26,8 @@ use pocketmine\entity\Living;
 use pocketmine\entity\EntitySizeInfo;
 
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\event\entity\EntityPreExplodeEvent;
+use pocketmine\item\Durable;
 use pocketmine\item\Item;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
@@ -33,8 +35,10 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\network\mcpe\protocol\types\entity\EntityIds;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataCollection;
 use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataFlags;
+use pocketmine\network\mcpe\protocol\types\entity\EntityMetadataProperties;
 use pocketmine\player\Player;
 use pocketmine\world\Explosion;
+use pocketmine\world\Position;
 use pocketmine\world\sound\IgniteSound;
 use function mt_rand;
 use function sqrt;
@@ -45,10 +49,14 @@ use function abs;
 
 class Creeper extends Living{
 
+	private const FUSE_TICKS = 30;
+	private const DEFUSE_DISTANCE = 7.0;
+	private const EXPLOSION_RADIUS = 3.0;
+	private const CHARGED_EXPLOSION_RADIUS = 6.0;
+
 	public static function getNetworkTypeId() : string{ return EntityIds::CREEPER; }
 
 	private int $fuseTime = 0;
-	private int $maxFuseTime = 20;
 	private bool $isIgnited = false;
 	private bool $isPowered = false;
 	
@@ -103,6 +111,38 @@ class Creeper extends Living{
 		parent::syncNetworkData($properties);
 		$properties->setGenericFlag(EntityMetadataFlags::IGNITED, $this->isIgnited);
 		$properties->setGenericFlag(EntityMetadataFlags::POWERED, $this->isPowered);
+		if($this->isIgnited){
+			$properties->setInt(EntityMetadataProperties::FUSE_LENGTH, max(0, self::FUSE_TICKS - $this->fuseTime));
+		}
+	}
+
+	public function isIgnited() : bool{
+		return $this->isIgnited;
+	}
+
+	public function isPowered() : bool{
+		return $this->isPowered;
+	}
+
+	public function setPowered(bool $powered = true) : void{
+		if($this->isPowered !== $powered){
+			$this->isPowered = $powered;
+			$this->networkPropertiesDirty = true;
+		}
+	}
+
+	public function onInteract(Player $player, Vector3 $clickPos) : bool{
+		$item = $player->getInventory()->getItemInHand();
+		if($item->getTypeId() === VanillaItems::FLINT_AND_STEEL()->getTypeId() && !$this->isIgnited){
+			$this->ignite();
+			if($item instanceof Durable){
+				$item->applyDamage(1);
+				$player->getInventory()->setItemInHand($item);
+			}
+			return true;
+		}
+
+		return parent::onInteract($player, $clickPos);
 	}
 
 	protected function entityBaseTick(int $tickDiff = 1) : bool{
@@ -373,27 +413,31 @@ class Creeper extends Living{
 		if(!$this->isIgnited){
 			$this->isIgnited = true;
 			$this->fuseTime = 0;
+			$this->moveTarget = null;
+			$this->motion = Vector3::zero();
 			$this->networkPropertiesDirty = true;
 			$this->getWorld()->addSound($this->location, new IgniteSound());
 		}
 	}
 
 	private function updateExplosion() : void{
+		$this->motion = Vector3::zero();
+
 		if($this->targetPlayer !== null){
 			$distance = $this->location->distance($this->targetPlayer->getLocation());
-			
-			if($distance > 7){
+
+			if($distance > self::DEFUSE_DISTANCE){
 				$this->cancelExplosion();
 				return;
 			}
-			
+
 			$this->lookAt($this->targetPlayer->getLocation());
 		}
-		
+
 		$this->fuseTime++;
 		$this->networkPropertiesDirty = true;
-		
-		if($this->fuseTime >= $this->maxFuseTime){
+
+		if($this->fuseTime >= self::FUSE_TICKS){
 			$this->explode();
 		}
 	}
@@ -405,10 +449,25 @@ class Creeper extends Living{
 	}
 
 	private function explode() : void{
-		$explosion = new Explosion($this->location, 3.0, $this);
-		$explosion->explodeA();
+		$radius = $this->isPowered ? self::CHARGED_EXPLOSION_RADIUS : self::EXPLOSION_RADIUS;
+		$ev = new EntityPreExplodeEvent($this, $radius);
+		$ev->call();
+		if($ev->isCancelled()){
+			$this->cancelExplosion();
+			return;
+		}
+
+		$explosion = new Explosion(
+			Position::fromObject($this->location->add(0, $this->size->getHeight() / 2, 0), $this->getWorld()),
+			$ev->getRadius(),
+			$this,
+			$ev->getFireChance()
+		);
+		if($ev->isBlockBreaking()){
+			$explosion->explodeA();
+		}
 		$explosion->explodeB();
-		
+
 		$this->flagForDespawn();
 	}
 

@@ -56,7 +56,6 @@ final class BiomeHeightManager{
 		self::register(new BiomeHeight(0.2, 0.4), BiomeIds::JUNGLE_MUTATED, BiomeIds::JUNGLE_EDGE_MUTATED, BiomeIds::BIRCH_FOREST_MUTATED, BiomeIds::ROOFED_FOREST_MUTATED);
 		self::register(new BiomeHeight(0.3, 0.4), BiomeIds::TAIGA_MUTATED, BiomeIds::COLD_TAIGA_MUTATED, BiomeIds::REDWOOD_TAIGA_MUTATED, BiomeIds::REDWOOD_TAIGA_HILLS_MUTATED);
 		self::register(new BiomeHeight(0.1, 0.4), BiomeIds::FLOWER_FOREST);
-		self::register(new BiomeHeight(0.15, 0.1), BiomeIds::CHERRY_GROVE);
 		self::register(new BiomeHeight(0.4125, 1.325), BiomeIds::SAVANNA_MUTATED);
 		self::register(new BiomeHeight(1.1, 1.3125), BiomeIds::SAVANNA_PLATEAU_MUTATED);
 	}

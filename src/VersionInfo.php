@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -30,27 +30,14 @@ use function str_repeat;
 
 final class VersionInfo{
 	public const NAME = "Lunacy";
-	public const BASE_VERSION = "0.1.6";
+	public const BASE_VERSION = "0.1.6.1";
 	public const API_VERSION = "5.0.0";
 	public const IS_DEVELOPMENT_BUILD = false;
-	public const BUILD_CHANNEL = "stable";
+	public const BUILD_CHANNEL = "patch";
 	public const GITHUB_URL = "https://github.com/karepanov35/Lunacy";
 	public const GIT_UNKNOWN = "Dev Build";
-
-	/**
-	 * PocketMine-MP-specific version ID for world data. Used to determine what fixes need to be applied to old world
-	 * data (e.g. stuff saved wrongly by past versions).
-	 * This version supplements the Minecraft vanilla world version.
-	 *
-	 * This should be bumped if any **non-Mojang** BC-breaking change or bug fix is made to world save data of any kind
-	 * (entities, tiles, blocks, biomes etc.). For example, if PM accidentally saved a block with its facing value
-	 * swapped, we would bump this, but not if Mojang did the same change.
-	 */
 	public const WORLD_DATA_VERSION = 1;
-	/**
-	 * Name of the NBT tag used to store the world data version.
-	 */
-	public const TAG_WORLD_DATA_VERSION = "PMMPDataVersion"; //TAG_Long
+	public const TAG_WORLD_DATA_VERSION = "PMMPDataVersion";
 
 	private function __construct(){
 		//NOOP

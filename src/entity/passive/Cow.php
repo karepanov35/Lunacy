@@ -25,6 +25,8 @@ namespace pocketmine\entity\passive;
 use pocketmine\entity\Living;
 use pocketmine\entity\EntitySizeInfo;
 use pocketmine\entity\Ageable;
+use pocketmine\entity\Leashable;
+use pocketmine\entity\LeashableTrait;
 
 use pocketmine\block\Block;
 use pocketmine\block\BlockTypeIds;
@@ -46,7 +48,8 @@ use function cos;
 use function sin;
 use function min;
 
-class Cow extends Living implements Ageable{
+class Cow extends Living implements Ageable, Leashable{
+	use LeashableTrait;
 
 	public static function getNetworkTypeId() : string{ return EntityIds::COW; }
 
@@ -81,11 +84,13 @@ class Cow extends Living implements Ageable{
 	}
 
 	public function getDrops() : array{
-		if($this->isBaby()) return [];
-		return [
+		if($this->isBaby()){
+			return $this->addLeashToDrops([]);
+		}
+		return $this->addLeashToDrops([
 			VanillaItems::RAW_BEEF()->setCount(mt_rand(1, 3)),
 			VanillaItems::LEATHER()->setCount(mt_rand(0, 2))
-		];
+		]);
 	}
 
 	public function getXpDropAmount() : int{
@@ -131,6 +136,7 @@ class Cow extends Living implements Ageable{
 		$nbt = parent::saveNBT();
 		$nbt->setInt("Age", $this->age);
 		$nbt->setByte("AgeLocked", $this->ageLocked ? 1 : 0);
+		$this->saveLeashToNBT($nbt);
 		return $nbt;
 	}
 
@@ -138,21 +144,43 @@ class Cow extends Living implements Ageable{
 		parent::initEntity($nbt);
 		$this->age = $nbt->getInt("Age", 0);
 		$this->ageLocked = $nbt->getByte("AgeLocked", 0) !== 0;
+		$this->initLeashFromNBT($nbt);
 	}
 
 	protected function syncNetworkData(EntityMetadataCollection $properties) : void{
 		parent::syncNetworkData($properties);
 		$properties->setGenericFlag(EntityMetadataFlags::BABY, $this->isBaby());
+		$this->syncLeashNetworkData($properties);
 	}
 
 	public function onUpdate(int $currentTick) : bool{
 		$hasUpdate = parent::onUpdate($currentTick);
-		$this->updateAI();
+		if(!$this->isLeashed()){
+			$this->updateAI();
+		}
 		return $hasUpdate;
 	}
 
 	protected function entityBaseTick(int $tickDiff = 1) : bool{
 		$hasUpdate = parent::entityBaseTick($tickDiff);
+
+		if($this->tickLeash($tickDiff)){
+			if($this->isJumping){
+				$this->jumpTimer -= $tickDiff;
+				if($this->jumpTimer <= 0 || $this->onGround){
+					$this->isJumping = false;
+				}
+			}
+
+			if(!$this->ageLocked && $this->age < 0){
+				$this->ageUp($tickDiff);
+				if($this->age === 0){
+					$this->broadcastAnimation(new \pocketmine\entity\animation\BabyAnimalFeedAnimation($this));
+				}
+			}
+
+			return $hasUpdate;
+		}
 		
 		if($this->isJumping){
 			$this->jumpTimer -= $tickDiff;

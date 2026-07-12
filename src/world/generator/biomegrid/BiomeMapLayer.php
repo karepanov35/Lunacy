@@ -15,7 +15,6 @@ class BiomeMapLayer extends MapLayer{
 	private static array $WET = [
 		BiomeIds::PLAINS, BiomeIds::PLAINS,
 		BiomeIds::FOREST, BiomeIds::BIRCH_FOREST,
-		BiomeIds::CHERRY_GROVE,
 		BiomeIds::ROOFED_FOREST, BiomeIds::EXTREME_HILLS, BiomeIds::SWAMPLAND,
 		BiomeIds::JUNGLE, BiomeIds::JUNGLE,
 		BiomeIds::BAMBOO_JUNGLE

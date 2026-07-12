@@ -57,10 +57,6 @@ final class BiomeClimateManager{
 			BiomeIds::ROOFED_FOREST_MUTATED
 		);
 
-		self::register(new BiomeClimate(0.5, 0.8, true),
-			BiomeIds::CHERRY_GROVE
-		);
-
 		self::register(new BiomeClimate(0.6, 0.6, true),
 			BiomeIds::BIRCH_FOREST,
 			BiomeIds::BIRCH_FOREST_HILLS,

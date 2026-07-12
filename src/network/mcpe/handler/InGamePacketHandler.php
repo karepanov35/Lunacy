@@ -26,6 +26,7 @@ use pocketmine\block\BaseSign;
 use pocketmine\block\Lectern;
 use pocketmine\block\tile\Sign;
 use pocketmine\block\utils\SignText;
+use pocketmine\entity\Attribute;
 use pocketmine\entity\BossBarEntity;
 use pocketmine\entity\mob\EnderDragon;
 use pocketmine\entity\InvalidSkinException;

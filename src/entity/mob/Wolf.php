@@ -24,6 +24,8 @@ namespace pocketmine\entity\mob;
 use pocketmine\entity\Living;
 use pocketmine\entity\EntitySizeInfo;
 use pocketmine\entity\Ageable;
+use pocketmine\entity\Leashable;
+use pocketmine\entity\LeashableTrait;
 
 use pocketmine\entity\mob\Blaze;
 use pocketmine\entity\mob\Creeper;
@@ -67,24 +69,18 @@ use function abs;
 use function deg2rad;
 use const M_PI;
 
-class Wolf extends Living implements Ageable{
-
-	public const LEASH_INTERACT_NONE = 0;
-	public const LEASH_INTERACT_ATTACHED = 1;
-	public const LEASH_INTERACT_DETACHED = 2;
+class Wolf extends Living implements Ageable, Leashable{
+	use LeashableTrait;
 
 	private const TAG_OWNER_UUID = "OwnerUUID";
 	private const TAG_TAMED = "Tamed";
 	private const TAG_SITTING = "Sitting";
 	private const TAG_COLLAR_COLOR = "CollarColor";
-	private const TAG_LEASH_UUID = "LeashUUID";
 
 	private bool $tamed = false;
 	private bool $sitting = false;
 	private ?string $ownerUuid = null;
 	private int $collarColor = 14;
-
-	private ?string $leashHolderUuid = null;
 
 	private ?Player $angryAtPlayer = null;
 	private int $angryTicksRemaining = 0;
@@ -124,8 +120,7 @@ class Wolf extends Living implements Ageable{
 		$this->collarColor = $nbt->getByte(self::TAG_COLLAR_COLOR, 14);
 		$ou = $nbt->getString(self::TAG_OWNER_UUID, "");
 		$this->ownerUuid = $ou !== "" ? $ou : null;
-		$lu = $nbt->getString(self::TAG_LEASH_UUID, "");
-		$this->leashHolderUuid = $lu !== "" ? $lu : null;
+		$this->initLeashFromNBT($nbt);
 	}
 
 	public function saveNBT() : CompoundTag{
@@ -136,9 +131,7 @@ class Wolf extends Living implements Ageable{
 		if($this->ownerUuid !== null){
 			$nbt->setString(self::TAG_OWNER_UUID, $this->ownerUuid);
 		}
-		if($this->leashHolderUuid !== null){
-			$nbt->setString(self::TAG_LEASH_UUID, $this->leashHolderUuid);
-		}
+		$this->saveLeashToNBT($nbt);
 
 		return $nbt;
 	}
@@ -150,15 +143,7 @@ class Wolf extends Living implements Ageable{
 		$angry = $this->angryAtPlayer !== null || ($this->combatTarget instanceof Player && !$this->tamed);
 		$properties->setGenericFlag(EntityMetadataFlags::ANGRY, $angry);
 		$properties->setByte(EntityMetadataProperties::COLOR, $this->tamed ? $this->collarColor : 0);
-
-		$leadHolderEid = -1;
-		if($this->leashHolderUuid !== null){
-			$lh = $this->resolveLeashHolder();
-			if($lh !== null && $lh->getWorld() === $this->getWorld()){
-				$leadHolderEid = $lh->getId();
-			}
-		}
-		$properties->setLong(EntityMetadataProperties::LEAD_HOLDER_EID, $leadHolderEid);
+		$this->syncLeashNetworkData($properties);
 	}
 
 	private function isOwner(Player $player) : bool{
@@ -178,72 +163,25 @@ class Wolf extends Living implements Ageable{
 		return Server::getInstance()->getPlayerByUUID($uuid);
 	}
 
-	private function resolveLeashHolder() : ?Player{
-		if($this->leashHolderUuid === null){
-			return null;
-		}
-		try{
-			$uuid = Uuid::fromString($this->leashHolderUuid);
-		}catch(\InvalidArgumentException){
-			return null;
-		}
-
-		return Server::getInstance()->getPlayerByUUID($uuid);
+	protected function shouldFollowLeashHolder() : bool{
+		return !$this->sitting;
 	}
 
-	public function toggleLeashWithLead(Player $player) : int{
-		$uuid = $player->getUniqueId()->toString();
-		if($this->leashHolderUuid !== null){
-			if($this->leashHolderUuid !== $uuid){
-				return self::LEASH_INTERACT_NONE;
-			}
-			$this->leashHolderUuid = null;
-			$this->networkPropertiesDirty = true;
-
-			return self::LEASH_INTERACT_DETACHED;
-		}
-		$this->leashHolderUuid = $uuid;
-		$this->networkPropertiesDirty = true;
-
-		return self::LEASH_INTERACT_ATTACHED;
+	protected function shouldSkipAITWhileLeashed() : bool{
+		return !$this->sitting;
 	}
 
-	private function breakLeash(bool $dropLeadItem) : void{
-		if($dropLeadItem){
-			$this->getWorld()->dropItem($this->location->add(0, 0.4, 0), VanillaItems::LEAD());
+	protected function onLeashTick(int $tickDiff) : void{
+		$this->handleVanillaJump();
+		if($this->attackCooldown > 0){
+			$this->attackCooldown -= $tickDiff;
 		}
-		$this->leashHolderUuid = null;
-		$this->networkPropertiesDirty = true;
-	}
-
-	private function tickLeashFollow(Player $holder) : void{
-		$yaw = $holder->getLocation()->yaw;
-		$rad = deg2rad($yaw);
-		$backX = sin($rad);
-		$backZ = -cos($rad);
-		$p = $holder->getPosition();
-		$want = new Vector3($p->x + $backX * 1.9, $p->y, $p->z + $backZ * 1.9);
-
-		$dx = $want->x - $this->location->x;
-		$dz = $want->z - $this->location->z;
-		$dist = sqrt($dx * $dx + $dz * $dz);
-		if($dist > 8.0){
-			$this->teleport($want);
-			$this->motion = Vector3::zero();
-			$this->lookAtLiving($holder);
-
-			return;
+		if($this->jumpCooldown > 0){
+			$this->jumpCooldown -= $tickDiff;
 		}
-		if($dist < 0.12){
-			$this->motion->x *= 0.25;
-			$this->motion->z *= 0.25;
-
-			return;
+		if($this->obstacleAvoidCooldown > 0){
+			$this->obstacleAvoidCooldown -= $tickDiff;
 		}
-		$speed = min(0.45, $dist * 0.18);
-		$this->motion->x = ($dx / $dist) * $speed;
-		$this->motion->z = ($dz / $dist) * $speed;
-		$this->lookAtLiving($holder);
 	}
 
 	private function lookAtLiving(Living $target) : void{
@@ -316,33 +254,8 @@ class Wolf extends Living implements Ageable{
 
 		$this->validateCombatTarget();
 
-		$leashHolder = $this->resolveLeashHolder();
-		if($this->leashHolderUuid !== null){
-			if($leashHolder === null){
-				$this->leashHolderUuid = null;
-				$this->networkPropertiesDirty = true;
-			}elseif($leashHolder->getWorld() !== $this->getWorld()){
-				$this->leashHolderUuid = null;
-				$this->networkPropertiesDirty = true;
-			}elseif(!$this->sitting){
-				if($this->location->distanceSquared($leashHolder->getPosition()) > 100.0){
-					$this->breakLeash(true);
-				}else{
-					$this->tickLeashFollow($leashHolder);
-					$this->handleVanillaJump();
-					if($this->attackCooldown > 0){
-						$this->attackCooldown -= $tickDiff;
-					}
-					if($this->jumpCooldown > 0){
-						$this->jumpCooldown -= $tickDiff;
-					}
-					if($this->obstacleAvoidCooldown > 0){
-						$this->obstacleAvoidCooldown -= $tickDiff;
-					}
-
-					return true;
-				}
-			}
+		if($this->tickLeash($tickDiff)){
+			return true;
 		}
 
 		if($this->sitting && $this->tamed){
@@ -779,7 +692,7 @@ class Wolf extends Living implements Ageable{
 	}
 
 	public function getDrops() : array{
-		return [];
+		return $this->addLeashToDrops([]);
 	}
 
 	public function getXpDropAmount() : int{

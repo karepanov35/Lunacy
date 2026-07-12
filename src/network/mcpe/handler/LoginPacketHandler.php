@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -93,8 +93,8 @@ class LoginPacketHandler extends PacketHandler{
 			if($clientProtocol < $minProtocol){
 				$versionName = ProtocolVersionMapper::getVersionName($minProtocol);
 				$this->session->disconnect(
-					"§cВаша версия игры устарела! Требуется Minecraft Bedrock v{$versionName} (Протокол: {$minProtocol})",
-					"§cYour game version is outdated! Required: Minecraft Bedrock v{$versionName} (Protocol: {$minProtocol})"
+					"┬зc╨Т╨░╤И╨░ ╨▓╨╡╤А╤Б╨╕╤П ╨╕╨│╤А╤Л ╤Г╤Б╤В╨░╤А╨╡╨╗╨░! ╨в╤А╨╡╨▒╤Г╨╡╤В╤Б╤П Minecraft Bedrock v{$versionName} (╨Я╤А╨╛╤В╨╛╨║╨╛╨╗: {$minProtocol})",
+					"┬зcYour game version is outdated! Required: Minecraft Bedrock v{$versionName} (Protocol: {$minProtocol})"
 				);
 				return true;
 			}
@@ -112,6 +112,7 @@ class LoginPacketHandler extends PacketHandler{
 				}elseif($this->session->getProtocolId() >= ProtocolInfo::PROTOCOL_1_21_90){
 					$authInfo = $this->parseAuthInfo($packet->authInfoJson);
 					$authInfo->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
+					$authInfo->Certificate = $packet->authInfoJson;
 				}else{
 					$authInfo = new AuthenticationInfo();
 					$authInfo->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
@@ -124,6 +125,16 @@ class LoginPacketHandler extends PacketHandler{
 				$authInfo->Certificate = $packet->authInfoJson;
 				$authInfo->Token = "";
 			}
+		}
+
+		if(!isset($authInfo->AuthenticationType)){
+			$authInfo->AuthenticationType = AuthenticationType::SELF_SIGNED->value;
+		}
+		if(!isset($authInfo->Certificate)){
+			$authInfo->Certificate = $packet->authInfoJson;
+		}
+		if(!isset($authInfo->Token)){
+			$authInfo->Token = "";
 		}
 
 		if($authInfo->AuthenticationType === AuthenticationType::FULL->value){

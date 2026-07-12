@@ -6,9 +6,6 @@ namespace pocketmine\world\generator\biomegrid;
 
 use pocketmine\world\generator\overworld\biome\BiomeIds;
 
-/**
- * Редкие варианты равнин и леса: sunflower plains из лугов и cherry grove из «зелёных» биомов.
- */
 class RarePlainsMapLayer extends MapLayer{
 
 	private MapLayer $below_layer;
@@ -32,16 +29,7 @@ class RarePlainsMapLayer extends MapLayer{
 				$this->setCoordsSeed($x + $j, $z + $i);
 				$center_value = $values[$j + 1 + ($i + 1) * $grid_size_x];
 
-				if(($center_value === BiomeIds::FOREST ||
-						$center_value === BiomeIds::FOREST_HILLS ||
-						$center_value === BiomeIds::FLOWER_FOREST ||
-						$center_value === BiomeIds::BIRCH_FOREST ||
-						$center_value === BiomeIds::BIRCH_FOREST_HILLS) &&
-					$this->nextInt(12) === 0
-				){
-					$center_value = BiomeIds::CHERRY_GROVE;
-				}elseif($center_value === BiomeIds::PLAINS && $this->nextInt(57) === 0){
-					// Как старый ванильный sunflower patch на равнинах
+				if($center_value === BiomeIds::PLAINS && $this->nextInt(57) === 0){
 					$center_value = BiomeIds::SUNFLOWER_PLAINS;
 				}
 

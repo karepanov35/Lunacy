@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -1059,7 +1059,7 @@ class World implements ChunkManager{
 		$this->timings->scheduledBlockUpdates->stopTiming();
 
 		$this->timings->neighbourBlockUpdates->startTiming();
-		//Normal updates — batch entity notifications to avoid O(n*m) AABB lookups
+		//Normal updates тАФ batch entity notifications to avoid O(n*m) AABB lookups
 		if($this->neighbourBlockUpdateQueue->count() > 0){
 			/** @var Block[] $updatedBlocks */
 			$updatedBlocks = [];
@@ -1212,15 +1212,7 @@ class World implements ChunkManager{
 	 * @return ClientboundPacket[]
 	 * @phpstan-return list<ClientboundPacket>
 	 */
-	public function createBlockUpdatePackets(TypeConverter|array $typeConverterOrBlocks, ?array $blocks = null) : array{
-		if($typeConverterOrBlocks instanceof TypeConverter){
-			$typeConverter = $typeConverterOrBlocks;
-			$blocks ??= [];
-		}else{
-			$typeConverter = TypeConverter::getInstance();
-			$blocks = $typeConverterOrBlocks;
-		}
-
+	public function createBlockUpdatePackets(TypeConverter $typeConverter, array $blocks) : array{
 		$packets = [];
 
 		$blockTranslator = $typeConverter->getBlockTranslator();
@@ -1521,9 +1513,9 @@ class World implements ChunkManager{
 		}
 
 		$blockFactory = $this->blockStateRegistry;
-		// Кэш: переиспользуем объект блока для одного и того же stateId в рамках тика чанка.
-		// fromStateId клонирует внутри, поэтому кэшируем уже готовый объект и клонируем его сами —
-		// это дешевле чем полный lookup + clone каждый раз.
+		// ╨Ъ╤Н╤И: ╨┐╨╡╤А╨╡╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ ╨╛╨▒╤К╨╡╨║╤В ╨▒╨╗╨╛╨║╨░ ╨┤╨╗╤П ╨╛╨┤╨╜╨╛╨│╨╛ ╨╕ ╤В╨╛╨│╨╛ ╨╢╨╡ stateId ╨▓ ╤А╨░╨╝╨║╨░╤Е ╤В╨╕╨║╨░ ╤З╨░╨╜╨║╨░.
+		// fromStateId ╨║╨╗╨╛╨╜╨╕╤А╤Г╨╡╤В ╨▓╨╜╤Г╤В╤А╨╕, ╨┐╨╛╤Н╤В╨╛╨╝╤Г ╨║╤Н╤И╨╕╤А╤Г╨╡╨╝ ╤Г╨╢╨╡ ╨│╨╛╤В╨╛╨▓╤Л╨╣ ╨╛╨▒╤К╨╡╨║╤В ╨╕ ╨║╨╗╨╛╨╜╨╕╤А╤Г╨╡╨╝ ╨╡╨│╨╛ ╤Б╨░╨╝╨╕ тАФ
+		// ╤Н╤В╨╛ ╨┤╨╡╤И╨╡╨▓╨╗╨╡ ╤З╨╡╨╝ ╨┐╨╛╨╗╨╜╤Л╨╣ lookup + clone ╨║╨░╨╢╨┤╤Л╨╣ ╤А╨░╨╖.
 		/** @var Block[] $blockCache */
 		$blockCache = [];
 

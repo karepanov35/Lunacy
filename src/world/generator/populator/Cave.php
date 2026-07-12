@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace pocketmine\world\generator\populator;
 
+use pocketmine\block\BlockTypeIds;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\math\Vector3;
 use pocketmine\utils\Random;
 use pocketmine\world\ChunkManager;
 use pocketmine\world\format\Chunk;
 use function floor;
+use function max;
+use function min;
 use function pi;
 use function sin;
 
@@ -17,22 +20,19 @@ class Cave implements Populator{
 
 	private const ORIGIN_SEED_X = 341873128712;
 	private const ORIGIN_SEED_Z = 132897987541;
+	private const ORIGIN_OVERLAP_CHUNKS = 10;
+	private const MAX_BRANCH_DISTANCE_BLOCKS = self::ORIGIN_OVERLAP_CHUNKS * Chunk::EDGE_LENGTH;
 
 	public function __construct(
 		private int $worldSeed
 	){}
 
-	/**
-	 * Same cave origin must produce the same tunnels no matter which neighboring chunk is populating.
-	 */
 	private function originRandom(int $originChunkX, int $originChunkZ) : Random{
 		return new Random(($originChunkX * self::ORIGIN_SEED_X) ^ ($originChunkZ * self::ORIGIN_SEED_Z) ^ $this->worldSeed);
 	}
 
 	public function populate(ChunkManager $world, int $chunkX, int $chunkZ, Random $random) : void{
-		// Origins from a wide neighborhood (vanilla-style). Only the center chunk is carved, with
-		// world-deterministic RNG so adjacent chunks produce matching tunnel halves at borders.
-		$overlap = 8;
+		$overlap = self::ORIGIN_OVERLAP_CHUNKS;
 
 		$minX = $chunkX << Chunk::COORD_BIT_SIZE;
 		$maxX = $minX + Chunk::COORD_MASK;
@@ -67,10 +67,6 @@ class Cave implements Populator{
 		int $carveMaxZ,
 		Random $random
 	) : void{
-		if($world->getChunk($originChunkX, $originChunkZ) === null){
-			return;
-		}
-
 		$chunkBase = new Vector3($originChunkX << Chunk::COORD_BIT_SIZE, 0, $originChunkZ << Chunk::COORD_BIT_SIZE);
 
 		if($random->nextBoundedInt(24) !== 0){
@@ -140,7 +136,7 @@ class Cave implements Populator{
 		$verticalOffset = 0.0;
 
 		if($nodeAmount <= 0){
-			$size = 8 * 16;
+			$size = self::MAX_BRANCH_DISTANCE_BLOCKS;
 			$nodeAmount = $size - $random->nextBoundedInt((int) ($size / 4));
 		}
 
@@ -154,7 +150,7 @@ class Cave implements Populator{
 			$lastNode = false;
 		}
 
-		$maxDistSq = 256 * 256;
+		$maxDistSq = self::MAX_BRANCH_DISTANCE_BLOCKS * self::MAX_BRANCH_DISTANCE_BLOCKS;
 		for(; $startingNode < $nodeAmount; ++$startingNode){
 			$horizontalSize = 1.5 + sin($startingNode * pi() / $nodeAmount) * $horizontalScale;
 			$verticalSize = $horizontalSize * $verticalScale;
@@ -232,6 +228,9 @@ class Cave implements Populator{
 }
 
 class CaveNode{
+	/** @var array<int, true>|null */
+	private static ?array $carveableTypeIds = null;
+
 	public function __construct(
 		private ChunkManager $world,
 		private Vector3 $start,
@@ -249,9 +248,13 @@ class CaveNode{
 		$water = VanillaBlocks::WATER()->getStateId();
 		$minY = $this->world->getMinY();
 		$maxY = $this->world->getMaxY();
+		$startX = max($this->start->getFloorX(), $this->carveMinX);
+		$endX = min($this->end->getFloorX(), $this->carveMaxX + 1);
+		$startZ = max($this->start->getFloorZ(), $this->carveMinZ);
+		$endZ = min($this->end->getFloorZ(), $this->carveMaxZ + 1);
 
-		for($x = $this->start->getFloorX(); $x < $this->end->getFloorX(); ++$x){
-			for($z = $this->start->getFloorZ(); $z < $this->end->getFloorZ(); ++$z){
+		for($x = $startX; $x < $endX; ++$x){
+			for($z = $startZ; $z < $endZ; ++$z){
 				for($y = $this->end->getFloorY() + 1; $y >= $this->start->getFloorY() - 1; --$y){
 					if($y < $minY || $y >= $maxY){
 						continue;
@@ -266,22 +269,16 @@ class CaveNode{
 	}
 
 	public function place() : void{
-		$stone = VanillaBlocks::STONE()->getStateId();
-		$dirt = VanillaBlocks::DIRT()->getStateId();
-		$grass = VanillaBlocks::GRASS()->getStateId();
-		$gravel = VanillaBlocks::GRAVEL()->getStateId();
 		$minY = $this->world->getMinY();
 		$maxY = $this->world->getMaxY();
+		$startX = max($this->start->getFloorX(), $this->carveMinX);
+		$endX = min($this->end->getFloorX(), $this->carveMaxX + 1);
+		$startZ = max($this->start->getFloorZ(), $this->carveMinZ);
+		$endZ = min($this->end->getFloorZ(), $this->carveMaxZ + 1);
 
-		for($x = $this->start->getFloorX(); $x < $this->end->getFloorX(); ++$x){
-			if($x < $this->carveMinX || $x > $this->carveMaxX){
-				continue;
-			}
+		for($x = $startX; $x < $endX; ++$x){
 			$xOffset = ($x + 0.5 - $this->target->getX()) / $this->horizontalSize;
-			for($z = $this->start->getFloorZ(); $z < $this->end->getFloorZ(); ++$z){
-				if($z < $this->carveMinZ || $z > $this->carveMaxZ){
-					continue;
-				}
+			for($z = $startZ; $z < $endZ; ++$z){
 				$zOffset = ($z + 0.5 - $this->target->getZ()) / $this->horizontalSize;
 				if(($xOffset * $xOffset + $zOffset * $zOffset) >= 1){
 					continue;
@@ -292,9 +289,8 @@ class CaveNode{
 					}
 					$yOffset = ($y + 0.5 - $this->target->getY()) / $this->verticalSize;
 					if($yOffset > -0.7 && ($xOffset * $xOffset + $yOffset * $yOffset + $zOffset * $zOffset) < 1){
-						$blockId = $this->world->getBlockAt($x, $y, $z)->getStateId();
-
-						if($blockId === $stone || $blockId === $dirt || $blockId === $grass || $blockId === $gravel){
+						$blockId = $this->world->getBlockAt($x, $y, $z)->getTypeId();
+						if(isset(self::getCarveableTypeIds()[$blockId])){
 							if($y < 10){
 								$this->world->setBlockAt($x, $y, $z, VanillaBlocks::LAVA());
 							}else{
@@ -305,5 +301,44 @@ class CaveNode{
 				}
 			}
 		}
+	}
+
+	/**
+	 * @return array<int, true>
+	 */
+	private static function getCarveableTypeIds() : array{
+		if(self::$carveableTypeIds !== null){
+			return self::$carveableTypeIds;
+		}
+
+		self::$carveableTypeIds = [
+			BlockTypeIds::STONE => true,
+			BlockTypeIds::DEEPSLATE => true,
+			BlockTypeIds::DIRT => true,
+			BlockTypeIds::GRASS => true,
+			BlockTypeIds::GRAVEL => true,
+			BlockTypeIds::GRANITE => true,
+			BlockTypeIds::DIORITE => true,
+			BlockTypeIds::ANDESITE => true,
+			BlockTypeIds::TUFF => true,
+			BlockTypeIds::COAL_ORE => true,
+			BlockTypeIds::COPPER_ORE => true,
+			BlockTypeIds::IRON_ORE => true,
+			BlockTypeIds::GOLD_ORE => true,
+			BlockTypeIds::LAPIS_LAZULI_ORE => true,
+			BlockTypeIds::REDSTONE_ORE => true,
+			BlockTypeIds::DIAMOND_ORE => true,
+			BlockTypeIds::EMERALD_ORE => true,
+			BlockTypeIds::DEEPSLATE_COAL_ORE => true,
+			BlockTypeIds::DEEPSLATE_COPPER_ORE => true,
+			BlockTypeIds::DEEPSLATE_IRON_ORE => true,
+			BlockTypeIds::DEEPSLATE_GOLD_ORE => true,
+			BlockTypeIds::DEEPSLATE_LAPIS_LAZULI_ORE => true,
+			BlockTypeIds::DEEPSLATE_REDSTONE_ORE => true,
+			BlockTypeIds::DEEPSLATE_DIAMOND_ORE => true,
+			BlockTypeIds::DEEPSLATE_EMERALD_ORE => true,
+		];
+
+		return self::$carveableTypeIds;
 	}
 }

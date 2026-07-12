@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -812,7 +812,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 					$this->getNetworkSession()->notifyDimensionChanged($oldWorld, $newWorld);
 				}
 				$this->getNetworkSession()->onEnterWorld();
-				// Сразу пересчитать очередь чанков и центр загрузки — иначе клиент зависает в пустоте после портала.
+				// ╨б╤А╨░╨╖╤Г ╨┐╨╡╤А╨╡╤Б╤З╨╕╤В╨░╤В╤М ╨╛╤З╨╡╤А╨╡╨┤╤М ╤З╨░╨╜╨║╨╛╨▓ ╨╕ ╤Ж╨╡╨╜╤В╤А ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ тАФ ╨╕╨╜╨░╤З╨╡ ╨║╨╗╨╕╨╡╨╜╤В ╨╖╨░╨▓╨╕╤Б╨░╨╡╤В ╨▓ ╨┐╤Г╤Б╤В╨╛╤В╨╡ ╨┐╨╛╤Б╨╗╨╡ ╨┐╨╛╤А╤В╨░╨╗╨░.
 				$this->nextChunkOrderRun = 0;
 				$this->getNetworkSession()->syncViewAreaCenterPoint($this->location, $this->viewDistance);
 			}
@@ -877,8 +877,6 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		$genLimit = $this->chunkSendRateController->getGenerationLimit($this->server, $activeGen);
 
 		$burstCount = 0;
-		$genCount = 0;
-
 		foreach($this->loadQueue as $index => $distance){
 			$X = null;
 			$Z = null;
@@ -891,12 +889,24 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 				}
 				++$burstCount;
 				$this->sendReadyChunk($world, $X, $Z, $index);
-				continue;
 			}
+		}
 
+		$genCount = 0;
+		foreach($this->loadQueue as $index => $distance){
 			if($genCount >= $genLimit){
 				break;
 			}
+
+			$X = null;
+			$Z = null;
+			World::getXZ($index, $X, $Z);
+
+			$chunk = $world->getChunk($X, $Z);
+			if($chunk !== null && $chunk->isPopulated()){
+				continue;
+			}
+
 			++$genCount;
 			$this->requestChunkGeneration($world, $X, $Z, $index, $distance);
 		}
@@ -1050,15 +1060,13 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	private function updateTickingChunkRegistrations(array $oldTickingChunks, array $newTickingChunks) : void{
 		$world = $this->getWorld();
 		foreach($oldTickingChunks as $hash => $_){
-			if(!isset($newTickingChunks[$hash]) && !isset($this->loadQueue[$hash])){
-				//we are (probably) still using this chunk, but it's no longer within ticking range
+			if(!isset($newTickingChunks[$hash])){
 				World::getXZ($hash, $tickingChunkX, $tickingChunkZ);
 				$world->unregisterTickingChunk($this->chunkTicker, $tickingChunkX, $tickingChunkZ);
 			}
 		}
 		foreach($newTickingChunks as $hash => $_){
-			if(!isset($oldTickingChunks[$hash]) && !isset($this->loadQueue[$hash])){
-				//we were already using this chunk, but it is now within ticking range
+			if(!isset($oldTickingChunks[$hash])){
 				World::getXZ($hash, $tickingChunkX, $tickingChunkZ);
 				$world->registerTickingChunk($this->chunkTicker, $tickingChunkX, $tickingChunkZ);
 			}
@@ -1108,7 +1116,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		$this->tickingChunks = $tickingChunks;
 
 		$prefetched = 0;
-		$prefetchLimit = min(12, $this->chunkSendRateController->getBurstLimit($this->server));
+		$prefetchLimit = min(32, $this->chunkSendRateController->getBurstLimit($this->server) * 2);
 		foreach($this->loadQueue as $hash => $_){
 			if($prefetched >= $prefetchLimit){
 				break;
@@ -1551,8 +1559,8 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 					$this->hungerManager->exhaust(0.0, PlayerExhaustEvent::CAUSE_WALKING);
 				}
 
-				if($this->nextChunkOrderRun > 10){
-					$this->nextChunkOrderRun = 10;
+				if($this->nextChunkOrderRun > 4){
+					$this->nextChunkOrderRun = 4;
 				}
 			}
 		}
@@ -2215,7 +2223,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		}
 		$this->setSneaking($sneak);
 
-		// Слезть с лошади при приседании
+		// ╨б╨╗╨╡╨╖╤В╤М ╤Б ╨╗╨╛╤И╨░╨┤╨╕ ╨┐╤А╨╕ ╨┐╤А╨╕╤Б╨╡╨┤╨░╨╜╨╕╨╕
 		if($sneak){
 			foreach($this->getWorld()->getEntities() as $entity){
 				if($entity instanceof RideableEntity

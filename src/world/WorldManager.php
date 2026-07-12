@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -205,9 +205,9 @@ class WorldManager{
 			return false;
 		}
 		if(count($providers) > 1){
-			// Bedrock миры — LevelDB; лишняя папка region/ (остаток Java/шаблона) заставляет совпасть и с PMAnvil
+			// Bedrock ╨╝╨╕╤А╤Л тАФ LevelDB; ╨╗╨╕╤И╨╜╤П╤П ╨┐╨░╨┐╨║╨░ region/ (╨╛╤Б╤В╨░╤В╨╛╨║ Java/╤И╨░╨▒╨╗╨╛╨╜╨░) ╨╖╨░╤Б╤В╨░╨▓╨╗╤П╨╡╤В ╤Б╨╛╨▓╨┐╨░╤Б╤В╤М ╨╕ ╤Б PMAnvil
 			if(isset($providers["leveldb"])){
-				$this->server->getLogger()->notice("Мир «{$name}»: несколько форматов (" . implode(", ", array_keys($providers)) . ") — загружается как leveldb (Bedrock). Удали лишнюю папку region/ в worlds/{$name}/ если мир только Bedrock.");
+				$this->server->getLogger()->notice("╨Ь╨╕╤А ┬л{$name}┬╗: ╨╜╨╡╤Б╨║╨╛╨╗╤М╨║╨╛ ╤Д╨╛╤А╨╝╨░╤В╨╛╨▓ (" . implode(", ", array_keys($providers)) . ") тАФ ╨╖╨░╨│╤А╤Г╨╢╨░╨╡╤В╤Б╤П ╨║╨░╨║ leveldb (Bedrock). ╨г╨┤╨░╨╗╨╕ ╨╗╨╕╤И╨╜╤О╤О ╨┐╨░╨┐╨║╤Г region/ ╨▓ worlds/{$name}/ ╨╡╤Б╨╗╨╕ ╨╝╨╕╤А ╤В╨╛╨╗╤М╨║╨╛ Bedrock.");
 				$providers = ["leveldb" => $providers["leveldb"]];
 			}else{
 				$this->server->getLogger()->error($this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_level_loadError(
@@ -321,7 +321,7 @@ class WorldManager{
 
 			foreach($selected as $index){
 				World::getXZ($index, $chunkX, $chunkZ);
-				$world->orderChunkPopulation($chunkX, $chunkZ, null)->onCompletion(
+				$world->requestChunkPopulation($chunkX, $chunkZ, null)->onCompletion(
 					static function() use ($world, $name, &$done, $total) : void{
 						$world->getServer()->getWorldManager()->onSpawnChunkGenerated($name, ++$done, $total);
 					},
@@ -548,9 +548,6 @@ class WorldManager{
 	 * Called by MainLogger after writing to the console.
 	 */
 	public static function notifyAfterConsoleLog() : void{
-		$owner = self::$consoleProgressOwner;
-		if($owner !== null && $owner->spawnGenerationInProgress && !$owner->spawnGenerationFinished){
-			$owner->printSpawnGenerationProgress();
-		}
+		// NOOP
 	}
 }

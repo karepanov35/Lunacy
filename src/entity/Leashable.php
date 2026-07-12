@@ -20,32 +20,23 @@
  */
 
 declare(strict_types=1);
-namespace pocketmine\item;
 
-use pocketmine\entity\Entity;
-use pocketmine\entity\Leashable;
-use pocketmine\math\Vector3;
+namespace pocketmine\entity;
+
 use pocketmine\player\Player;
 
-final class Lead extends Item{
+interface Leashable{
 
-	public function onInteractEntity(Player $player, Entity $entity, Vector3 $clickVector) : bool{
-		if(!($entity instanceof Leashable)){
-			return false;
-		}
+	public const LEASH_INTERACT_NONE = 0;
+	public const LEASH_INTERACT_ATTACHED = 1;
+	public const LEASH_INTERACT_DETACHED = 2;
 
-		$r = $entity->toggleLeashWithLead($player);
-		if($r === Leashable::LEASH_INTERACT_NONE){
-			return false;
-		}
-		if($r === Leashable::LEASH_INTERACT_ATTACHED){
-			$this->pop();
-		}elseif($r === Leashable::LEASH_INTERACT_DETACHED){
-			foreach($player->getInventory()->addItem(VanillaItems::LEAD()) as $leftover){
-				$player->dropItem($leftover);
-			}
-		}
+	public const LEASH_TAG_UUID = "LeashUUID";
+	public const LEASH_MAX_DISTANCE_SQ = 100.0;
+	public const LEASH_MIN_DISTANCE = 3.0;
+	public const LEASH_FOLLOW_OFFSET = 4.5;
 
-		return true;
-	}
+	public function toggleLeashWithLead(Player $player) : int;
+
+	public function isLeashed() : bool;
 }

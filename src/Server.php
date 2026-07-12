@@ -3,9 +3,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -222,7 +222,7 @@ class Server{
 	private const TICKS_PER_TPS_OVERLOAD_WARNING = 5 * self::TARGET_TICKS_PER_SECOND;
 	private const TICKS_PER_STATS_REPORT = 300 * self::TARGET_TICKS_PER_SECOND;
 
-	private const DEFAULT_ASYNC_COMPRESSION_THRESHOLD = 2_000; // Уменьшено до 2000 для максимально быстрой компрессии
+	private const DEFAULT_ASYNC_COMPRESSION_THRESHOLD = 2_000; // ╨г╨╝╨╡╨╜╤М╤И╨╡╨╜╨╛ ╨┤╨╛ 2000 ╨┤╨╗╤П ╨╝╨░╨║╤Б╨╕╨╝╨░╨╗╤М╨╜╨╛ ╨▒╤Л╤Б╤В╤А╨╛╨╣ ╨║╨╛╨╝╨┐╤А╨╡╤Б╤Б╨╕╨╕
 
 	private static ?Server $instance = null;
 
@@ -339,7 +339,7 @@ class Server{
 	}
 
 	public function getVersion() : string{
-		// Возвращаем диапазон поддерживаемых версий вместо одной версии
+		// ╨Т╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╨╝ ╨┤╨╕╨░╨┐╨░╨╖╨╛╨╜ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╨╝╤Л╤Е ╨▓╨╡╤А╤Б╨╕╨╣ ╨▓╨╝╨╡╤Б╤В╨╛ ╨╛╨┤╨╜╨╛╨╣ ╨▓╨╡╤А╤Б╨╕╨╕
 		return \pocketmine\network\mcpe\ProtocolVersionMapper::getSupportedVersionRange();
 	}
 
@@ -902,7 +902,7 @@ class Server{
 					ServerProperties::ENABLE_QUERY => true,
 					ServerProperties::AUTO_SAVE => true,
 					ServerProperties::VIEW_DISTANCE => self::DEFAULT_MAX_VIEW_DISTANCE,
-					ServerProperties::XBOX_AUTH => false, // Отключаем Xbox аутентификацию по умолчанию
+					ServerProperties::XBOX_AUTH => false, // ╨Ю╤В╨║╨╗╤О╤З╨░╨╡╨╝ Xbox ╨░╤Г╤В╨╡╨╜╤В╨╕╤Д╨╕╨║╨░╤Ж╨╕╤О ╨┐╨╛ ╤Г╨╝╨╛╨╗╤З╨░╨╜╨╕╤О
 					ServerProperties::LANGUAGE => "eng"
 				])
 			);
@@ -936,7 +936,7 @@ class Server{
 			$this->logger->info(TextFormat::GRAY . "Lunacy build git: " . TextFormat::YELLOW . VersionInfo::GIT_HASH_SHORT() . TextFormat::RESET);
 
 			if(($poolSize = $this->configGroup->getPropertyString(Yml::SETTINGS_ASYNC_WORKERS, "auto")) === "auto"){
-				$poolSize = 4; // Увеличено с 2 до 4 для лучшей производительности генерации
+				$poolSize = 4; // ╨г╨▓╨╡╨╗╨╕╤З╨╡╨╜╨╛ ╤Б 2 ╨┤╨╛ 4 ╨┤╨╗╤П ╨╗╤Г╤З╤И╨╡╨╣ ╨┐╤А╨╛╨╕╨╖╨▓╨╛╨┤╨╕╤В╨╡╨╗╤М╨╜╨╛╤Б╤В╨╕ ╨│╨╡╨╜╨╡╤А╨░╤Ж╨╕╨╕
 				$processors = Utils::getCoreCount() - 2;
 
 				if($processors > 0){
@@ -1021,7 +1021,7 @@ class Server{
 
 			$this->maxPlayers = $this->configGroup->getConfigInt(ServerProperties::MAX_PLAYERS, self::DEFAULT_MAX_PLAYERS);
 
-			$this->onlineMode = $this->configGroup->getConfigBool(ServerProperties::XBOX_AUTH, false); // Изменено значение по умолчанию на false
+			$this->onlineMode = $this->configGroup->getConfigBool(ServerProperties::XBOX_AUTH, false); // ╨Ш╨╖╨╝╨╡╨╜╨╡╨╜╨╛ ╨╖╨╜╨░╤З╨╡╨╜╨╕╨╡ ╨┐╨╛ ╤Г╨╝╨╛╨╗╤З╨░╨╜╨╕╤О ╨╜╨░ false
 			if($this->onlineMode){
 				$this->logger->info($this->language->translate(KnownTranslationFactory::pocketmine_server_auth_enabled()));
 				$this->authKeyProvider = new AuthKeyProvider(new \PrefixedLogger($this->logger, "Minecraft Auth Key Provider"), $this->asyncPool);
@@ -1029,7 +1029,7 @@ class Server{
 				$this->logger->warning($this->language->translate(KnownTranslationFactory::pocketmine_server_auth_disabled()));
 				$this->logger->warning($this->language->translate(KnownTranslationFactory::pocketmine_server_authWarning()));
 				$this->logger->warning($this->language->translate(KnownTranslationFactory::pocketmine_server_authProperty_disabled()));
-				// AuthKeyProvider не создается в оффлайн режиме
+				// AuthKeyProvider ╨╜╨╡ ╤Б╨╛╨╖╨┤╨░╨╡╤В╤Б╤П ╨▓ ╨╛╤Д╤Д╨╗╨░╨╣╨╜ ╤А╨╡╨╢╨╕╨╝╨╡
 			}
 
 			if($this->configGroup->getConfigBool(ServerProperties::HARDCORE, false) && $this->getDifficulty() < World::DIFFICULTY_HARD){
@@ -1048,7 +1048,7 @@ class Server{
 
 			$this->logger->info($this->language->translate(KnownTranslationFactory::pocketmine_server_info(
 				$this->getName(),
-				(VersionInfo::IS_DEVELOPMENT_BUILD ? TextFormat::YELLOW : "") . $this->getPocketMineVersion() . TextFormat::RESET
+				(VersionInfo::IS_DEVELOPMENT_BUILD ? TextFormat::YELLOW : "") . $this->getPocketMineVersion() . " " . VersionInfo::BUILD_CHANNEL . TextFormat::RESET
 			)));
 			$this->logger->info($this->language->translate(KnownTranslationFactory::pocketmine_server_license($this->getName())));
 
@@ -1302,14 +1302,6 @@ class Server{
 						->setSpawnPosition(new Vector3(100, 49, 0));
 					$this->worldManager->generateWorld($endWorldName, $endOpts, true);
 				}
-			}
-			$endWorld = $this->worldManager->getWorldByName($endWorldName);
-			if($endWorld !== null){
-				$endWorld->loadChunk(0, 0);
-				TheEndGenerator::ensureExitPortal($endWorld);
-				TheEndGenerator::ensureObsidianPillars($endWorld);
-				TheEndGenerator::ensureEndCrystals($endWorld);
-				TheEndGenerator::ensureEnderDragon($endWorld);
 			}
 		}
 
@@ -1977,11 +1969,6 @@ class Server{
 		Timings::$connection->startTiming();
 		$this->network->tick();
 		Timings::$connection->stopTiming();
-
-		//Process async chunk IO / compression completions in the same tick they were submitted.
-		Timings::$schedulerAsync->startTiming();
-		$this->asyncPool->collectTasks();
-		Timings::$schedulerAsync->stopTiming();
 
 		if(($this->tickCounter % self::TARGET_TICKS_PER_SECOND) === 0){
 			if($this->doTitleTick){

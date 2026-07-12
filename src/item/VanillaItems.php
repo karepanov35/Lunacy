@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -59,6 +59,7 @@ use pocketmine\utils\CloningRegistryTrait;
 use pocketmine\world\World;
 use function is_int;
 use function mb_strtoupper;
+use function mt_rand;
 use function strtolower;
 
 /**
@@ -680,7 +681,11 @@ final class VanillaItems{
 		});
 		self::register("creeper_spawn_egg", fn(IID $id) => new class($id, "Creeper Spawn Egg") extends SpawnEgg{
 			public function createEntity(World $world, Vector3 $pos, float $yaw, float $pitch) : Entity{
-				return new Creeper(Location::fromObject($pos, $world, $yaw, $pitch));
+				$creeper = new Creeper(Location::fromObject($pos, $world, $yaw, $pitch));
+				if(mt_rand(1, 20) === 1){
+					$creeper->setPowered();
+				}
+				return $creeper;
 			}
 		});
 		self::register("blaze_spawn_egg", fn(IID $id) => new class($id, "Blaze Spawn Egg") extends SpawnEgg{

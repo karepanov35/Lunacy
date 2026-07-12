@@ -25,6 +25,8 @@ namespace pocketmine\entity\passive;
 use pocketmine\entity\Living;
 use pocketmine\entity\EntitySizeInfo;
 use pocketmine\entity\Ageable;
+use pocketmine\entity\Leashable;
+use pocketmine\entity\LeashableTrait;
 
 use pocketmine\block\BlockTypeIds;
 use pocketmine\block\VanillaBlocks;
@@ -46,7 +48,8 @@ use function cos;
 use function sin;
 use function abs;
 
-class Sheep extends Living implements Ageable{
+class Sheep extends Living implements Ageable, Leashable{
+	use LeashableTrait;
 	private const TAG_COLOR = "Color";
 	private const TAG_SHEARED = "Sheared";
 
@@ -81,12 +84,14 @@ class Sheep extends Living implements Ageable{
 		parent::initEntity($nbt);
 		$this->color = $nbt->getByte(self::TAG_COLOR, mt_rand(0, 15));
 		$this->sheared = $nbt->getByte(self::TAG_SHEARED, 0) === 1;
+		$this->initLeashFromNBT($nbt);
 	}
 
 	public function saveNBT() : CompoundTag{
 		$nbt = parent::saveNBT();
 		$nbt->setByte(self::TAG_COLOR, $this->color);
 		$nbt->setByte(self::TAG_SHEARED, $this->sheared ? 1 : 0);
+		$this->saveLeashToNBT($nbt);
 		return $nbt;
 	}
 
@@ -110,11 +115,11 @@ class Sheep extends Living implements Ageable{
 
 	public function getDrops() : array{
 		if($this->isSheared()){
-			return [];
+			return $this->addLeashToDrops([]);
 		}
-		return [
+		return $this->addLeashToDrops([
 			VanillaBlocks::WOOL()->asItem()->setCount(1)
-		];
+		]);
 	}
 
 	public function getXpDropAmount() : int{
@@ -134,6 +139,7 @@ class Sheep extends Living implements Ageable{
 		$properties->setGenericFlag(EntityMetadataFlags::BABY, $this->baby);
 		$properties->setByte(EntityMetadataProperties::COLOR, $this->color);
 		$properties->setGenericFlag(EntityMetadataFlags::SHEARED, $this->sheared);
+		$this->syncLeashNetworkData($properties);
 	}
 
 	public function attack(EntityDamageEvent $source) : void{
@@ -193,6 +199,10 @@ class Sheep extends Living implements Ageable{
 
 	protected function entityBaseTick(int $tickDiff = 1) : bool{
 		$hasUpdate = parent::entityBaseTick($tickDiff);
+
+		if($this->tickLeash($tickDiff)){
+			return $hasUpdate;
+		}
 		
 		if($this->isJumping){
 			$this->jumpTimer -= $tickDiff;
@@ -224,6 +234,10 @@ class Sheep extends Living implements Ageable{
 
 	public function onUpdate(int $currentTick) : bool{
 		$hasUpdate = parent::onUpdate($currentTick);
+
+		if($this->isLeashed()){
+			return $hasUpdate;
+		}
 		
 		$this->checkIfStuck();
 		

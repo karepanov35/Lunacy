@@ -32,6 +32,7 @@ class VersionString{
 	private int $major;
 	private int $minor;
 	private int $patch;
+	private int $revision = 0;
 	private string $suffix;
 
 	public function __construct(
@@ -39,7 +40,7 @@ class VersionString{
 		private bool $isDevBuild = false,
 		private int $buildNumber = 0
 	){
-		preg_match('/^(\d+)\.(\d+)\.(\d+)(?:-(.*))?$/', $this->baseVersion, $matches);
+		preg_match('/^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-(.*))?$/', $this->baseVersion, $matches);
 		if(count($matches) < 4){
 			throw new \InvalidArgumentException("Invalid base version \"$baseVersion\", should contain at least 3 version digits");
 		}
@@ -47,15 +48,16 @@ class VersionString{
 		$this->major = (int) $matches[1];
 		$this->minor = (int) $matches[2];
 		$this->patch = (int) $matches[3];
-		$this->suffix = $matches[4] ?? "";
+		$this->revision = isset($matches[4]) ? (int) $matches[4] : 0;
+		$this->suffix = $matches[5] ?? "";
 	}
 
 	public static function isValidBaseVersion(string $baseVersion) : bool{
-		return preg_match('/^\d+\.\d+\.\d+(?:-(.*))?$/', $baseVersion, $matches) === 1;
+		return preg_match('/^\d+\.\d+\.\d+(?:\.\d+)?(?:-(.*))?$/', $baseVersion, $matches) === 1;
 	}
 
 	public function getNumber() : int{
-		return (($this->major * 1_000_000) + ($this->minor * 1_000) + $this->patch);
+		return (($this->major * 1_000_000_000) + ($this->minor * 1_000_000) + ($this->patch * 1_000) + $this->revision);
 	}
 
 	public function getBaseVersion() : string{

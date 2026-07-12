@@ -3,9 +3,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -84,17 +84,17 @@ memory:
     chunk-radius: 4
 
 network:
-  # Минимальный протокол для входа на сервер / Minimum protocol for server login
-  # [RU] Как настроить?
-  # - Укажите число протокола минимально поддерживаемой версии клиента. Значение 0 отключает проверку (принимаются все протоколы, которые поддерживает ядро).
+  # ╨Ь╨╕╨╜╨╕╨╝╨░╨╗╤М╨╜╤Л╨╣ ╨┐╤А╨╛╤В╨╛╨║╨╛╨╗ ╨┤╨╗╤П ╨▓╤Е╨╛╨┤╨░ ╨╜╨░ ╤Б╨╡╤А╨▓╨╡╤А / Minimum protocol for server login
+  # [RU] ╨Ъ╨░╨║ ╨╜╨░╤Б╤В╤А╨╛╨╕╤В╤М?
+  # - ╨г╨║╨░╨╢╨╕╤В╨╡ ╤З╨╕╤Б╨╗╨╛ ╨┐╤А╨╛╤В╨╛╨║╨╛╨╗╨░ ╨╝╨╕╨╜╨╕╨╝╨░╨╗╤М╨╜╨╛ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╨╝╨╛╨╣ ╨▓╨╡╤А╤Б╨╕╨╕ ╨║╨╗╨╕╨╡╨╜╤В╨░. ╨Ч╨╜╨░╤З╨╡╨╜╨╕╨╡ 0 ╨╛╤В╨║╨╗╤О╤З╨░╨╡╤В ╨┐╤А╨╛╨▓╨╡╤А╨║╤Г (╨┐╤А╨╕╨╜╨╕╨╝╨░╤О╤В╤Б╤П ╨▓╤Б╨╡ ╨┐╤А╨╛╤В╨╛╨║╨╛╨╗╤Л, ╨║╨╛╤В╨╛╤А╤Л╨╡ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╤В ╤П╨┤╤А╨╛).
   #
   # [EN] How to configure?
   # - Set the protocol number of the oldest client version you want to allow. Value 0 disables the check (all protocols supported by the core are accepted).
   #
-  # [RU] Частые значения / [EN] Common values:
-  #   589  → 1.20.0    | 712 → 1.21.20  | 859 → 1.21.120 | 924 → 1.26.0
-  #   766  → 1.21.50   | 827 → 1.21.100 | 898 → 1.21.130 | 975 → 1.26.20
-  #  1001  → 1.26.33
+  # [RU] ╨з╨░╤Б╤В╤Л╨╡ ╨╖╨╜╨░╤З╨╡╨╜╨╕╤П / [EN] Common values:
+  #   589  тЖТ 1.20.0    | 712 тЖТ 1.21.20  | 859 тЖТ 1.21.120 | 924 тЖТ 1.26.0
+  #   766  тЖТ 1.21.50   | 827 тЖТ 1.21.100 | 898 тЖТ 1.21.130 | 975 тЖТ 1.26.20
+  #  1001  тЖТ 1.26.33
   #
   min-protocol: 0
 
@@ -102,7 +102,7 @@ network:
   #Set to 0 to compress everything, -1 to disable.
   batch-threshold: 256
   #Compression level used when sending batched packets. Higher = more CPU, less bandwidth usage
-  compression-level: 6
+  compression-level: 3
   #Use AsyncTasks for compression during the main game session. Increases latency, but may reduce main thread load
   async-compression: false
   #Threshold for async compression, in bytes. Only packets larger than this will be compressed asynchronously
@@ -143,9 +143,9 @@ entity:
 chunk-sending:
   #To change server normal render distance, change view-distance in server.properties.
   #Chunks started for generation per tick (adaptive throttling when TPS drops)
-  per-tick: 8
-  #Ready chunks (already loaded) sent per tick — higher burst for fast terrain without extra gen load
-  burst-per-tick: 16
+  per-tick: 16
+  #Ready chunks (already loaded) sent per tick тАФ higher burst for fast terrain without extra gen load
+  burst-per-tick: 32
   #Reduce send/gen rates automatically when server TPS falls below 19.5
   adaptive: true
   #Radius of chunks that need to be sent before spawning the player
@@ -172,8 +172,8 @@ chunk-ticking:
     #- fire
 
 chunk-generation:
-  #Max. amount of chunks in the waiting queue to be populated (server clamps to 1–256 and logs if adjusted)
-  population-queue-size: 32
+  #Max. amount of chunks in the waiting queue to be populated (server clamps to 1тАУ256 and logs if adjusted)
+  population-queue-size: 12
 
 ticks-per:
   autosave: 6000

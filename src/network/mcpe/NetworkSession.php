@@ -4,9 +4,9 @@
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -183,7 +183,7 @@ class NetworkSession{
 
 	/** @phpstan-var \SplQueue<array{CompressBatchPromise|string, list<PromiseResolver<true>>, bool}> */
 	private \SplQueue $compressedQueue;
-	private bool $forceAsyncCompression = false; // Отключено для быстрого подключения
+	private bool $forceAsyncCompression = false; // ╨Ю╤В╨║╨╗╤О╤З╨╡╨╜╨╛ ╨┤╨╗╤П ╨▒╤Л╤Б╤В╤А╨╛╨│╨╛ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╤П
 	private ?int $protocolId = null;
 	protected bool $enableCompression = false; //disabled until handshake completed
 
@@ -233,7 +233,7 @@ class NetworkSession{
 		));
 
 		$this->manager->add($this);
-		// Убрано сообщение "Сессия открыта" для Lunacy
+		// ╨г╨▒╤А╨░╨╜╨╛ ╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡ "╨б╨╡╤Б╤Б╨╕╤П ╨╛╤В╨║╤А╤Л╤В╨░" ╨┤╨╗╤П Lunacy
 		// $this->logger->info($this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_network_session_open()));
 	}
 
@@ -950,7 +950,7 @@ class NetworkSession{
 			if($authenticated && !($this->info instanceof XboxLivePlayerInfo)){
 				$error = "Expected XUID but none found";
 			}elseif($authRequired && $clientPubKey === null && EncryptionContext::$ENABLED){
-				$error = "Missing client public key"; //failsafe только если аутентификация требуется И шифрование включено
+				$error = "Missing client public key"; //failsafe ╤В╨╛╨╗╤М╨║╨╛ ╨╡╤Б╨╗╨╕ ╨░╤Г╤В╨╡╨╜╤В╨╕╤Д╨╕╨║╨░╤Ж╨╕╤П ╤В╤А╨╡╨▒╤Г╨╡╤В╤Б╤П ╨Ш ╤И╨╕╤Д╤А╨╛╨▓╨░╨╜╨╕╨╡ ╨▓╨║╨╗╤О╤З╨╡╨╜╨╛
 			}
 		}
 
@@ -977,7 +977,7 @@ class NetworkSession{
 		}
 		$this->logger->debug("Xbox Live authenticated: " . ($this->authenticated ? "YES" : "NO"));
 
-		// В офлайн режиме не проверяем XUID — сертификаты не верифицируются, подмена возможна
+		// ╨Т ╨╛╤Д╨╗╨░╨╣╨╜ ╤А╨╡╨╢╨╕╨╝╨╡ ╨╜╨╡ ╨┐╤А╨╛╨▓╨╡╤А╤П╨╡╨╝ XUID тАФ ╤Б╨╡╤А╤В╨╕╤Д╨╕╨║╨░╤В╤Л ╨╜╨╡ ╨▓╨╡╤А╨╕╤Д╨╕╤Ж╨╕╤А╤Г╤О╤В╤Б╤П, ╨┐╨╛╨┤╨╝╨╡╨╜╨░ ╨▓╨╛╨╖╨╝╨╛╨╢╨╜╨░
 		$checkXUID = $this->server->isOnlineMode() && $this->server->getConfigGroup()->getPropertyBool(YmlServerProperties::PLAYER_VERIFY_XUID, true);
 		$myXUID = $this->info instanceof XboxLivePlayerInfo ? $this->info->getXuid() : "";
 		$kickForXUIDMismatch = function(string $xuid) use ($checkXUID, $myXUID) : bool{
@@ -1390,8 +1390,8 @@ class NetworkSession{
 	}
 
 	/**
-	 * Синхронизирует измерение у Bedrock-клиента при смене мира (Overworld ↔ Nether ↔ End).
-	 * Без этого клиент остаётся в dimension из StartGamePacket и «видит пустоту», хотя чанки — другого мира.
+	 * ╨б╨╕╨╜╤Е╤А╨╛╨╜╨╕╨╖╨╕╤А╤Г╨╡╤В ╨╕╨╖╨╝╨╡╤А╨╡╨╜╨╕╨╡ ╤Г Bedrock-╨║╨╗╨╕╨╡╨╜╤В╨░ ╨┐╤А╨╕ ╤Б╨╝╨╡╨╜╨╡ ╨╝╨╕╤А╨░ (Overworld тЖФ Nether тЖФ End).
+	 * ╨С╨╡╨╖ ╤Н╤В╨╛╨│╨╛ ╨║╨╗╨╕╨╡╨╜╤В ╨╛╤Б╤В╨░╤С╤В╤Б╤П ╨▓ dimension ╨╕╨╖ StartGamePacket ╨╕ ┬л╨▓╨╕╨┤╨╕╤В ╨┐╤Г╤Б╤В╨╛╤В╤Г┬╗, ╤Е╨╛╤В╤П ╤З╨░╨╜╨║╨╕ тАФ ╨┤╤А╤Г╨│╨╛╨│╨╛ ╨╝╨╕╤А╨░.
 	 */
 	public function notifyDimensionChanged(World $from, World $to) : void{
 		if($this->player === null){
@@ -1403,7 +1403,7 @@ class NetworkSession{
 			return;
 		}
 		$pos = $this->player->getPosition();
-		// respawn=false — без зависания на экране загрузки; publisher обновляем сразу.
+		// respawn=false тАФ ╨▒╨╡╨╖ ╨╖╨░╨▓╨╕╤Б╨░╨╜╨╕╤П ╨╜╨░ ╤Н╨║╤А╨░╨╜╨╡ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕; publisher ╨╛╨▒╨╜╨╛╨▓╨╗╤П╨╡╨╝ ╤Б╤А╨░╨╖╤Г.
 		$this->sendDataPacket(ChangeDimensionPacket::create(
 			$toDim,
 			$pos,
@@ -1441,7 +1441,7 @@ class NetworkSession{
 	public function syncPlayerList(array $players) : void{
 		$uniqueByUuid = [];
 		foreach($players as $player){
-			// Локальный игрок уже задан через StartGamePacket; запись в PLAYER_LIST для себя дублирует ник в табе (Bedrock 1.20+).
+			// ╨Ы╨╛╨║╨░╨╗╤М╨╜╤Л╨╣ ╨╕╨│╤А╨╛╨║ ╤Г╨╢╨╡ ╨╖╨░╨┤╨░╨╜ ╤З╨╡╤А╨╡╨╖ StartGamePacket; ╨╖╨░╨┐╨╕╤Б╤М ╨▓ PLAYER_LIST ╨┤╨╗╤П ╤Б╨╡╨▒╤П ╨┤╤Г╨▒╨╗╨╕╤А╤Г╨╡╤В ╨╜╨╕╨║ ╨▓ ╤В╨░╨▒╨╡ (Bedrock 1.20+).
 			if($this->player !== null && $player === $this->player){
 				continue;
 			}

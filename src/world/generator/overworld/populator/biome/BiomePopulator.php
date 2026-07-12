@@ -90,8 +90,8 @@ class BiomePopulator implements VanillaPopulator{
 	 * wells; and vegetation.
 	 */
 	public function __construct(){
-		$this->water_lake_decorator = new LakeDecorator(VanillaBlocks::WATER()->getStillForm(), 8); // Уменьшено с 4 до 8 (реже)
-		$this->lava_lake_decorator = new LakeDecorator(VanillaBlocks::LAVA()->getStillForm(), 16, 8); // Уменьшено с 8 до 16 (реже)
+		$this->water_lake_decorator = new LakeDecorator(VanillaBlocks::WATER()->getStillForm(), 8);
+		$this->lava_lake_decorator = new LakeDecorator(VanillaBlocks::LAVA()->getStillForm(), 10, 6);
 		$this->ore_populator = new OrePopulator();
 		$this->sand_patch_decorator = new UnderwaterDecorator(VanillaBlocks::SAND());
 		$this->clay_patch_decorator = new UnderwaterDecorator(VanillaBlocks::CLAY());

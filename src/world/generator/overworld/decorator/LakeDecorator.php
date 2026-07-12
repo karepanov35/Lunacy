@@ -25,7 +25,7 @@ class LakeDecorator extends Decorator{
 			$source_x = ($chunk_x << Chunk::COORD_BIT_SIZE) + $random->nextBoundedInt(16);
 			$source_z = ($chunk_z << Chunk::COORD_BIT_SIZE) + $random->nextBoundedInt(16);
 			$source_y = $random->nextBoundedInt($world->getMaxY() - $this->base_offset) + $this->base_offset;
-			if($this->type->getTypeId() === BlockTypeIds::LAVA && ($source_y >= 64 || $random->nextBoundedInt(10) > 0)){
+			if($this->type->getTypeId() === BlockTypeIds::LAVA && ($source_y >= 64 || $random->nextBoundedInt(4) > 0)){
 				return;
 			}
 			while($world->getBlockAt($source_x, $source_y, $source_z)->getTypeId() === BlockTypeIds::AIR && $source_y > 5){

@@ -98,7 +98,7 @@ class OreVein extends TerrainObject{
 	}
 
 	/**
-	 * Ore must sit inside solid stone (may expose 1–2 faces on cave walls, never float in air).
+	 * Ore must sit inside solid stone (may expose 1тАУ2 faces on cave walls, never float in air).
 	 */
 	private function isEmbeddedInTerrain(ChunkManager $world, int $x, int $y, int $z, int $lavaId) : bool{
 		$solid = 0;
