@@ -857,6 +857,11 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handleAnimate(AnimatePacket $packet) : bool{
+		if($packet->action === AnimatePacket::ACTION_SWING_ARM){
+			$this->player->onSwingArm();
+			return true;
+		}
+
 		//this spams harder than a firehose on left click if "Improved Input Response" is enabled, and we don't even
 		//use it anyway :<
 		throw new FilterNoisyPacketException();

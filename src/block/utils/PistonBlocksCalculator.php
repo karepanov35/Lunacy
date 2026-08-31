@@ -132,6 +132,11 @@ final class PistonBlocksCalculator{
 			return false;
 		}
 
+		if(PistonPushHelper::breaksWhenMoved($block)){
+			$this->toDestroy[] = $origin->asVector3();
+			return true;
+		}
+
 		$this->toMove[] = $origin->asVector3();
 
 		$stickedCount = 0;

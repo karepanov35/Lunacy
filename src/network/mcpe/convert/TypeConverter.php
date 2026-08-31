@@ -1,12 +1,11 @@
 <?php
 
-
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
@@ -48,6 +47,7 @@ use pocketmine\nbt\tag\Tag;
 use pocketmine\nbt\TreeRoot;
 use pocketmine\nbt\UnexpectedTagTypeException;
 use pocketmine\network\mcpe\NetworkBroadcastUtils;
+use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\ClientboundPacket;
 use pocketmine\network\mcpe\protocol\serializer\ItemTypeDictionary;
 use pocketmine\network\mcpe\protocol\types\GameMode as ProtocolGameMode;
@@ -154,23 +154,31 @@ class TypeConverter{
 		if($ingredient === null){
 			return new ProtocolRecipeIngredient(null, 0);
 		}
+		$useNamedItemDescriptors = $this->protocolId >= ProtocolInfo::PROTOCOL_1_26_40;
 		if($ingredient instanceof MetaWildcardRecipeIngredient){
 			$oldStringId = $ingredient->getItemId();
 			[$stringId, $meta] = $this->itemDataDowngrader->downgrade($oldStringId, 0);
 
 			$id = $this->itemTypeDictionary->fromStringId($stringId);
 			$meta = $meta === 0 && $stringId === $oldStringId ? self::RECIPE_INPUT_WILDCARD_META : $meta; // downgrader returns the same meta
-			$descriptor = new IntIdMetaItemDescriptor($id, $meta);
+			$descriptor = $useNamedItemDescriptors ?
+				new StringIdMetaItemDescriptor($stringId, $meta) :
+				new IntIdMetaItemDescriptor($id, $meta);
 		}elseif($ingredient instanceof ExactRecipeIngredient){
-			$item = $ingredient->getItem();
-			[$id, $meta, $blockRuntimeId] = $this->itemTranslator->toNetworkId($item);
-			if($blockRuntimeId !== null){
-				$meta = $this->blockTranslator->getBlockStateDictionary()->getMetaFromStateId($blockRuntimeId);
-				if($meta === null){
-					throw new AssumptionFailedError("Every block state should have an associated meta value");
+			if($useNamedItemDescriptors){
+				$itemData = $this->itemTranslator->toNetworkTypeData($ingredient->getItem());
+				$descriptor = new StringIdMetaItemDescriptor($itemData->getName(), $itemData->getMeta());
+			}else{
+				$item = $ingredient->getItem();
+				[$id, $meta, $blockRuntimeId] = $this->itemTranslator->toNetworkId($item);
+				if($blockRuntimeId !== null){
+					$meta = $this->blockTranslator->getBlockStateDictionary()->getMetaFromStateId($blockRuntimeId);
+					if($meta === null){
+						throw new AssumptionFailedError("Every block state should have an associated meta value");
+					}
 				}
+				$descriptor = new IntIdMetaItemDescriptor($id, $meta);
 			}
-			$descriptor = new IntIdMetaItemDescriptor($id, $meta);
 		}elseif($ingredient instanceof TagWildcardRecipeIngredient){
 			$descriptor = new TagItemDescriptor($ingredient->getTagName());
 		}else{

@@ -130,12 +130,12 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/NetherGamesMC/BedrockData.git",
+                "url": "https://github.com/MaJiHoBou999/BedrockData.git",
                 "reference": "b5fd03f4bcc790abe3d0dcb31151566ca29d42cb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/NetherGamesMC/BedrockData/zipball/b5fd03f4bcc790abe3d0dcb31151566ca29d42cb",
+                "url": "https://api.github.com/repos/MaJiHoBou999/BedrockData/zipball/b5fd03f4bcc790abe3d0dcb31151566ca29d42cb",
                 "reference": "b5fd03f4bcc790abe3d0dcb31151566ca29d42cb",
                 "shasum": ""
             },
@@ -202,7 +202,7 @@
             ],
             "description": "An implementation of the Minecraft: Bedrock Edition protocol in PHP",
             "support": {
-                "source": "https://github.com/NetherGamesMC/BedrockProtocol/tree/master"
+                "source": "https://github.com/MaJiHoBou999/BedrockProtocol/tree/master"
             },
             "time": "2026-06-23T12:39:56+00:00"
         },

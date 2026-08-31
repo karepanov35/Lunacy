@@ -1,20 +1,20 @@
 <?php
 
-
 /*
  *
  *
- *▒█░░░ ▒█░▒█ ▒█▄░▒█ ░█▀▀█ ▒█▀▀█ ▒█░░▒█
- *▒█░░░ ▒█░▒█ ▒█▒█▒█ ▒█▄▄█ ▒█░░░ ▒█▄▄▄█
- *▒█▄▄█ ░▀▄▄▀ ▒█░░▀█ ▒█░▒█ ▒█▄▄█ ░░▒█░░
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦСтЦТтЦИ тЦСтЦИтЦАтЦАтЦИ тЦТтЦИтЦАтЦАтЦИ тЦТтЦИтЦСтЦСтЦТтЦИ
+ *тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦТтЦИтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦТтЦИтЦСтЦСтЦС тЦТтЦИтЦДтЦДтЦДтЦИ
+ *тЦТтЦИтЦДтЦДтЦИ тЦСтЦАтЦДтЦДтЦА тЦТтЦИтЦСтЦСтЦАтЦИ тЦТтЦИтЦСтЦТтЦИ тЦТтЦИтЦДтЦДтЦИ тЦСтЦСтЦТтЦИтЦСтЦС
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GPL-2.0 license as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -28,6 +28,8 @@ use pocketmine\crafting\FurnaceType;
 use pocketmine\crafting\ShapedRecipe;
 use pocketmine\crafting\ShapelessRecipe;
 use pocketmine\crafting\ShapelessRecipeType;
+use pocketmine\crafting\SmithingTransformRecipe;
+use pocketmine\crafting\SmithingTrimRecipe;
 use pocketmine\data\bedrock\item\ItemTypeSerializeException;
 use pocketmine\data\bedrock\ItemTagDowngrader;
 use pocketmine\network\mcpe\convert\TypeConverter;
@@ -40,6 +42,7 @@ use pocketmine\network\mcpe\protocol\types\recipe\PotionTypeRecipe as ProtocolPo
 use pocketmine\network\mcpe\protocol\types\recipe\RecipeUnlockingRequirement;
 use pocketmine\network\mcpe\protocol\types\recipe\ShapedRecipe as ProtocolShapedRecipe;
 use pocketmine\network\mcpe\protocol\types\recipe\ShapelessRecipe as ProtocolShapelessRecipe;
+use pocketmine\network\mcpe\protocol\types\recipe\StringIdMetaItemDescriptor;
 use pocketmine\timings\Timings;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\ProtocolSingletonTrait;
@@ -140,8 +143,35 @@ final class CraftingDataCache{
 						continue;
 					}
 				}
-			}else{
-				//TODO: probably special recipe types
+			}elseif($recipe instanceof SmithingTransformRecipe){
+				try{
+					$recipesWithTypeIds[] = new \pocketmine\network\mcpe\protocol\types\recipe\SmithingTransformRecipe(
+						CraftingDataPacket::ENTRY_SMITHING_TRANSFORM,
+						BE::packUnsignedInt($recipeNetId),
+						$converter->coreRecipeIngredientToNet($recipe->getTemplate()),
+						$converter->coreRecipeIngredientToNet($recipe->getInput()),
+						$converter->coreRecipeIngredientToNet($recipe->getAddition()),
+						$converter->coreItemStackToNet($recipe->getOutput()),
+						\pocketmine\network\mcpe\protocol\types\recipe\CraftingRecipeBlockName::SMITHING_TABLE,
+						$recipeNetId
+					);
+				}catch(\InvalidArgumentException|ItemTypeSerializeException){
+					continue;
+				}
+			}elseif($recipe instanceof SmithingTrimRecipe){
+				try{
+					$recipesWithTypeIds[] = new \pocketmine\network\mcpe\protocol\types\recipe\SmithingTrimRecipe(
+						CraftingDataPacket::ENTRY_SMITHING_TRIM,
+						BE::packUnsignedInt($recipeNetId),
+						$converter->coreRecipeIngredientToNet($recipe->getTemplate()),
+						$converter->coreRecipeIngredientToNet($recipe->getInput()),
+						$converter->coreRecipeIngredientToNet($recipe->getAddition()),
+						\pocketmine\network\mcpe\protocol\types\recipe\CraftingRecipeBlockName::SMITHING_TABLE,
+						$recipeNetId
+					);
+				}catch(\InvalidArgumentException|ItemTypeSerializeException){
+					continue;
+				}
 			}
 		}
 
@@ -178,15 +208,30 @@ final class CraftingDataCache{
 			try{
 				$input = $converter->coreRecipeIngredientToNet($recipe->getInput())->getDescriptor();
 				$ingredient = $converter->coreRecipeIngredientToNet($recipe->getIngredient())->getDescriptor();
-				if(!$input instanceof IntIdMetaItemDescriptor || !$ingredient instanceof IntIdMetaItemDescriptor){
+				if($input instanceof IntIdMetaItemDescriptor){
+					$inputId = $input->getId();
+					$inputMeta = $input->getMeta();
+				}elseif($input instanceof StringIdMetaItemDescriptor){
+					$inputId = $converter->getItemTypeDictionary()->fromStringId($input->getId());
+					$inputMeta = $input->getMeta();
+				}else{
+					throw new AssumptionFailedError();
+				}
+				if($ingredient instanceof IntIdMetaItemDescriptor){
+					$ingredientId = $ingredient->getId();
+					$ingredientMeta = $ingredient->getMeta();
+				}elseif($ingredient instanceof StringIdMetaItemDescriptor){
+					$ingredientId = $converter->getItemTypeDictionary()->fromStringId($ingredient->getId());
+					$ingredientMeta = $ingredient->getMeta();
+				}else{
 					throw new AssumptionFailedError();
 				}
 				$output = $converter->coreItemStackToNet($recipe->getOutput());
 				$potionTypeRecipes[] = new ProtocolPotionTypeRecipe(
-					$input->getId(),
-					$input->getMeta(),
-					$ingredient->getId(),
-					$ingredient->getMeta(),
+					$inputId,
+					$inputMeta,
+					$ingredientId,
+					$ingredientMeta,
 					$output->getId(),
 					$output->getMeta()
 				);
@@ -201,13 +246,17 @@ final class CraftingDataCache{
 			try{
 				$input = $itemTypeDictionary->fromStringId($recipe->getInputItemId());
 				$ingredient = $converter->coreRecipeIngredientToNet($recipe->getIngredient())->getDescriptor();
-				if(!$ingredient instanceof IntIdMetaItemDescriptor){
+				if($ingredient instanceof IntIdMetaItemDescriptor){
+					$ingredientId = $ingredient->getId();
+				}elseif($ingredient instanceof StringIdMetaItemDescriptor){
+					$ingredientId = $itemTypeDictionary->fromStringId($ingredient->getId());
+				}else{
 					throw new AssumptionFailedError();
 				}
 				$output = $itemTypeDictionary->fromStringId($recipe->getOutputItemId());
 				$potionContainerChangeRecipes[] = new ProtocolPotionContainerChangeRecipe(
 					$input,
-					$ingredient->getId(),
+					$ingredientId,
 					$output
 				);
 			}catch(\InvalidArgumentException|ItemTypeSerializeException){

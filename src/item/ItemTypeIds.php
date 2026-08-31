@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+* @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -394,8 +395,10 @@ final class ItemTypeIds{
 	public const ZOMBIE_PIGMAN_SPAWN_EGG = 20353;
 	public const FOX_SPAWN_EGG = 20354;
 	public const ARMOR_STAND = 20355;
+	public const BOLT_ARMOR_TRIM_SMITHING_TEMPLATE = 20356;
+	public const FLOW_ARMOR_TRIM_SMITHING_TEMPLATE = 20357;
 
-	public const FIRST_UNUSED_ITEM_ID = 20356;
+	public const FIRST_UNUSED_ITEM_ID = 20358;
 
 	private static int $nextDynamicId = self::FIRST_UNUSED_ITEM_ID;
 

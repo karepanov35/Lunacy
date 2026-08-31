@@ -22,6 +22,8 @@
 declare(strict_types=1);
 namespace pocketmine\block\inventory;
 
+use pocketmine\block\TrappedChest;
+use pocketmine\math\Facing;
 use pocketmine\inventory\SimpleInventory;
 use pocketmine\network\mcpe\protocol\BlockEventPacket;
 use pocketmine\network\mcpe\protocol\types\BlockPosition;
@@ -51,5 +53,11 @@ class ChestInventory extends SimpleInventory implements BlockInventory{
 
 		//event ID is always 1 for a chest
 		$holder->getWorld()->broadcastPacketToViewers($holder, BlockEventPacket::create(BlockPosition::fromVector3($holder), 1, $isOpen ? 1 : 0));
+		$block = $holder->getWorld()->getBlock($holder);
+		if($block instanceof TrappedChest){
+			foreach(Facing::ALL as $face){
+				$holder->getWorld()->getBlock($holder->getSide($face))->onNearbyBlockChange();
+			}
+		}
 	}
 }

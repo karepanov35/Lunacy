@@ -45,9 +45,11 @@ final class ItemTagToIdMap{
 	use ProtocolSingletonTrait;
 
 	private const PATHS = [
-		ProtocolVersionMapper::PROTOCOL_1_26_33 => "",
-		ProtocolInfo::PROTOCOL_1_26_20 => "",
 		ProtocolInfo::CURRENT_PROTOCOL => "",
+		ProtocolInfo::PROTOCOL_1_26_40 => "",
+		ProtocolInfo::PROTOCOL_1_26_30 => "",
+		ProtocolVersionMapper::PROTOCOL_1_26_44 => "",
+		ProtocolInfo::PROTOCOL_1_26_20 => "",
 		ProtocolInfo::PROTOCOL_1_26_10 => "",
 		ProtocolInfo::PROTOCOL_1_26_0 => "",
 		ProtocolInfo::PROTOCOL_1_21_130 => "",

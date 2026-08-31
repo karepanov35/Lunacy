@@ -22,8 +22,34 @@
 declare(strict_types=1);
 namespace pocketmine\block;
 
-class TrappedChest extends Chest{
 
-	//TODO: Redstone!
+use pocketmine\block\tile\Chest as TileChest;
+use pocketmine\block\utils\AnalogRedstoneSignalEmitter;
+use function count;
 
+class TrappedChest extends Chest implements AnalogRedstoneSignalEmitter{
+
+	private ?int $lastSignal = null;
+
+	public function getOutputSignalStrength() : int{
+		$tile = $this->position->getWorld()->getTile($this->position);
+		if(!$tile instanceof TileChest){
+			return 0;
+		}
+
+		return count($tile->getInventory()->getViewers()) > 0 ? 1 : 0;
+	}
+
+	public function setOutputSignalStrength(int $signalStrength) : self{
+		return $this;
+	}
+
+	public function onScheduledUpdate() : void{
+		$current = $this->getOutputSignalStrength();
+		if($current !== $this->lastSignal){
+			$this->lastSignal = $current;
+			$this->position->getWorld()->setBlock($this->position, $this); 
+		}
+		$this->position->getWorld()->scheduleDelayedBlockUpdate($this->position, 2); 
+}
 }

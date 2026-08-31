@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -308,6 +309,7 @@ use function strtolower;
  * @method static Item SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE()
  * @method static Item SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE()
  * @method static Shears SHEARS()
+ * @method static Shield SHIELD()
  * @method static Item SHULKER_SHELL()
  * @method static Item SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE()
  * @method static Item SLIMEBALL()
@@ -607,6 +609,7 @@ final class VanillaItems{
 		self::register("rotten_flesh", fn(IID $id) => new RottenFlesh($id, "Rotten Flesh"));
 		self::register("scute", fn(IID $id) => new Item($id, "Scute"));
 		self::register("shears", fn(IID $id) => new Shears($id, "Shears", [EnchantmentTags::SHEARS]));
+		self::register("shield", fn(IID $id) => new Shield($id, "Shield"));
 		self::register("shulker_shell", fn(IID $id) => new Item($id, "Shulker Shell"));
 		self::register("slimeball", fn(IID $id) => new Item($id, "Slimeball"));
 		self::register("snowball", fn(IID $id) => new Snowball($id, "Snowball"));
@@ -826,9 +829,11 @@ final class VanillaItems{
 
 	private static function registerSmithingTemplates() : void{
 		self::register("netherite_upgrade_smithing_template", fn(IID $id) => new Item($id, "Netherite Upgrade Smithing Template"));
+		self::register("bolt_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Bolt Armor Trim Smithing Template"));
 		self::register("coast_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Coast Armor Trim Smithing Template"));
 		self::register("dune_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Dune Armor Trim Smithing Template"));
 		self::register("eye_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Eye Armor Trim Smithing Template"));
+		self::register("flow_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Flow Armor Trim Smithing Template"));
 		self::register("host_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Host Armor Trim Smithing Template"));
 		self::register("raiser_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Raiser Armor Trim Smithing Template"));
 		self::register("rib_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Rib Armor Trim Smithing Template"));
@@ -843,5 +848,4 @@ final class VanillaItems{
 		self::register("wayfinder_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Wayfinder Armor Trim Smithing Template"));
 		self::register("wild_armor_trim_smithing_template", fn(IID $id) => new Item($id, "Wild Armor Trim Smithing Template"));
 	}
-
 }

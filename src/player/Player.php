@@ -98,12 +98,14 @@ use pocketmine\inventory\transaction\InventoryTransaction;
 use pocketmine\inventory\transaction\TransactionBuilder;
 use pocketmine\inventory\transaction\TransactionCancelledException;
 use pocketmine\inventory\transaction\TransactionValidationException;
+use pocketmine\item\Axe;
 use pocketmine\item\ConsumableItem;
 use pocketmine\item\Durable;
 use pocketmine\item\enchantment\EnchantmentInstance;
 use pocketmine\item\enchantment\MeleeWeaponEnchantment;
 use pocketmine\item\Item;
 use pocketmine\item\ItemUseResult;
+use pocketmine\item\Shield;
 use pocketmine\item\Releasable;
 use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\lang\Language;
@@ -142,6 +144,7 @@ use pocketmine\world\sound\EntityAttackSound;
 use pocketmine\world\sound\FireExtinguishSound;
 use pocketmine\world\sound\ItemBreakSound;
 use pocketmine\world\sound\RespawnAnchorDepleteSound;
+use pocketmine\world\sound\ShieldBlockSound;
 use pocketmine\world\sound\Sound;
 use pocketmine\world\World;
 use pocketmine\YmlServerProperties;
@@ -302,6 +305,8 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	protected string $locale = "en_US";
 
 	protected int $startAction = -1;
+	private int $shieldTransitionTicks = 0;
+	private int $shieldBlockedTicks = 0;
 
 	/**
 	 * @phpstan-var array<int|string, int>
@@ -1577,7 +1582,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 	}
 
 	protected function calculateFallDamage(float $fallDistance) : float{
-		return $this->flying ? 0 : parent::calculateFallDamage($fallDistance);
+		return ($this->flying || $this->isGliding()) ? 0 : parent::calculateFallDamage($fallDistance);
 	}
 
 	public function jump() : void{
@@ -1663,6 +1668,20 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 					$this->setUsingItem(false);
 				}
 			}
+
+			if($this->shieldTransitionTicks > 0 && ($this->shieldTransitionTicks -= $tickDiff) <= 0){
+				$this->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, false);
+				$this->shieldTransitionTicks = 0;
+			}
+
+			if($this->shieldBlockedTicks > 0 && ($this->shieldBlockedTicks -= $tickDiff) <= 0){
+				$properties = $this->getNetworkProperties();
+				$properties->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_SHIELD, false);
+				$properties->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_DAMAGED_SHIELD, false);
+				$this->shieldBlockedTicks = 0;
+			}
+
+			$this->syncShieldBlockingState();
 		}
 
 		$this->timings->stopTiming();
@@ -2222,6 +2241,7 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 			return false;
 		}
 		$this->setSneaking($sneak);
+		$this->syncShieldBlockingState(true);
 
 		// ╨б╨╗╨╡╨╖╤В╤М ╤Б ╨╗╨╛╤И╨░╨┤╨╕ ╨┐╤А╨╕ ╨┐╤А╨╕╤Б╨╡╨┤╨░╨╜╨╕╨╕
 		if($sneak){
@@ -2780,6 +2800,108 @@ class Player extends Human implements CommandSender, ChunkListener, IPlayer, Nev
 		}
 
 		parent::attack($source);
+	}
+
+	protected function blockDamage(EntityDamageEvent $source) : bool{
+		if(!$source instanceof EntityDamageByEntityEvent || !$source->canBeReducedByArmor() || !$this->isSneaking()){
+			return false;
+		}
+
+		$damager = $source instanceof EntityDamageByChildEntityEvent ? $source->getChild() : $source->getDamager();
+		if(!$damager instanceof Entity){
+			return false;
+		}
+
+		$toDamager = $damager->getPosition()->subtractVector($this->getPosition());
+		if($toDamager->lengthSquared() <= 0){
+			return false;
+		}
+		if($this->getDirectionVector()->dot($toDamager->normalize()) <= 0){
+			return false;
+		}
+
+		$shieldInventory = null;
+		$item = $this->getOffHandInventory()->getItem(0);
+		if($item instanceof Shield && !$item->isBroken()){
+			$shieldInventory = $this->getOffHandInventory();
+		}else{
+			$item = $this->inventory->getItemInHand();
+			if($item instanceof Shield && !$item->isBroken()){
+				$shieldInventory = $this->inventory;
+			}
+		}
+
+		if(!$item instanceof Shield || $shieldInventory === null || $this->hasItemCooldown($item)){
+			return false;
+		}
+
+		$damaged = $item->getDamage() !== 0;
+		if($damager instanceof Human && $damager->getInventory()->getItemInHand() instanceof Axe){
+			$this->resetItemCooldown($item, 5 * 20);
+			$this->syncShieldBlockingState(true);
+			$this->broadcastSound(new ItemBreakSound());
+		}
+
+		if($this->hasFiniteResources()){
+			$item->applyDamage(1);
+			if($item->isBroken()){
+				if($shieldInventory === $this->inventory){
+					$this->inventory->setItemInHand(VanillaItems::AIR());
+				}else{
+					$this->getOffHandInventory()->setItem(0, VanillaItems::AIR());
+				}
+				$this->broadcastSound(new ItemBreakSound());
+			}else{
+				if($shieldInventory === $this->inventory){
+					$this->inventory->setItemInHand($item);
+				}else{
+					$this->getOffHandInventory()->setItem(0, $item);
+				}
+			}
+		}
+
+		$this->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_SHIELD, true);
+		if($damaged){
+			$this->getNetworkProperties()->setGenericFlag(EntityMetadataFlags::BLOCKED_USING_DAMAGED_SHIELD, true);
+		}
+		$this->broadcastSound(new ShieldBlockSound());
+		$this->shieldBlockedTicks = 1;
+
+		return true;
+	}
+
+	public function onSwingArm() : void{
+		$shield = $this->getBlockingShield();
+		if($shield === null || $this->hasItemCooldown($shield)){
+			return;
+		}
+
+		$this->resetItemCooldown($shield, 6);
+		$this->syncShieldBlockingState(true);
+	}
+
+	private function getBlockingShield() : ?Shield{
+		$item = $this->getOffHandInventory()->getItem(0);
+		if($item instanceof Shield && !$item->isBroken()){
+			return $item;
+		}
+
+		$item = $this->inventory->getItemInHand();
+		if($item instanceof Shield && !$item->isBroken()){
+			return $item;
+		}
+
+		return null;
+	}
+
+	private function syncShieldBlockingState(bool $transition = false) : void{
+		$properties = $this->getNetworkProperties();
+		$blocking = $this->isSneaking() && $this->getBlockingShield() !== null && !$this->hasItemCooldown($this->getBlockingShield());
+		$properties->setGenericFlag(EntityMetadataFlags::BLOCKING, $blocking);
+		if($transition){
+			$properties->setGenericFlag(EntityMetadataFlags::TRANSITION_BLOCKING, true);
+			$this->shieldTransitionTicks = 1;
+		}
 	}
 
 	protected function syncNetworkData(EntityMetadataCollection $properties) : void{

@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -22,6 +23,9 @@
 declare(strict_types=1);
 namespace pocketmine\item;
 
+use pocketmine\item\ArmorTrim;
+use pocketmine\item\ArmorTrimMaterial;
+use pocketmine\item\ArmorTrimPattern;
 use pocketmine\color\Color;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\inventory\ArmorInventory;
@@ -38,10 +42,14 @@ use function mt_rand;
 class Armor extends Durable{
 
 	public const TAG_CUSTOM_COLOR = "customColor"; //TAG_Int
+	private const TAG_TRIM = "Trim";
+	private const TAG_TRIM_MATERIAL = "Material";
+	private const TAG_TRIM_PATTERN = "Pattern";
 
 	private ArmorTypeInfo $armorInfo;
 
 	protected ?Color $customColor = null;
+	protected ?ArmorTrim $trim = null;
 
 	/**
 	 * @param string[] $enchantmentTags
@@ -105,6 +113,20 @@ class Armor extends Durable{
 		return $this;
 	}
 
+	public function getTrim() : ?ArmorTrim{
+		return $this->trim;
+	}
+
+	public function setTrim(ArmorTrim $trim) : self{
+		$this->trim = $trim;
+		return $this;
+	}
+
+	public function clearTrim() : self{
+		$this->trim = null;
+		return $this;
+	}
+
 	/**
 	 * Returns the total enchantment protection factor this armour piece offers from all applicable protection
 	 * enchantments on the item.
@@ -163,6 +185,18 @@ class Armor extends Durable{
 		}else{
 			$this->customColor = null;
 		}
+		$trimTag = $tag->getCompoundTag(self::TAG_TRIM);
+		if($trimTag !== null){
+			$material = ArmorTrimMaterial::tryFromStringId(
+				$trimTag->getString(self::TAG_TRIM_MATERIAL, $trimTag->getString("material", ""))
+			);
+			$pattern = ArmorTrimPattern::tryFromStringId(
+				$trimTag->getString(self::TAG_TRIM_PATTERN, $trimTag->getString("pattern", ""))
+			);
+			$this->trim = $material !== null && $pattern !== null ? new ArmorTrim($material, $pattern) : null;
+		}else{
+			$this->trim = null;
+		}
 	}
 
 	protected function serializeCompoundTag(CompoundTag $tag) : void{
@@ -170,5 +204,13 @@ class Armor extends Durable{
 		$this->customColor !== null ?
 			$tag->setInt(self::TAG_CUSTOM_COLOR, Binary::signInt($this->customColor->toARGB())) :
 			$tag->removeTag(self::TAG_CUSTOM_COLOR);
+		if($this->trim !== null){
+			$tag->setTag(self::TAG_TRIM, CompoundTag::create()
+				->setString(self::TAG_TRIM_MATERIAL, $this->trim->getMaterial()->getMaterialId())
+				->setString(self::TAG_TRIM_PATTERN, $this->trim->getPattern()->getPatternId())
+			);
+		}else{
+			$tag->removeTag(self::TAG_TRIM);
+		}
 	}
 }

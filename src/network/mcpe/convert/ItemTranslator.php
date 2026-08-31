@@ -73,7 +73,7 @@ final class ItemTranslator{
 	public function toNetworkId(Item $item) : array{
 		//TODO: we should probably come up with a cache for this
 
-		$itemData = $this->itemSerializer->serializeType($item, $this->itemDataDowngrader);
+		$itemData = $this->toNetworkTypeData($item);
 
 		try {
 			$numericId = $this->itemTypeDictionary->fromStringId($itemData->getName());
@@ -94,6 +94,10 @@ final class ItemTranslator{
 		}
 
 		return [$numericId, $itemData->getMeta(), $blockRuntimeId];
+	}
+
+	public function toNetworkTypeData(Item $item) : SavedItemData{
+		return $this->itemSerializer->serializeType($item, $this->itemDataDowngrader);
 	}
 
 	/**
@@ -138,7 +142,9 @@ final class ItemTranslator{
 
 	public static function getItemSchemaId(int $protocolId) : int{
 		return match($protocolId){
-			ProtocolVersionMapper::PROTOCOL_1_26_33,
+			ProtocolVersionMapper::PROTOCOL_1_26_44,
+			ProtocolInfo::PROTOCOL_1_26_40,
+			ProtocolInfo::PROTOCOL_1_26_30,
 			ProtocolInfo::PROTOCOL_1_26_20,
 			ProtocolInfo::PROTOCOL_1_26_10,
 			ProtocolInfo::PROTOCOL_1_26_0,

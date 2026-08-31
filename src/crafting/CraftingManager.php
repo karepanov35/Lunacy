@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -24,6 +25,8 @@ namespace pocketmine\crafting;
 
 use pmmp\encoding\ByteBufferWriter;
 use pmmp\encoding\VarInt;
+use pocketmine\crafting\SmithingTransformRecipe;
+use pocketmine\crafting\SmithingTrimRecipe;
 use pocketmine\item\Item;
 use pocketmine\nbt\LittleEndianNbtSerializer;
 use pocketmine\nbt\TreeRoot;
@@ -190,8 +193,8 @@ class CraftingManager{
 	}
 
 	public function registerShapedRecipe(ShapedRecipe $recipe) : void{
-		$this->shapedRecipes[self::hashOutputs($recipe->getResults())][] = $recipe;
 		$this->craftingRecipeIndex[] = $recipe;
+		$this->shapedRecipes[self::hashOutputs($recipe->getResults())][] = $recipe;
 
 		foreach($this->recipeRegisteredCallbacks as $callback){
 			$callback();
@@ -199,9 +202,22 @@ class CraftingManager{
 	}
 
 	public function registerShapelessRecipe(ShapelessRecipe $recipe) : void{
-		$this->shapelessRecipes[self::hashOutputs($recipe->getResults())][] = $recipe;
 		$this->craftingRecipeIndex[] = $recipe;
+		$this->shapelessRecipes[self::hashOutputs($recipe->getResults())][] = $recipe;
+		foreach($this->recipeRegisteredCallbacks as $callback){
+			$callback();
+		}
+	}
 
+	public function registerSmithingTransformRecipe(SmithingTransformRecipe $recipe) : void{
+		$this->craftingRecipeIndex[] = $recipe;
+		foreach($this->recipeRegisteredCallbacks as $callback){
+			$callback();
+		}
+	}
+
+	public function registerSmithingTrimRecipe(SmithingTrimRecipe $recipe) : void{
+		$this->craftingRecipeIndex[] = $recipe;
 		foreach($this->recipeRegisteredCallbacks as $callback){
 			$callback();
 		}

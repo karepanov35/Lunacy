@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -24,6 +25,8 @@ namespace pocketmine\network\mcpe\handler;
 
 use pocketmine\block\inventory\AnvilInventory;
 use pocketmine\block\inventory\EnchantInventory;
+use pocketmine\block\inventory\SmithingTableInventory;
+use pocketmine\crafting\CraftingRecipe;
 use pocketmine\inventory\Inventory;
 use pocketmine\inventory\transaction\action\CreateItemAction;
 use pocketmine\inventory\transaction\action\DestroyItemAction;
@@ -32,6 +35,7 @@ use pocketmine\inventory\transaction\AnvilTransaction;
 use pocketmine\inventory\transaction\CraftingTransaction;
 use pocketmine\inventory\transaction\EnchantingTransaction;
 use pocketmine\inventory\transaction\InventoryTransaction;
+use pocketmine\inventory\transaction\SmithingTransaction;
 use pocketmine\inventory\transaction\TransactionBuilder;
 use pocketmine\inventory\transaction\TransactionBuilderInventory;
 use pocketmine\item\Durable;
@@ -59,6 +63,8 @@ use pocketmine\network\mcpe\protocol\types\inventory\stackrequest\SwapStackReque
 use pocketmine\network\mcpe\protocol\types\inventory\stackrequest\TakeStackRequestAction;
 use pocketmine\network\mcpe\protocol\types\inventory\stackresponse\ItemStackResponse;
 use pocketmine\network\mcpe\protocol\types\inventory\UIInventorySlotOffset;
+use pocketmine\crafting\SmithingTransformRecipe;
+use pocketmine\crafting\SmithingTrimRecipe;
 use pocketmine\player\Player;
 use pocketmine\utils\AssumptionFailedError;
 use pocketmine\utils\Utils;
@@ -80,6 +86,7 @@ class ItemStackRequestExecutor{
 	private array $requestSlotInfos = [];
 
 	private ?InventoryTransaction $specialTransaction = null;
+	private ?CraftingRecipe $smithingRecipe = null;
 
 	/** @var Item[] */
 	private array $craftingResults = [];
@@ -181,6 +188,13 @@ class ItemStackRequestExecutor{
 			}
 			return $this->takeCreatedItem($count);
 		}
+		if($currentWindow instanceof SmithingTableInventory && $containerId === ContainerUIIds::SMITHING_TABLE_RESULT_PREVIEW){
+			$this->requestSlotInfos[] = $slotInfo;
+			if(!$this->specialTransaction instanceof SmithingTransaction){
+				$this->beginSmithingTransaction($this->smithingRecipe);
+			}
+			return $this->takeCreatedItem($count);
+		}
 		if($currentWindow instanceof AnvilInventory && (
 			$containerId === ContainerUIIds::ANVIL_INPUT || $containerId === ContainerUIIds::ANVIL_MATERIAL
 		)){
@@ -228,6 +242,31 @@ class ItemStackRequestExecutor{
 		)){
 			$this->requestSlotInfos[] = $slotInfo;
 			$slot = $containerId === ContainerUIIds::ANVIL_INPUT ? AnvilInventory::SLOT_INPUT : AnvilInventory::SLOT_MATERIAL;
+			$inventory = $this->builder->getInventory($currentWindow);
+			if($count < 1){
+				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Cannot take less than 1 items from a stack");
+			}
+			$existingItem = $inventory->getItem($slot);
+			if(!$existingItem->isNull() && !$existingItem->canStackWith($item)){
+				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Can only add items to an empty slot, or a slot containing the same item");
+			}
+			$newItem = clone $item;
+			$newItem->setCount($existingItem->getCount() + $count);
+			$inventory->setItem($slot, $newItem);
+			return;
+		}
+		if($currentWindow instanceof SmithingTableInventory && (
+			$containerId === ContainerUIIds::SMITHING_TABLE_INPUT ||
+			$containerId === ContainerUIIds::SMITHING_TABLE_MATERIAL ||
+			$containerId === ContainerUIIds::SMITHING_TABLE_TEMPLATE
+		)){
+			$this->requestSlotInfos[] = $slotInfo;
+			$slot = match($containerId){
+				ContainerUIIds::SMITHING_TABLE_INPUT => SmithingTableInventory::SLOT_INPUT,
+				ContainerUIIds::SMITHING_TABLE_MATERIAL => SmithingTableInventory::SLOT_MATERIAL,
+				ContainerUIIds::SMITHING_TABLE_TEMPLATE => SmithingTableInventory::SLOT_TEMPLATE,
+				default => throw new AssumptionFailedError(),
+			};
 			$inventory = $this->builder->getInventory($currentWindow);
 			if($count < 1){
 				throw new ItemStackRequestProcessException($this->prettyInventoryAndSlot($inventory, $slot) . ": Cannot take less than 1 items from a stack");
@@ -361,6 +400,41 @@ class ItemStackRequestExecutor{
 	/**
 	 * @throws ItemStackRequestProcessException
 	 */
+	protected function beginSmithingTransaction(?CraftingRecipe $recipe) : void{
+		if($recipe === null){
+			throw new ItemStackRequestProcessException("No smithing recipe selected");
+		}
+		$currentWindow = $this->player->getCurrentWindow();
+		if(!$currentWindow instanceof SmithingTableInventory){
+			throw new ItemStackRequestProcessException("Player's current window is not a smithing table inventory");
+		}
+		if($this->specialTransaction !== null && !$this->specialTransaction instanceof SmithingTransaction){
+			throw new ItemStackRequestProcessException("Another special transaction is already in progress");
+		}
+		if(!($recipe instanceof SmithingTransformRecipe || $recipe instanceof SmithingTrimRecipe)){
+			throw new ItemStackRequestProcessException("Selected recipe is not a smithing recipe");
+		}
+		$window = $this->builder->getInventory($currentWindow);
+		$template = clone $window->getItem(SmithingTableInventory::SLOT_TEMPLATE);
+		$input = clone $window->getItem(SmithingTableInventory::SLOT_INPUT);
+		$addition = clone $window->getItem(SmithingTableInventory::SLOT_MATERIAL);
+
+		$this->smithingRecipe = $recipe;
+		$this->specialTransaction = new SmithingTransaction(
+			$this->player,
+			$this->player->getWorld()->getBlock($currentWindow->getHolder()),
+			$template,
+			$input,
+			$addition,
+			$recipe,
+			[]
+		);
+		$this->setNextCreatedItem($this->specialTransaction->getResult());
+	}
+
+	/**
+	 * @throws ItemStackRequestProcessException
+	 */
 	protected function takeCreatedItem(int $count) : Item{
 		if($count < 1){
 			//this should be impossible at the protocol level, but in case of buggy core code this will prevent exploits
@@ -391,7 +465,11 @@ class ItemStackRequestExecutor{
 	 * @throws ItemStackRequestProcessException
 	 */
 	private function assertDoingCrafting() : void{
-		if(!$this->specialTransaction instanceof CraftingTransaction && !$this->specialTransaction instanceof EnchantingTransaction){
+		if(
+			!$this->specialTransaction instanceof CraftingTransaction &&
+			!$this->specialTransaction instanceof EnchantingTransaction &&
+			!$this->specialTransaction instanceof SmithingTransaction
+		){
 			if($this->specialTransaction === null){
 				throw new ItemStackRequestProcessException("Expected CraftRecipe or CraftRecipeAuto action to precede this action");
 			}else{
@@ -456,11 +534,30 @@ class ItemStackRequestExecutor{
 				$this->setNextCreatedItem($output);
 			}elseif($window instanceof AnvilInventory){
 				$this->beginAnvilTransaction($this->anvilRename);
+			}elseif($window instanceof SmithingTableInventory){
+				$craftingManager = $this->player->getServer()->getCraftingManager();
+				$recipeIndex = $action->getRecipeId() - CraftingDataCache::RECIPE_ID_OFFSET;
+				$recipe = $craftingManager->getCraftingRecipeFromIndex($recipeIndex);
+				if(!($recipe instanceof SmithingTransformRecipe || $recipe instanceof SmithingTrimRecipe)){
+					throw new ItemStackRequestProcessException("No such smithing recipe index: $recipeIndex");
+				}
+				$this->smithingRecipe = $recipe;
 			}else{
 				$this->beginCrafting($action->getRecipeId(), $this->player->getNetworkSession()->getProtocolId() >= ProtocolInfo::PROTOCOL_1_21_20 ? $action->getRepetitions() : 1);
 			}
 		}elseif($action instanceof CraftRecipeAutoStackRequestAction){
-			$this->beginCrafting($action->getRecipeId(), $action->getRepetitions());
+			$window = $this->player->getCurrentWindow();
+			if($window instanceof SmithingTableInventory){
+				$craftingManager = $this->player->getServer()->getCraftingManager();
+				$recipeIndex = $action->getRecipeId() - CraftingDataCache::RECIPE_ID_OFFSET;
+				$recipe = $craftingManager->getCraftingRecipeFromIndex($recipeIndex);
+				if(!($recipe instanceof SmithingTransformRecipe || $recipe instanceof SmithingTrimRecipe)){
+					throw new ItemStackRequestProcessException("No such smithing recipe index: $recipeIndex");
+				}
+				$this->smithingRecipe = $recipe;
+			}else{
+				$this->beginCrafting($action->getRecipeId(), $action->getRepetitions());
+			}
 		}elseif($action instanceof CraftRecipeOptionalStackRequestAction){
 			$filterStrings = $this->filterStrings;
 			$filterStringIndex = $action->getFilterStringIndex();
@@ -473,16 +570,34 @@ class ItemStackRequestExecutor{
 			if(!$this->specialTransaction instanceof AnvilTransaction && $this->player->getCurrentWindow() instanceof AnvilInventory){
 				$this->beginAnvilTransaction($this->anvilRename);
 			}
+			if(!$this->specialTransaction instanceof SmithingTransaction && $this->player->getCurrentWindow() instanceof SmithingTableInventory){
+				if($this->smithingRecipe === null){
+					throw new ItemStackRequestProcessException("Expected CraftRecipe to precede smithing consume action");
+				}
+				$this->beginSmithingTransaction($this->smithingRecipe);
+			}
 			if(!$this->specialTransaction instanceof AnvilTransaction){
 				$this->assertDoingCrafting();
 			}
 			$this->removeItemFromSlot($action->getSource(), $action->getCount()); //output discarded - we allow the transaction to verify the balance
 		}elseif($action instanceof CraftingCreateSpecificResultStackRequestAction){
+			if($this->specialTransaction === null && $this->player->getCurrentWindow() instanceof SmithingTableInventory){
+				if($this->smithingRecipe === null){
+					throw new ItemStackRequestProcessException("Expected CraftRecipe to precede smithing create-result action");
+				}
+				$this->beginSmithingTransaction($this->smithingRecipe);
+			}
 			$this->assertDoingCrafting();
 
 			$nextResultItem = $this->craftingResults[$action->getResultIndex()] ?? null;
 			if($nextResultItem === null){
 				throw new ItemStackRequestProcessException("No such crafting result index: " . $action->getResultIndex());
+			}
+			if($this->specialTransaction instanceof SmithingTransaction){
+				if($this->nextCreatedItem === null){
+					$this->setNextCreatedItem($nextResultItem);
+				}
+				return;
 			}
 			$this->setNextCreatedItem($nextResultItem);
 		}elseif($action instanceof DeprecatedCraftingResultsStackRequestAction){

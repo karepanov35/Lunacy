@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -23,6 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe\handler;
 
 use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\data\bedrock\ItemTagToIdMap;
 use pocketmine\network\mcpe\cache\ChunkCache;
 use pocketmine\network\mcpe\cache\CraftingDataCache;
 use pocketmine\network\mcpe\cache\StaticPacketCache;
@@ -33,12 +35,15 @@ use pocketmine\network\mcpe\protocol\PlayerAuthInputPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
 use pocketmine\network\mcpe\protocol\RequestChunkRadiusPacket;
 use pocketmine\network\mcpe\protocol\StartGamePacket;
+use pocketmine\network\mcpe\protocol\TrimDataPacket;
 use pocketmine\network\mcpe\protocol\types\BlockPosition;
 use pocketmine\network\mcpe\protocol\types\BoolGameRule;
 use pocketmine\network\mcpe\protocol\types\CacheableNbt;
 use pocketmine\network\mcpe\protocol\types\Experiments;
 use pocketmine\network\mcpe\protocol\types\LevelSettings;
 use pocketmine\network\mcpe\protocol\types\NetworkPermissions;
+use pocketmine\network\mcpe\protocol\types\TrimMaterial;
+use pocketmine\network\mcpe\protocol\types\TrimPattern;
 use pocketmine\network\mcpe\protocol\types\PlayerMovementSettings;
 use pocketmine\network\mcpe\protocol\types\ServerAuthMovementMode;
 use pocketmine\network\mcpe\protocol\types\ServerTelemetryData;
@@ -49,6 +54,7 @@ use pocketmine\timings\Timings;
 use pocketmine\VersionInfo;
 use Ramsey\Uuid\Uuid;
 use function sprintf;
+use function str_replace;
 
 /**
  * Handler used for the pre-spawn phase of the session.
@@ -161,6 +167,11 @@ class PreSpawnPacketHandler extends PacketHandler{
 			$this->session->getLogger()->debug("Sending crafting data");
 			$this->session->sendDataPacket(CraftingDataCache::getInstance($protocolId)->getCache($this->server->getCraftingManager()));
 
+			if($protocolId >= ProtocolInfo::PROTOCOL_1_20_0){
+				$this->session->getLogger()->debug("Sending trim data");
+				$this->session->sendDataPacket($this->createTrimDataPacket($protocolId));
+			}
+
 			$this->session->getLogger()->debug("Sending player list");
 			$this->session->syncPlayerList($this->server->getOnlinePlayers());
 		}finally{
@@ -178,5 +189,58 @@ class PreSpawnPacketHandler extends PacketHandler{
 		//the client will send this every tick once we start sending chunks, but we don't handle it in this stage
 		//this is very spammy so we filter it out
 		return true;
+	}
+
+	private function createTrimDataPacket(int $protocolId) : TrimDataPacket{
+		$itemTagMap = ItemTagToIdMap::getInstance($protocolId);
+		$patterns = [];
+		$patternLookup = [
+			"minecraft:bolt_armor_trim_smithing_template" => "bolt",
+			"minecraft:coast_armor_trim_smithing_template" => "coast",
+			"minecraft:dune_armor_trim_smithing_template" => "dune",
+			"minecraft:eye_armor_trim_smithing_template" => "eye",
+			"minecraft:flow_armor_trim_smithing_template" => "flow",
+			"minecraft:host_armor_trim_smithing_template" => "host",
+			"minecraft:raiser_armor_trim_smithing_template" => "raiser",
+			"minecraft:rib_armor_trim_smithing_template" => "rib",
+			"minecraft:sentry_armor_trim_smithing_template" => "sentry",
+			"minecraft:shaper_armor_trim_smithing_template" => "shaper",
+			"minecraft:silence_armor_trim_smithing_template" => "silence",
+			"minecraft:snout_armor_trim_smithing_template" => "snout",
+			"minecraft:spire_armor_trim_smithing_template" => "spire",
+			"minecraft:tide_armor_trim_smithing_template" => "tide",
+			"minecraft:vex_armor_trim_smithing_template" => "vex",
+			"minecraft:ward_armor_trim_smithing_template" => "ward",
+			"minecraft:wayfinder_armor_trim_smithing_template" => "wayfinder",
+			"minecraft:wild_armor_trim_smithing_template" => "wild",
+		];
+		foreach($itemTagMap->getIdsForTag("minecraft:trim_templates") as $itemId){
+			if(isset($patternLookup[$itemId])){
+				$patterns[] = new TrimPattern($itemId, $patternLookup[$itemId]);
+			}
+		}
+
+		$materials = [];
+		$materialIds = [
+			"minecraft:amethyst_shard" => ["amethyst", "\u{00A7}u"],
+			"minecraft:copper_ingot" => ["copper", "\u{00A7}n"],
+			"minecraft:diamond" => ["diamond", "\u{00A7}s"],
+			"minecraft:emerald" => ["emerald", "\u{00A7}q"],
+			"minecraft:gold_ingot" => ["gold", "\u{00A7}p"],
+			"minecraft:iron_ingot" => ["iron", "\u{00A7}i"],
+			"minecraft:lapis_lazuli" => ["lapis", "\u{00A7}t"],
+			"minecraft:netherite_ingot" => ["netherite", "\u{00A7}j"],
+			"minecraft:quartz" => ["quartz", "\u{00A7}h"],
+			"minecraft:redstone" => ["redstone", "\u{00A7}m"],
+			"minecraft:resin_brick" => ["resin", "\u{00A7}v"],
+		];
+		foreach($itemTagMap->getIdsForTag("minecraft:trim_materials") as $itemId){
+			if(isset($materialIds[$itemId])){
+				[$materialId, $colorId] = $materialIds[$itemId];
+				$materials[] = new TrimMaterial($materialId, $colorId, $itemId);
+			}
+		}
+
+		return TrimDataPacket::create($patterns, $materials);
 	}
 }

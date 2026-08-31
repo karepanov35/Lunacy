@@ -23,11 +23,14 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
+use pocketmine\entity\object\FireworkRocket as FireworkRocketEntity;
 use pocketmine\entity\Location;
 use pocketmine\entity\projectile\Arrow as ArrowEntity;
 use pocketmine\entity\projectile\Projectile;
 use pocketmine\event\entity\EntityShootBowEvent;
 use pocketmine\event\entity\ProjectileLaunchEvent;
+use pocketmine\item\Arrow as ArrowItem;
+use pocketmine\item\FireworkRocket as FireworkRocketItem;
 use pocketmine\item\enchantment\VanillaEnchantments;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\CompoundTag;
@@ -36,7 +39,11 @@ use pocketmine\network\mcpe\protocol\types\ActorEvent;
 use pocketmine\player\Player;
 use pocketmine\world\sound\CrossbowLoadEndSound;
 use pocketmine\world\sound\CrossbowShootSound;
+use function cos;
+use function deg2rad;
 use function intdiv;
+use function mt_rand;
+use function sin;
 
 class Crossbow extends Tool implements Releasable{
 
@@ -73,8 +80,8 @@ class Crossbow extends Tool implements Releasable{
 			return true;
 		}
 
-		$arrow = $this->takeArrowFromPlayer($player);
-		if($arrow === null){
+		$ammo = $this->takeAmmoFromPlayer($player);
+		if($ammo === null){
 			return false;
 		}
 
@@ -83,7 +90,7 @@ class Crossbow extends Tool implements Releasable{
 			return false;
 		}
 
-		$loaded->setChargedProjectile($arrow);
+		$loaded->setChargedProjectile($ammo);
 		$player->getInventory()->setItemInHand($loaded);
 		$player->getWorld()->addSound($player->getLocation(), new CrossbowLoadEndSound());
 		$player->getNetworkSession()->sendDataPacket(ActorEventPacket::create(
@@ -97,6 +104,7 @@ class Crossbow extends Tool implements Releasable{
 			$loaded->applyDamage(1);
 			$player->getInventory()->setItemInHand($loaded);
 		}
+		$player->resetItemCooldown($loaded, 1);
 
 		return false;
 	}
@@ -106,7 +114,7 @@ class Crossbow extends Tool implements Releasable{
 			return false;
 		}
 
-		return $this->findArrowInventory($player) !== null || !$player->hasFiniteResources();
+		return $this->findAmmoItem($player) !== null || !$player->hasFiniteResources();
 	}
 
 	private function getLoadDuration() : int{
@@ -137,36 +145,51 @@ class Crossbow extends Tool implements Releasable{
 	}
 
 	/**
-	 * @return \pocketmine\inventory\Inventory|null
+	 * @return array{0:\pocketmine\inventory\Inventory,1:int,2:Item}|null
 	 */
-	private function findArrowInventory(Player $player) : ?\pocketmine\inventory\Inventory{
-		$arrow = VanillaItems::ARROW();
-		if($player->getOffHandInventory()->contains($arrow)){
-			return $player->getOffHandInventory();
-		}
-		if($player->getInventory()->contains($arrow)){
-			return $player->getInventory();
+	private function findAmmoItem(Player $player) : ?array{
+		foreach([$player->getOffHandInventory(), $player->getInventory()] as $inventory){
+			foreach($inventory->getContents() as $slot => $item){
+				if($this->isValidAmmo($item)){
+					if($item instanceof FireworkRocketItem && $inventory !== $player->getOffHandInventory()){
+						continue;
+					}
+
+					return [$inventory, $slot, clone $item];
+				}
+			}
 		}
 
 		return null;
 	}
 
-	private function takeArrowFromPlayer(Player $player) : ?Item{
+	private function isValidAmmo(Item $item) : bool{
+		return $item instanceof ArrowItem || $item instanceof FireworkRocketItem;
+	}
+
+	private function takeAmmoFromPlayer(Player $player) : ?Item{
+		$ammo = $this->findAmmoItem($player);
+		if($ammo !== null){
+			[$inventory, $slot, $item] = $ammo;
+			$item->setCount(1);
+			if($player->hasFiniteResources()){
+				$remaining = $inventory->getItem($slot);
+				$remaining->pop();
+				if($remaining->isNull()){
+					$inventory->clear($slot);
+				}else{
+					$inventory->setItem($slot, $remaining);
+				}
+			}
+
+			return $item;
+		}
+
 		if(!$player->hasFiniteResources()){
 			return VanillaItems::ARROW();
 		}
 
-		$inventory = $this->findArrowInventory($player);
-		if($inventory === null){
-			return null;
-		}
-
-		$arrow = VanillaItems::ARROW();
-		if(!$inventory->removeItem($arrow)){
-			return null;
-		}
-
-		return $arrow;
+		return null;
 	}
 
 	private function launchLoadedProjectile(Player $player, array &$returnedItems) : ItemUseResult{
@@ -176,14 +199,56 @@ class Crossbow extends Tool implements Releasable{
 			return ItemUseResult::FAIL;
 		}
 
+		$shotCount = 0;
+
+		foreach([0.0] as $yawOffset){
+			if($this->launchSingleCrossbowShot($player, $chargedItem, $yawOffset)){
+				++$shotCount;
+			}
+		}
+
+		if($shotCount === 0){
+			return ItemUseResult::FAIL;
+		}
+
+		$player->getWorld()->addSound($player->getLocation(), new CrossbowShootSound());
+
+		$handItem = clone $player->getInventory()->getItemInHand();
+		if($handItem instanceof Crossbow){
+			$handItem->clearChargedProjectile();
+			if($player->hasFiniteResources()){
+				$handItem->applyDamage(1);
+			}
+			$player->getInventory()->setItemInHand($handItem);
+		}
+
+		return ItemUseResult::SUCCESS;
+	}
+
+	private function launchSingleCrossbowShot(Player $player, Item $chargedItem, float $yawOffset) : bool{
 		$location = $player->getLocation();
-		$projectile = new ArrowEntity(Location::fromObject(
+		$yaw = $location->getYaw() + $yawOffset;
+		$spawnLocation = Location::fromObject(
 			$player->getEyePos(),
 			$player->getWorld(),
-			($location->yaw > 180 ? 360 : 0) - $location->yaw,
-			-$location->pitch
-		), $player, true);
-		$projectile->setMotion($player->getDirectionVector());
+			($yaw > 180 ? 360 : 0) - $yaw,
+			-$location->getPitch()
+		);
+
+		if($chargedItem instanceof FireworkRocketItem){
+			$firework = new FireworkRocketEntity(
+				$spawnLocation,
+				((($chargedItem->getFlightTimeMultiplier() + 1) * 10) + mt_rand(0, 12)),
+				$chargedItem->getExplosions()
+			);
+			$firework->setOwningEntity($player);
+			$firework->setMotion($this->getShotDirectionVector($location->getYaw() + $yawOffset, $location->getPitch()));
+			$firework->spawnToAll();
+			return true;
+		}
+
+		$projectile = new ArrowEntity($spawnLocation, $player, true);
+		$projectile->setMotion($this->getShotDirectionVector($location->getYaw() + $yawOffset, $location->getPitch()));
 
 		if(($punchLevel = $this->getEnchantmentLevel(VanillaEnchantments::PUNCH())) > 0){
 			$projectile->setPunchKnockback($punchLevel);
@@ -205,7 +270,7 @@ class Crossbow extends Tool implements Releasable{
 		$projectile = $ev->getProjectile();
 		if($ev->isCancelled()){
 			$projectile->flagForDespawn();
-			return ItemUseResult::FAIL;
+			return false;
 		}
 
 		if($projectile instanceof Projectile){
@@ -214,24 +279,22 @@ class Crossbow extends Tool implements Releasable{
 			$projectileEv->call();
 			if($projectileEv->isCancelled()){
 				$projectile->flagForDespawn();
-				return ItemUseResult::FAIL;
+				return false;
 			}
 
 			$projectile->spawnToAll();
-			$location->getWorld()->addSound($location, new CrossbowShootSound());
 		}else{
 			$projectile->spawnToAll();
 		}
 
-		$handItem = clone $player->getInventory()->getItemInHand();
-		if($handItem instanceof Crossbow){
-			$handItem->clearChargedProjectile();
-			if($player->hasFiniteResources()){
-				$handItem->applyDamage(3);
-			}
-			$player->getInventory()->setItemInHand($handItem);
-		}
+		return true;
+	}
 
-		return ItemUseResult::SUCCESS;
+	private function getShotDirectionVector(float $yaw, float $pitch) : Vector3{
+		$y = -sin(deg2rad($pitch));
+		$xz = cos(deg2rad($pitch));
+		$x = -$xz * sin(deg2rad($yaw));
+		$z = $xz * cos(deg2rad($yaw));
+		return (new Vector3($x, $y, $z))->normalize();
 	}
 }

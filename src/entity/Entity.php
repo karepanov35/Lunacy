@@ -547,10 +547,18 @@ abstract class Entity{
 		if($source->isCancelled()){
 			return;
 		}
+		if($this->blockDamage($source)){
+			$source->cancel();
+			return;
+		}
 
 		$this->setLastDamageCause($source);
 
 		$this->setHealth($this->getHealth() - $source->getFinalDamage());
+	}
+
+	protected function blockDamage(EntityDamageEvent $source) : bool{
+		return false;
 	}
 
 	public function heal(EntityRegainHealthEvent $source) : void{

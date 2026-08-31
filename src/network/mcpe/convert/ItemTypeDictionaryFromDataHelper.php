@@ -45,9 +45,11 @@ use function str_replace;
 final class ItemTypeDictionaryFromDataHelper{
 
 	private const PATHS = [
-		ProtocolVersionMapper::PROTOCOL_1_26_33 => "",
-		ProtocolInfo::PROTOCOL_1_26_20 => "-1.26.20",
+		ProtocolVersionMapper::PROTOCOL_1_26_44 => "",
 		ProtocolInfo::CURRENT_PROTOCOL => "",
+		ProtocolInfo::PROTOCOL_1_26_40 => "",
+		ProtocolInfo::PROTOCOL_1_26_30 => "-1.26.30",
+		ProtocolInfo::PROTOCOL_1_26_20 => "-1.26.20",
 		ProtocolInfo::PROTOCOL_1_26_10 => "-1.26.10",
 		ProtocolInfo::PROTOCOL_1_26_0 => "-1.26.0",
 		ProtocolInfo::PROTOCOL_1_21_130 => "-1.21.130",

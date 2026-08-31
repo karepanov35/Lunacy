@@ -29,6 +29,7 @@ use pocketmine\entity\Explosive;
 use pocketmine\entity\Living;
 use pocketmine\entity\Location;
 use pocketmine\entity\NeverSavedWithChunkEntity;
+use pocketmine\event\entity\EntityDamageByChildEntityEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\item\FireworkRocket as FireworkItem;
@@ -122,6 +123,12 @@ class FireworkRocket extends Entity implements Explosive, NeverSavedWithChunkEnt
 		$hasUpdate = parent::entityBaseTick($tickDiff);
 
 		if(!$this->isFlaggedForDespawn()){
+			if($this->isCollided || $this->isInsideOfSolid()){
+				$this->flagForDespawn();
+				$this->explode();
+				return $hasUpdate;
+			}
+
 			//Don't keep accelerating long-lived fireworks - this gets very rapidly out of control and makes the server
 			//die. Vanilla fireworks will only live for about 52 ticks maximum anyway, so this only makes sure plugin
 			//created fireworks don't murder the server
@@ -148,7 +155,7 @@ class FireworkRocket extends Entity implements Explosive, NeverSavedWithChunkEnt
 				}
 			}
 
-			$force = ($explosionCount * 2) + 5;
+			$force = ($explosionCount * 2) + 3;
 			$world = $this->getWorld();
 			foreach($world->getCollidingEntities($this->getBoundingBox()->expandedCopy(5, 5, 5), $this) as $entity){
 				if(!$entity instanceof Living){
@@ -174,7 +181,12 @@ class FireworkRocket extends Entity implements Explosive, NeverSavedWithChunkEnt
 
 					//no obstruction
 					$damage = $force * sqrt((5 - $position->distance($this->location)) / 5);
-					$ev = new EntityDamageByEntityEvent($this, $entity, EntityDamageEvent::CAUSE_ENTITY_EXPLOSION, $damage);
+					$owner = $this->getOwningEntity();
+					if($owner !== null){
+						$ev = new EntityDamageByChildEntityEvent($owner, $this, $entity, EntityDamageEvent::CAUSE_ENTITY_EXPLOSION, $damage);
+					}else{
+						$ev = new EntityDamageByEntityEvent($this, $entity, EntityDamageEvent::CAUSE_ENTITY_EXPLOSION, $damage);
+					}
 					$entity->attack($ev);
 					break;
 				}

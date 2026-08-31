@@ -137,6 +137,8 @@ abstract class Living extends Entity{
 
 	private ?int $frostWalkerLevel = null;
 
+	private ?float $lastGlideY = null;
+
 	protected function getInitialDragMultiplier() : float{ return 0.02; }
 
 	protected function getInitialGravity() : float{ return 0.08; }
@@ -381,7 +383,7 @@ abstract class Living extends Entity{
 	}
 
 	protected function calculateFallDamage(float $fallDistance) : float{
-		return ceil($fallDistance - 3 - (($jumpBoost = $this->effectManager->get(VanillaEffects::JUMP_BOOST())) !== null ? $jumpBoost->getEffectLevel() : 0));
+		return ceil($fallDistance - 3.3 - (($jumpBoost = $this->effectManager->get(VanillaEffects::JUMP_BOOST())) !== null ? $jumpBoost->getEffectLevel() : 0));
 	}
 
 	protected function onHitGround() : ?float{
@@ -392,6 +394,10 @@ abstract class Living extends Entity{
 			$fallBlock = $this->getWorld()->getBlock($fallBlockPos);
 		}
 		$newVerticalVelocity = $fallBlock->onEntityLand($this);
+
+		if($this->gliding){
+			$this->setGliding(false);
+		}
 
 		$damage = $this->calculateFallDamage($this->fallDistance);
 		if($damage > 0){
@@ -679,9 +685,28 @@ abstract class Living extends Entity{
 				$hasUpdate = true;
 			}
 
+			if($this->gliding){
+				if($this->lastGlideY !== null){
+					$descentSpeed = $this->lastGlideY - $this->location->y; //positive = moving downward
+					if($descentSpeed < 0.5){
+						$this->fallDistance = 1.0;
+					}
+				}
+				$this->lastGlideY = $this->location->y;
+			}else{
+				$this->lastGlideY = null;
+			}
+
 			if($this->isInsideOfSolid()){
 				$hasUpdate = true;
-				$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_SUFFOCATION, 1);
+				if($this->gliding && $this->isCollidedHorizontally){
+					$damage = max(1, (int) ceil(sqrt($this->motion->x ** 2 + $this->motion->z ** 2) * 2));
+					$this->setGliding(false);
+					$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_CONTACT, $damage);
+					$this->noDamageTicks = max($this->noDamageTicks, 20);
+				}else{
+					$ev = new EntityDamageEvent($this, EntityDamageEvent::CAUSE_SUFFOCATION, 1);
+				}
 				$this->attack($ev);
 			}
 
@@ -699,26 +724,26 @@ abstract class Living extends Entity{
 				}
 			}
 
-			// Elytra durability: 1 damage per second while gliding
-			if($this->gliding){
-				$chest = $this->armorInventory->getChestplate();
-				if($chest->getTypeId() === ItemTypeIds::ELYTRA && $chest instanceof Durable && !$chest->isBroken()){
-					if($this->ticksLived % 20 === 0){
-						$chest->applyDamage(1);
-						if($chest->isBroken()){
-							$this->armorInventory->setItem(ArmorInventory::SLOT_CHEST, VanillaItems::AIR());
-							$this->broadcastSound(new ItemBreakSound());
-						}else{
-							$this->armorInventory->setItem(ArmorInventory::SLOT_CHEST, $chest);
-						}
-						$hasUpdate = true;
-					}
-				}
-			}
 		}
 
 		if($this->attackTime > 0){
 			$this->attackTime -= $tickDiff;
+		}
+
+		if($this->gliding && !$this->isCreative()){
+			$chest = $this->armorInventory->getChestplate();
+			if($chest->getTypeId() === ItemTypeIds::ELYTRA && $chest instanceof Durable && !$chest->isBroken()){
+				if($this->ticksLived % 20 === 0){
+					$chest->applyDamage(1);
+					if($chest->isBroken()){
+						$this->armorInventory->setItem(ArmorInventory::SLOT_CHEST, VanillaItems::AIR());
+						$this->broadcastSound(new ItemBreakSound());
+					}else{
+						$this->armorInventory->setItem(ArmorInventory::SLOT_CHEST, $chest);
+					}
+					$hasUpdate = true;
+				}
+			}
 		}
 
 		Timings::$livingEntityBaseTick->stopTiming();

@@ -169,20 +169,15 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 	}
 
 	private function calculatePlacementFacing(Player $player, Block $blockReplace) : int{
-		$playerPos = $player->getLocation();
-		$blockPos = $blockReplace->getPosition();
-
-		if(abs($playerPos->getFloorX() - $blockPos->x) < 2 && abs($playerPos->getFloorZ() - $blockPos->z) < 2){
-			$eyeY = $playerPos->y + $player->getEyeHeight();
-			if($eyeY - $blockPos->y > 2){
-				return Facing::UP;
-			}
-			if($blockPos->y - $eyeY > 0){
-				return Facing::DOWN;
-			}
+		$pitch = $player->getLocation()->getPitch();
+		if($pitch <= -60.0){
+			return Facing::DOWN;
+		}
+		if($pitch >= 60.0){
+			return Facing::UP;
 		}
 
-		return Facing::opposite($player->getHorizontalFacing());
+		return $player->getHorizontalFacing();
 	}
 
 	private function checkState(PistonArm $arm, bool $powered) : bool{
@@ -219,7 +214,7 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 
 		if($calculator->canMove() && ($this->isSticky() || $extending)){
 			$attached = $calculator->getBlocksToMove();
-			if($extending && !$this->canPlaceHeadAfterPush($attached)){
+			if($extending && !$this->canPlaceHeadAfterPush($attached, $calculator->getBlocksToDestroy())){
 				return false;
 			}
 
@@ -247,8 +242,13 @@ abstract class PistonBase extends Opaque implements AnyFacing{
 		return true;
 	}
 
-	private function canPlaceHeadAfterPush(array $blocksToMove) : bool{
+	private function canPlaceHeadAfterPush(array $blocksToMove, array $blocksToDestroy) : bool{
 		$headPos = $this->position->getSide($this->getPushFacing());
+		foreach($blocksToDestroy as $pos){
+			if(PistonPushHelper::sameBlock($pos, $headPos)){
+				return true;
+			}
+		}
 		if($blocksToMove !== [] && PistonPushHelper::sameBlock($blocksToMove[0], $headPos)){
 			return true;
 		}

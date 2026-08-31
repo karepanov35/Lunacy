@@ -13,8 +13,9 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author Karepanov
+ * @author Karepanov, MaJiHoBou
  * @link https://github.com/karepanov35/Lunacy
+ * @link https://github.com/MaJiHoBou999/Lunacy
  *
  *
  */
@@ -49,7 +50,14 @@ use function json_decode;
 
 final class CraftingManagerFromDataHelper{
 
-	private static function deserializeIngredient(RecipeIngredientData $data) : ?RecipeIngredient{
+	private static function deserializeIngredient(object $data) : ?RecipeIngredient{
+		if(!$data instanceof RecipeIngredientData){
+			$ingredientData = new RecipeIngredientData();
+			foreach(get_object_vars($data) as $key => $value){
+				$ingredientData->$key = $value;
+			}
+			$data = $ingredientData;
+		}
 		if(isset($data->count) && $data->count !== 1){
 			//every case we've seen so far where this isn't the case, it's been a bug and the count was ignored anyway
 			//e.g. gold blocks crafted from 9 ingots, but each input item individually had a count of 9
@@ -322,7 +330,57 @@ final class CraftingManagerFromDataHelper{
 			));
 		}
 
-		//TODO: smithing
+		$smithingRecipes = json_decode(Filesystem::fileGetContents(Path::join($directoryPath, 'smithing.json')));
+		if(!is_array($smithingRecipes)){
+			throw new SavedDataLoadingException("smithing.json root should be an array");
+		}
+		foreach(Utils::promoteKeys($smithingRecipes) as $i => $recipe){
+			if(!is_object($recipe)){
+				throw new SavedDataLoadingException("Invalid smithing recipe at index $i: expected object");
+			}
+			if(($recipe->block ?? null) !== "smithing_table"){
+				continue;
+			}
+			$template = self::deserializeIngredient($recipe->template ?? throw new SavedDataLoadingException("Invalid smithing recipe at index $i: missing template"));
+			$input = self::deserializeIngredient($recipe->input ?? throw new SavedDataLoadingException("Invalid smithing recipe at index $i: missing input"));
+			$addition = self::deserializeIngredient($recipe->addition ?? throw new SavedDataLoadingException("Invalid smithing recipe at index $i: missing addition"));
+			$output = isset($recipe->output) && is_string($recipe->output) ?
+				self::deserializeItemStackFromFields($recipe->output, null, null, null, null, [], []) :
+				null;
+			if($template === null || $input === null || $addition === null || $output === null){
+				continue;
+			}
+			$result->registerSmithingTransformRecipe(new SmithingTransformRecipe(
+				$template,
+				$input,
+				$addition,
+				$output
+			));
+		}
+
+		$smithingTrimRecipes = json_decode(Filesystem::fileGetContents(Path::join($directoryPath, 'smithing_trim.json')));
+		if(!is_array($smithingTrimRecipes)){
+			throw new SavedDataLoadingException("smithing_trim.json root should be an array");
+		}
+		foreach(Utils::promoteKeys($smithingTrimRecipes) as $i => $recipe){
+			if(!is_object($recipe)){
+				throw new SavedDataLoadingException("Invalid smithing trim recipe at index $i: expected object");
+			}
+			if(($recipe->block ?? null) !== "smithing_table"){
+				continue;
+			}
+			$template = self::deserializeIngredient($recipe->template ?? throw new SavedDataLoadingException("Invalid smithing trim recipe at index $i: missing template"));
+			$input = self::deserializeIngredient($recipe->input ?? throw new SavedDataLoadingException("Invalid smithing trim recipe at index $i: missing input"));
+			$addition = self::deserializeIngredient($recipe->addition ?? throw new SavedDataLoadingException("Invalid smithing trim recipe at index $i: missing addition"));
+			if($template === null || $input === null || $addition === null){
+				continue;
+			}
+			$result->registerSmithingTrimRecipe(new SmithingTrimRecipe(
+				$template,
+				$input,
+				$addition
+			));
+		}
 
 		return $result;
 	}

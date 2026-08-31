@@ -142,6 +142,7 @@ final class PistonPushHelper{
 			BlockTypeIds::LIT_PUMPKIN,
 			BlockTypeIds::SNOW_LAYER,
 			BlockTypeIds::SHULKER_BOX,
+			BlockTypeIds::DYED_SHULKER_BOX,
 			BlockTypeIds::ITEM_FRAME,
 			BlockTypeIds::GLOWING_ITEM_FRAME,
 			BlockTypeIds::BANNER,
